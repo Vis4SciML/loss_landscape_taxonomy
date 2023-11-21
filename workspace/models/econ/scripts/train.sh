@@ -168,8 +168,8 @@ run_train() {
                 --top_models $top_models \
                 --experiment $i \
                 --max_epochs $max_epochs \
-                > >(tee -a $log_file) \
-                2> >(tee -a $error_file >&2) &
+                > >($log_file) \
+                2> >($error_file >&2) &
 
             pids+=($!)
         fi
