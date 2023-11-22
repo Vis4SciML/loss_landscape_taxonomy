@@ -140,16 +140,16 @@ run_train() {
             echo "Already computed!"
         else 
             # create directories to retrieve informations of the training process
-            log_folder="$saving_folder"log
-            log_file=$log_folder"/log_"$size"_"$i".txt"
+            # log_folder="$saving_folder"log
+            # log_file=$log_folder"/log_"$size"_"$i".txt"
 
-            error_folder="$saving_folder"error
-            error_file=$error_folder"/err_"$size"_"$i".txt"
+            # error_folder="$saving_folder"error
+            # error_file=$error_folder"/err_"$size"_"$i".txt"
 
-            mkdir -p $log_folder
-            touch $log_file
-            mkdir -p $error_folder
-            touch $error_file
+            # mkdir -p $log_folder
+            # touch $log_file
+            # mkdir -p $error_folder
+            # touch $error_file
 
             # training of the model
             python code/train.py \
