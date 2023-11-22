@@ -1,76 +1,186 @@
+"""
+  todo: move QModel to common 
+"""
+import re 
 import torch
-from models.jet_tagger.jt_q_three_layer import get_quantized_jettagger 
-from models.jet_tagger.jt_three_layer import get_jettagger 
-from models.mlperf.rn07 import get_rn07
-import re
+import torch.nn as nn
+import pytorch_lightning as pl
+from torchmetrics import Accuracy
+import torchinfo
+from hawq.utils import QuantAct, QuantLinear
 
 
-input_shapes = {
-    "JT": (1,16),
-    "RN07": (1,3,32,32),
-}
+"""
+==========================================================================================
+Layer (type:depth-idx)                   Output Shape              Param #
+==========================================================================================
+JetTagger                                [1, 5]                    --
+├─ThreeLayer: 1-1                        [1, 5]                    --
+│    └─Linear: 2-1                       [1, 64]                   1,088
+│    └─ReLU: 2-2                         [1, 64]                   --
+│    └─Linear: 2-3                       [1, 32]                   2,080
+│    └─ReLU: 2-4                         [1, 32]                   --
+│    └─Linear: 2-5                       [1, 32]                   1,056
+│    └─ReLU: 2-6                         [1, 32]                   --
+│    └─Linear: 2-7                       [1, 5]                    165
+│    └─Softmax: 2-8                      [1, 5]                    --
+==========================================================================================
+Total params: 4,389
+Trainable params: 4,389
+Non-trainable params: 0
+Total mult-adds (M): 0.00
+==========================================================================================
+Input size (MB): 0.00
+Forward/backward pass size (MB): 0.00
+Params size (MB): 0.02
+Estimated Total Size (MB): 0.02
+==========================================================================================
+"""
 
-def get_new_model(args):
-    model_arch = args.arch.split('_')[0]
-    if model_arch == 'RN07':
-        return get_rn07(args)
-    if args.weight_precision is 32:
-        print("using FP32 model")
-        model = get_jettagger(args)#.cuda()
-    else:
-        print("using quant model")
-        model = get_quantized_jettagger(args)#.cuda()
-    return model
+
+####################################################
+# Base Model for Quantization 
+####################################################
+class QModel(nn.Module):
+    def __init__(self, weight_precision, bias_precision):
+        super().__init__()
+        self.weight_precision = weight_precision
+        self.bias_precision = bias_precision
+
+    def init_dense(self, model, name):
+        layer = getattr(model, name)
+        quant_layer = QuantLinear(
+            weight_bit=self.weight_precision, bias_bit=self.bias_precision
+        )
+        quant_layer.set_param(layer)
+        setattr(self, name, quant_layer)
 
 
-class ArgFake:
-    def __init__(self, w=32, b=32, a=32, bn=False, d=False, arch='JT'):
-        self.weight_precision = w
-        self.bias_precision = b
-        self.act_precision = a
-        self.batch_norm = bn
-        self.dropout = d
-        self.arch = arch
+####################################################
+# MLP Jet-Tagger
+####################################################
+class ThreeLayer(nn.Module):
+    def __init__(self):
+        super(ThreeLayer, self).__init__()
 
-def update_fc_size(model, ckp, dense_layers=['dense_1', 'dense_2', 'dense_3', 'dense_4']):
-    for dl in dense_layers:
-        layer = getattr(model, dl)
-        ckp[f"{dl}.fc_scaling_factor"] = torch.ones(layer.fc_scaling_factor.shape) * ckp[f"{dl}.fc_scaling_factor"]
-    return ckp
+        self.dense_1 = nn.Linear(16, 64)
+        self.dense_2 = nn.Linear(64, 32)
+        self.dense_3 = nn.Linear(32, 32)
+        self.dense_4 = nn.Linear(32, 5)
 
-def load_checkpoint(args, file_name): 
-   # checkpoint = torch.load(file_name)
+        self.act = nn.ReLU()
+        self.softmax = nn.Softmax(1)
+
+    def forward(self, x):
+        x = self.act(self.dense_1(x))
+        x = self.act(self.dense_2(x))
+        x = self.act(self.dense_3(x))
+        return self.softmax(self.dense_4(x))
+
+
+####################################################
+# MLP Jet-Tagginer
+####################################################
+class QThreeLayer(QModel):
+    def __init__(self, model, weight_precision=6, bias_precision=6, act_precision=6):
+        super(QThreeLayer, self).__init__(weight_precision, bias_precision)
+
+        self.quant_input = QuantAct(act_precision)
+        
+        self.init_dense(model, "dense_1")
+        self.quant_act_1 = QuantAct(act_precision)
+
+        self.init_dense(model, "dense_2")
+        self.quant_act_2 = QuantAct(act_precision)
+
+        self.init_dense(model, "dense_3")
+        self.quant_act_3 = QuantAct(act_precision)
+
+        self.init_dense(model, "dense_4")
+
+        self.act = nn.ReLU()
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, x):
+        x, act_scaling_factor = self.quant_input(x)
+        
+        x = self.act(self.dense_1(x, act_scaling_factor))
+        x, act_scaling_factor = self.quant_act_1(x, act_scaling_factor)
+        
+        x = self.act(self.dense_2(x, act_scaling_factor))
+        x, act_scaling_factor = self.quant_act_2(x, act_scaling_factor)
+        
+        x = self.act(self.dense_3(x, act_scaling_factor))
+        x, act_scaling_factor = self.quant_act_3(x, act_scaling_factor)
+        
+        x = self.dense_4(x, act_scaling_factor)
+        x = self.softmax(x)
+        return x
+
+
+####################################################
+# JetTagging Model 
+####################################################
+class JetTagger(pl.LightningModule):
+  def __init__(self, quantize, precision, learning_rate, *args, **kwargs) -> None:
+    super().__init__()
+
+    self.input_shape = (2, 16) 
+    self.quantize = quantize
+    self.learning_rate = learning_rate
+    self.loss = nn.BCELoss()
+    # self.loss = nn.CrossEntropyLoss()
+    self.accuracy = Accuracy(task="multiclass", num_classes=5)
+
+    self.model = ThreeLayer()
+    if self.quantize:
+      print('Loading quantized model with bitwidth', precision[0])
+      self.model = QThreeLayer(self.model, precision[0], precision[1], precision[2])
+    
+  def forward(self, x):
+    return self.model(x)
+  
+  def training_step(self, batch, batch_idx):
+    x, y, = batch 
+    y_hat = self.model(x)
+    loss = self.loss(y_hat, y)
+    return loss
+
+  def validation_step(self, batch, batch_idx):
+    x, y, = batch 
+    y_hat = self.model(x)
+    val_loss = self.loss(y_hat, y)
+    val_acc = self.accuracy(y_hat, torch.argmax(y, axis=1))
+    self.log('val_acc', val_acc)
+    self.log('val_loss', val_loss)
+
+  def test_step(self, batch, batch_idx):
+    x, y, = batch 
+    y_hat = self.model(x)
+    test_loss = self.loss(y_hat, y)
+    test_acc = self.accuracy(y_hat, torch.argmax(y, axis=1))
+    self.log('test_loss', test_loss)
+    self.log('test_acc', test_acc)
+  
+  def configure_optimizers(self):
+    optimizer = torch.optim.Adam(self.model.parameters(), self.learning_rate)
+    return optimizer
+
+
+####################################################
+# Helper functions
+####################################################
+def load_checkpoint(args, checkpoint_filename): 
+   # quantization scheme 
    model_arch = args.arch.split('_')[0]
-   result = re.search(f'{model_arch}_(.*)b', args.arch)
-   quant = int(result.group(1))
-   fake = ArgFake(w=quant,b=quant,a=quant+3, arch=model_arch)
-   model = get_new_model(fake)
+   bitwidth_str = re.search(f'{model_arch}_(.*)b', args.arch)
+   bitwidth = int(bitwidth_str.group(1))
+
+   model = JetTagger([bitwidth, bitwidth, int(bitwidth+3)])
+   torchinfo.summary(model, (1, 16))
    
-   checkpoint = torch.load(file_name, map_location=torch.device("cpu"))
-   model(torch.randn(input_shapes[model_arch]))
-   model.load_state_dict(checkpoint)
+   # Load checkpoint 
+   print('Loading checkpoint...', checkpoint_filename)
+   checkpoint = torch.load(checkpoint_filename)
+   model.load_state_dict(checkpoint['state_dict'])  # strict=False
    return model
-
-#    if quant is 32:
-#         model.load_state_dict(checkpoint)
-#         #model.train()
-#         return model
-
-#     #set_bit_config(model, checkpoint["bit_config"], args)
-#     model = get_new_model(fake)
-#     #checkpoint = checkpoint["state_dict"]
-#     model_dict = model.state_dict()
-#     modified_dict = {}
-    
-#     updated_ckp = update_fc_size(model, checkpoint)   
-    
-#     for key, value in checkpoint.items():
-#         if model_dict[key].shape != value.shape:
-#             print(f"mismatch: {key}: {value}")
-#             value = torch.tensor([value], dtype=torch.float64)
-#         modified_dict[key] = value
-    
-#     model.load_state_dict(modified_dict, strict=False)
-    
-    
-    # return model

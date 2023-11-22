@@ -168,7 +168,7 @@ run_train() {
                 --top_models $top_models \
                 --experiment $i \
                 --max_epochs $max_epochs \
-                >/dev/null &
+                >/dev/null 2>&1 &
 
             pids+=($!)
         fi
@@ -223,4 +223,4 @@ exit 0
 # return
 # END DEBUG
 
-# . scripts/train.sh --num_workers 8 --bs 1024 --lr 0.0125 --max_epochs 25 --size small --top_models 3 --num_test 3 
+# . scripts/train.sh --num_workers 8 --bs 16 --lr 0.1 --max_epochs 25 --size small --top_models 3 --num_test 3 
