@@ -284,14 +284,14 @@ class AutoEncoder(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x = batch
         x_hat = self(x)
-        loss = self.loss(x, x_hat, self.device)
+        loss = self.loss(x, x_hat)
         self.log("train_loss", loss, on_epoch=True, prog_bar=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         x = batch
         x_hat = self(x)
-        loss = self.loss(x, x_hat, self.device)
+        loss = self.loss(x, x_hat)
         self.log("val_loss", loss, on_epoch=True, prog_bar=True)
         return loss
     

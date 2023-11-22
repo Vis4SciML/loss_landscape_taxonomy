@@ -167,14 +167,14 @@ for i in range(48):
     remap_8x8_matrix[remap_8x8[i], i] = 1
         
 
-def telescopeMSE2(y_true, y_pred, device):
+def telescopeMSE2(y_true, y_pred):
     global Remap_48_36, Remap_48_12, Remap_12_3, Weights_48_36
     
     # set the right device coming from PyTorch Lightning
-    Remap_48_36 = Remap_48_36.to(device)
-    Remap_48_12 = Remap_48_12.to(device)
-    Remap_12_3 = Remap_12_3.to(device)
-    Weights_48_36 = Weights_48_36.to(device)
+    Remap_48_36 = Remap_48_36.to(y_true.device)
+    Remap_48_12 = Remap_48_12.to(y_true.device)
+    Remap_12_3 = Remap_12_3.to(y_true.device)
+    Weights_48_36 = Weights_48_36.to(y_true.device)
     # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     y_true = y_true.to(dtype=y_pred.dtype)
 
@@ -187,8 +187,8 @@ def telescopeMSE2(y_true, y_pred, device):
     )
     
     # map TCs to 2x2 supercells and compute MSE
-    y_pred_36 = torch.matmul(y_pred_rs, Remap_48_36) # .to(device)
-    y_true_36 = torch.matmul(y_true_rs, Remap_48_36) # .to(device)
+    y_pred_36 = torch.matmul(y_pred_rs, Remap_48_36)
+    y_true_36 = torch.matmul(y_true_rs, Remap_48_36)
     loss_tc2 = torch.mean( # 
         torch.square(y_true_36 - y_pred_36)
         * torch.maximum(y_pred_36, y_true_36)
@@ -208,12 +208,13 @@ def telescopeMSE2(y_true, y_pred, device):
     return 4 * loss_tc1.mean() + 2 * loss_tc2.mean() + loss_tc3.mean()
 
 
-def telescopeMSE8x8(y_true, y_pred, device):
+def telescopeMSE8x8(y_true, y_pred):
+    # check the device for CUDA devices
+    assert y_true.device == y_pred.device, "Error: Both tensors should be on the same device!"
     y_true = y_true.to(dtype=y_pred.dtype)
     return telescopeMSE2(
         torch.matmul(torch.reshape(y_true, (-1, 64)), remap_8x8_matrix.to(y_true)),
-        torch.matmul(torch.reshape(y_pred, (-1, 64)), remap_8x8_matrix.to(device)),
-        device
-    )
+        torch.matmul(torch.reshape(y_pred, (-1, 64)), remap_8x8_matrix.to(y_true))    
+        )
     
     

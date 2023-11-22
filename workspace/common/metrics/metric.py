@@ -17,11 +17,14 @@ class Metric:
         f = open(os.path.join(path, self.name + ".pkl"), "wb")
         pickle.dump({self.name: self.results}, f)
         f.close()
+        print('Complete')
         
     def load_from_file(self, path="./"):
         print('Loading the result...')
         f = open(os.path.join(path, self.name + ".pkl"), "rb")
         data = pickle.load(f)
         f.close()
+        self.result = data[self.name]  
+        print('Loading complete')
         
-        print(data)        
+        return self.result

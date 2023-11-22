@@ -36,5 +36,3 @@ class Gradient(Metric):
         return self.results
         
         
-if __name__ == '__main__':
-    metric = Gradient()
