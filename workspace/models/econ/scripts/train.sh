@@ -223,4 +223,20 @@ exit 0
 # return
 # END DEBUG
 
-# . scripts/train.sh --num_workers 8 --bs 16 --lr 0.1 --max_epochs 25 --size small --top_models 3 --num_test 3 
+# . scripts/train.sh --num_workers 8 --bs 1024 --lr 0.025 --max_epochs 25 --size small --top_models 3 --num_test 3 
+
+# python code/train.py \
+#                 --saving_folder "/loss_landscape/checkpoint/different_knobs_subset_10" \
+#                 --data_dir "../../../data/ECON/Elegun" \
+#                 --data_file "../../../data/ECON/Elegun/nELinks5.npy" \
+#                 --batch_size 1024 \
+#                 --num_workers 8 \
+#                 --accelerator auto \
+#                 --weight_precision 2 \
+#                 --bias_precision 2 \
+#                 --act_precision 5   \
+#                 --lr 0.025 \
+#                 --size small \
+#                 --top_models 3 \
+#                 --experiment 2 \
+#                 --max_epochs 25 

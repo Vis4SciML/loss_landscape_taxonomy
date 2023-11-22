@@ -12,12 +12,16 @@ class Metric:
         self.name = name
         self.results = None
     
-    
     def save_on_file(self, path="./"):
-        print('Storing the result')
-        print(self.results)
+        print('Storing the result...')
         f = open(os.path.join(path, self.name + ".pkl"), "wb")
-        pickle.dump(self.results, f)
+        pickle.dump({self.name: self.results}, f)
         f.close()
         
+    def load_from_file(self, path="./"):
+        print('Loading the result...')
+        f = open(os.path.join(path, self.name + ".pkl"), "rb")
+        data = pickle.load(f)
+        f.close()
         
+        print(data)        

@@ -18,7 +18,8 @@ class Gradient(Metric):
         gradient_traces = []
         for _, param in self.model.encoder.named_parameters():
             if param.requires_grad and type(param.grad) == torch.Tensor:
-                gradient_traces.append(param.grad.mean())
+                # print(param.grad.mean().item, type(param.grad))
+                gradient_traces.append(param.grad.mean().cpu().item())
         return np.array(gradient_traces).mean()
         
     def compute(self):
