@@ -136,11 +136,11 @@ spec:
                     limits:
                         nvidia.com/gpu: "1"
                         memory: "128G"
-                        cpu: "16"
+                        cpu: "32"
                     requests:
                         nvidia.com/gpu: "1"
                         memory: "128G"
-                        cpu: "16"
+                        cpu: "32"
             restartPolicy: Never
             volumes:
                   - name: loss-landscape-volume
