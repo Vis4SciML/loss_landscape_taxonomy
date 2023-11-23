@@ -179,12 +179,8 @@ run_train() {
     # Wait for all background processes to finish
     for pid in "${pids[@]}"; do
         wait $pid
-        # check if the PID training terminate correctly
-        if [ $? -eq 0 ]; then
-            echo "Process with PID $script_pid executed successfully"
-        else
-            echo "Process with PID $script_pid failed with exit code $?"
-        fi
+        current_date_time=$(date '+%Y-%m-%d %H:%M:%S')
+        echo "$current_date_time: Process with PID $pid finished"
     done
 }
 
