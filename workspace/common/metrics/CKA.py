@@ -22,32 +22,11 @@ class CKA(Metric):
         super().__init__(model, data_loader, name)
         self.activation_layers = activation_layers
         self.results = {}   # there will be different values
-    
-    
-    """Compute Gram (kernel) matrix for a linear kernel.
-    Args:
-        x: A num_examples x num_features matrix of features.
-    Returns:
-        A num_examples x num_examples Gram matrix of examples.
-    """
-    def _gram_linear(self, x):
-        return x.dot(x.T)
-        
-    """Compute Gram (kernel) matrix for a linear kernel.
-    Args:
-        x: A num_examples x num_features matrix of features.
-    Returns:
-        A num_examples x num_examples Gram matrix of examples.
-    """
-    def _gram_linear(self, x):
-        return x.dot(x.T)
         
     def lin_cka_dist(self, A, B):
         """
         Computes Linear CKA distance bewteen representations A and B
         """
-        print(type(A), A.shape)
-        print(type(B), B.shape)
         # center each row
         A = A - A.mean(axis=1, keepdims=True)
         B = B - B.mean(axis=1, keepdims=True)
@@ -56,13 +35,12 @@ class CKA(Metric):
         # normalize each representation
         A = A / np.linalg.norm(A, ord="fro")
         B = B / np.linalg.norm(B, ord="fro")
-        
-        print(A)
-        
+                
         similarity = np.linalg.norm(B @ A.T, ord="fro") ** 2
         normalization = np.linalg.norm(A @ A.T, ord="fro") * \
                         np.linalg.norm(B @ B.T, ord="fro")
         return 1 - similarity / normalization
+
     
     def lin_cka_prime_dist(self, A, B):
         """
@@ -104,7 +82,6 @@ class CKA(Metric):
 
         # remove possible tuples and none among the layers
         for name, feature in features.items():
-            print(name)
             if feature is None:
                 warnings.warn(f"Attention: the layer {name} has None features!")
             elif isinstance(feature, tuple):
@@ -130,10 +107,14 @@ class CKA(Metric):
             X = X.reshape(X.shape[0], -1)
             for col, Y in enumerate(features_per_layer.values()):
                 Y = Y.reshape(Y.shape[0], -1)
+                
                 cka_matrix[row, col] = self.lin_cka_prime_dist(X, Y)
+                if cka_matrix[row, col] < 0 or cka_matrix[row, col] > 1:
+                    warnings.warn(f"Warning: CKA has a negative value {cka_matrix[row, col]}")
+                
+        print(cka_matrix)
                 
         self.results = {'cka_dist': cka_matrix}
-        
         return self.results
     
     '''
@@ -143,7 +124,6 @@ class CKA(Metric):
         features_per_layer1 = self._extract_features_from_model(self.model, 
                                                                 self.data_loader,
                                                                 self.activation_layers)
-        
         features_per_layer2 = self._extract_features_from_model(model, 
                                                                 data_loader,
                                                                 activation_layers)
@@ -154,8 +134,12 @@ class CKA(Metric):
             X = X.reshape(X.shape[0], -1)
             for col, Y in enumerate(features_per_layer2.values()):
                 Y = Y.reshape(Y.shape[0], -1)
-                cka_matrix[row, col] = self.lin_cka_prime_dist(X, Y)
                 
+                cka_matrix[row, col] = self.lin_cka_prime_dist(X, Y)
+                if cka_matrix[row, col] < 0 or cka_matrix[row, col] > 1:
+                    warnings.warn("Warning: CKA has a negative value:", {cka_matrix[row, col]})
+                
+        print(cka_matrix)
+
         self.results = {'cka_dist': cka_matrix}
-        
         return self.results

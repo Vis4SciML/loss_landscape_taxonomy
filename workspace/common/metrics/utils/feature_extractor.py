@@ -13,7 +13,6 @@ class FeatureExtractor(nn.Module):
         super(FeatureExtractor, self).__init__()
         self.model = model
         self.target_layers = target_layers
-        print(target_layers)
         self.features = OrderedDict()
 
         # Register hooks for target layers
