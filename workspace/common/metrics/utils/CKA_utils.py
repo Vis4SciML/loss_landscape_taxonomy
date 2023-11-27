@@ -13,6 +13,8 @@ from utils import *
 softmax1 = nn.Softmax()
 # softmax1 = nn.Softmax().cuda()
 
+
+# TODO: ask Javi why it should be similar to CKA
 def compare_classification(model1, model2, eval_loader, args=None, cos=None):
     # set both models in evaluation mode 
     model1.eval()

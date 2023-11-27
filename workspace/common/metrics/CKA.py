@@ -8,87 +8,93 @@ from __future__ import print_function
 
 import os 
 import sys
+import warnings
 from metric import Metric
+from utils.feature_extractor import FeatureExtractor
 
 import numpy as np
 import pickle
 import torch.nn as nn
 import torch.nn.functional as F
 
-from workspace.common.metrics.utils.CKA_utils import *
+from utils.CKA_utils import *
 
 # Get data
-train_loader, test_loader = get_loader(args)
+# train_loader, test_loader = get_loader(args)
 
-# init the structure to store the performances
-representation_similarity = {}
-classification_similarity = {}
-cos = nn.CosineSimilarity(dim=0)
+# # init the structure to store the performances
+# representation_similarity = {}
+# classification_similarity = {}
+# cos = nn.CosineSimilarity(dim=0)
 
-# we do it 3 times
-for exp_id1 in range(3):
+# # we do it 3 times
+# for exp_id1 in range(3):
     
-    representation_similarity[exp_id1] = {}
-    classification_similarity[exp_id1] = {}
+#     representation_similarity[exp_id1] = {}
+#     classification_similarity[exp_id1] = {}
     
-    for exp_id2 in range(3):
-        # get the file name of two checkpoints 
-        file_name1, file_name2 = return_file_name(args, exp_id1, exp_id2)
+#     for exp_id2 in range(3):
+#         # get the file name of two checkpoints 
+#         file_name1, file_name2 = return_file_name(args, exp_id1, exp_id2)
         
-        # load the models
-        model1 = load_checkpoint(args, file_name1)
-        model2 = load_checkpoint(args, file_name2)
+#         # load the models
+#         model1 = load_checkpoint(args, file_name1)
+#         model2 = load_checkpoint(args, file_name2)
         
-        # pick the dataset on which evaluate the CKA metric
-        if args.train_or_test == "train":
-            eval_loader = train_loader
-        elif args.train_or_test == "test":
-            eval_loader = test_loader
-        else:
-            raise ValueError('Invalid input.')
+#         # pick the dataset on which evaluate the CKA metric
+#         if args.train_or_test == "train":
+#             eval_loader = train_loader
+#         elif args.train_or_test == "test":
+#             eval_loader = test_loader
+#         else:
+#             raise ValueError('Invalid input.')
         
-        if not args.compare_classification:
-            # do not compare the classification
+#         if not args.compare_classification:
+#             # do not compare the classification
             
-            cka_from_features_average = []
+#             cka_from_features_average = []
             
-            # as many times as designed for CKA
-            for CKA_repeat_runs in range(args.CKA_repeat_runs):
+#             # as many times as designed for CKA
+#             for CKA_repeat_runs in range(args.CKA_repeat_runs):
 
-                cka_from_features = []
+#                 cka_from_features = []
 
-                latent_all_1, latent_all_2 = all_latent(model1, model2, eval_loader, num_batches=args.CKA_batches, args=args)
+#                 latent_all_1, latent_all_2 = all_latent(model1, model2, eval_loader, num_batches=args.CKA_batches, args=args)
 
-                for name in latent_all_1.keys():
+#                 for name in latent_all_1.keys():
 
-                    print(name)
+#                     print(name)
 
-                    if args.flattenHW:
-                        cka_from_features.append(feature_space_linear_cka(latent_all_1[name], latent_all_2[name]))
-                    else:
-                        cka_from_features.append(cka_compute(gram_linear(latent_all_1[name]), gram_linear(latent_all_2[name])))
+#                     if args.flattenHW:
+#                         cka_from_features.append(feature_space_linear_cka(latent_all_1[name], latent_all_2[name]))
+#                     else:
+#                         cka_from_features.append(cka_compute(gram_linear(latent_all_1[name]), gram_linear(latent_all_2[name])))
                         
-                cka_from_features_average.append(cka_from_features)
+#                 cka_from_features_average.append(cka_from_features)
                 
-            # compute the average of n CKA computations
-            cka_from_features_average = np.mean(np.array(cka_from_features_average), axis=0)
+#             # compute the average of n CKA computations
+#             cka_from_features_average = np.mean(np.array(cka_from_features_average), axis=0)
             
-            print('cka_from_features shape')
-            print(cka_from_features_average.shape)
+#             print('cka_from_features shape')
+#             print(cka_from_features_average.shape)
 
-            representation_similarity[exp_id1][exp_id2] = cka_from_features_average
+#             representation_similarity[exp_id1][exp_id2] = cka_from_features_average
         
-        else:
-            # compare the classification
-            classification_similarity[exp_id1][exp_id2] = compare_classification(model1, model2, eval_loader, args=args, cos=cos)
+#         else:
+#             # compare the classification
+#             classification_similarity[exp_id1][exp_id2] = compare_classification(model1, model2, eval_loader, args=args, cos=cos)
         
-        temp_results = {'representation_similarity': representation_similarity, 'classification_similarity': classification_similarity}
+#         temp_results = {'representation_similarity': representation_similarity, 'classification_similarity': classification_similarity}
         
-        # save the results on file
-        f = open(args.result_location, "wb")
-        pickle.dump(temp_results, f)
-        f.close()
+#         # save the results on file
+#         f = open(args.result_location, "wb")
+#         pickle.dump(temp_results, f)
+#         f.close()
         
+        
+# ---------------------------------------------------------------------------- #
+#                                CKA similarity                                #
+# ---------------------------------------------------------------------------- #
         
 class CKA(Metric):
     def __init__(self, model=None, data_loader=None, name="CKA_similarity", loss=None):
@@ -158,18 +164,19 @@ class CKA(Metric):
         return gram
     
     """Helper for computing debiased dot product similarity (i.e. linear HSIC)."""
-    def _debiased_dot_product_similarity_helper(xty, 
+    def _debiased_dot_product_similarity_helper(self,
+                                                xty, 
                                                 sum_squared_rows_x, 
                                                 sum_squared_rows_y, 
                                                 squared_norm_x, 
                                                 squared_norm_y,
-    n):
-  
-  # This formula can be derived by manipulating the unbiased estimator from
-  # Song et al. (2007).
-  return (
-      xty - n / (n - 2.) * sum_squared_rows_x.dot(sum_squared_rows_y)
-      + squared_norm_x * squared_norm_y / ((n - 1) * (n - 2)))
+                                                n):
+        # This formula can be derived by manipulating the unbiased estimator from
+        # Song et al. (2007).
+        return (
+            xty - n / (n - 2.) * sum_squared_rows_x.dot(sum_squared_rows_y)
+            + squared_norm_x * squared_norm_y / ((n - 1) * (n - 2))
+            )
 
         
     """
@@ -194,11 +201,93 @@ class CKA(Metric):
         normalization_y = np.linalg.norm(gram_y)
         return scaled_hsic / (normalization_x * normalization_y)
         
-    def feature_space_linear_cka(self, gram_X, gram_Y, debiased=True):
+    """
+    Compute CKA with a linear kernel, in feature space.
+    This is typically faster than computing the Gram matrix when there are fewer
+    features than examples.
+    Args:
+        features_x: A num_examples x num_features matrix of features.
+        features_y: A num_examples x num_features matrix of features.
+        debiased: Use unbiased estimator of dot product similarity. CKA may still be
+        biased. Note that this estimator may be negative.
+    Returns:
+        The value of CKA between X and Y.
+    """
+    def feature_space_linear_cka(self, features_x, features_y, debiased=True):
+        features_x = features_x - np.mean(features_x, 0, keepdims=True)
+        features_y = features_y - np.mean(features_y, 0, keepdims=True)
+
+        dot_product_similarity = np.linalg.norm(features_x.T.dot(features_y)) ** 2
+        normalization_x = np.linalg.norm(features_x.T.dot(features_x))
+        normalization_y = np.linalg.norm(features_y.T.dot(features_y))
+
+        if debiased:
+            n = features_x.shape[0]
+            # Equivalent to np.sum(features_x ** 2, 1) but avoids an intermediate array.
+            sum_squared_rows_x = np.einsum('ij,ij->i', features_x, features_x)
+            sum_squared_rows_y = np.einsum('ij,ij->i', features_y, features_y)
+            squared_norm_x = np.sum(sum_squared_rows_x)
+            squared_norm_y = np.sum(sum_squared_rows_y)
+
+            dot_product_similarity = self._debiased_dot_product_similarity_helper(
+                dot_product_similarity, sum_squared_rows_x, sum_squared_rows_y,
+                squared_norm_x, squared_norm_y, n
+            )
+            normalization_x = np.sqrt(self._debiased_dot_product_similarity_helper(
+                normalization_x ** 2, sum_squared_rows_x, sum_squared_rows_x,
+                squared_norm_x, squared_norm_x, n)
+            )
+            normalization_y = np.sqrt(self._debiased_dot_product_similarity_helper(
+                normalization_y ** 2, sum_squared_rows_y, sum_squared_rows_y,
+                squared_norm_y, squared_norm_y, n)
+        )
+
+        return dot_product_similarity / (normalization_x * normalization_y)
         
+    '''
+    Utility methods used to extract the feature from each layer of the model.
+    those features will be used to compute the CKA similarity temperature map.
+    '''
+    def _extract_features_from_model(self, target_model, data_loader):
+        # do not train the network
+        target_model.eval()
+        # wrap the model with the feature extractor class
+        feature_extractor = FeatureExtractor(target_model)
+        # iterate over the the samples of the data_loader
+        for batch in data_loader:
+            features = feature_extractor.forward(batch)
+
+        # flat possible tuples of tensors only in tensors
+        # flattened_features = [item if isinstance(item, torch.Tensor) else item for sublist in array_of_tensors for item in sublist]
+        layers = []
+        for name, features in feature_extractor.features.items():
+            if features is None:
+                warnings.warn(f"Attention: the layer {name} has None features!")
+            elif isinstance(features, tuple):
+                for tensor in features:
+                    layers.append(tensor.detach().numpy())
+            else:
+                layers.append(features.detach().numpy())
+        return layers
         
+    '''
+    Compute the CKA similarity among the layers of the same model.
+    '''
     def compute(self):
         print("Computing the CKA similarity...")
+        # get the features of each layer
+        features_per_layer = self._extract_features_from_model(self.model, self.data_loader)
+        cka_matrix = np.zeros((len(features_per_layer), len(features_per_layer)))
         
+        for row, X in enumerate(features_per_layer):
+            for col, Y in enumerate(features_per_layer):
+                cka_matrix[row, col] = self.feature_space_linear_cka(X, Y)
+                
+        print(cka_matrix)
         
         return self.results
+    
+    '''
+    Compare two models with the CKA similarity'''
+    def compare(self, model):
+        pass
