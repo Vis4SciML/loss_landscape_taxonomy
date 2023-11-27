@@ -9,15 +9,18 @@ It use the hooks of pytTorch to wrap the model and the get
 the features.
 '''
 class FeatureExtractor(nn.Module):
-    def __init__(self, model):
+    def __init__(self, model, target_layers=[]):
         super(FeatureExtractor, self).__init__()
         self.model = model
+        self.target_layers = target_layers
+        print(target_layers)
         self.features = OrderedDict()
 
         # Register hooks for target layers
         for name, layer in self.model.named_modules():
-            self.features[name] = None
-            layer.register_forward_hook(self._hook_fn(name))
+            if name in self.target_layers:
+                self.features[name] = None
+                layer.register_forward_hook(self._hook_fn(name))
 
     def _hook_fn(self, name):
         def hook(module, input, output):
