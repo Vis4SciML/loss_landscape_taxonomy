@@ -11,6 +11,7 @@ from metric import Metric
 from utils.feature_extractor import FeatureExtractor
 
 import numpy as np
+import pandas as pd
 
 
 # ---------------------------------------------------------------------------- #
@@ -25,16 +26,22 @@ class CKA(Metric):
         
     def lin_cka_dist(self, A, B):
         """
-        Computes Linear CKA distance bewteen representations A and B
+        Computes Linear CKA distance between representations A and B
         """
-        # center each row
-        A = A - A.mean(axis=1, keepdims=True)
-        B = B - B.mean(axis=1, keepdims=True)
-        
-
-        # normalize each representation
-        A = A / np.linalg.norm(A, ord="fro")
-        B = B / np.linalg.norm(B, ord="fro")
+        # check if the matrix contains only zeros
+        if np.any(A):
+            # center each row
+            A = A - A.mean(axis=1, keepdims=True)
+            # normalize each representation
+            A = A / np.linalg.norm(A, ord="fro")
+        else:
+            warnings.warn("Warning: matrix A contains only zeros!")
+            
+        if np.any(B):
+            B = B - B.mean(axis=1, keepdims=True)
+            B = B / np.linalg.norm(B, ord="fro")
+        else:
+            warnings.warn("Warning: matrix B contains only zeros!")
                 
         similarity = np.linalg.norm(B @ A.T, ord="fro") ** 2
         normalization = np.linalg.norm(A @ A.T, ord="fro") * \
@@ -44,17 +51,25 @@ class CKA(Metric):
     
     def lin_cka_prime_dist(self, A, B):
         """
-        Computes Linear CKA prime distance bewteen representations A and B
+        Computes Linear CKA prime distance between representations A and B
         The version here is suited to a, b >> n
         """
-        # center each row
-        A = A - A.mean(axis=1, keepdims=True)
-        B = B - B.mean(axis=1, keepdims=True)
-
-        # normalize each representation
-        A = A / np.linalg.norm(A, ord="fro")
-        B = B / np.linalg.norm(B, ord="fro")
-
+        # check if the matrix contains only zeros
+        if np.any(A):
+            # center each row
+            A = A - A.mean(axis=1, keepdims=True)
+            # normalize each representation
+            A = A / np.linalg.norm(A, ord="fro")
+        else:
+            warnings.warn("Warning: matrix A contains only zeros!")
+            
+        if np.any(B):
+            B = B - B.mean(axis=1, keepdims=True)
+            B = B / np.linalg.norm(B, ord="fro")
+        else:
+            warnings.warn("Warning: matrix B contains only zeros!")
+        
+        
         if A.shape[0] > A.shape[1]:
             At_A = A.T @ A  # O(n * n * a)
             Bt_B = B.T @ B  # O(n * n * a)
@@ -100,7 +115,9 @@ class CKA(Metric):
         features_per_layer = self._extract_features_from_model(self.model, 
                                                                self.data_loader,
                                                                self.activation_layers)
+        #init the matrix
         cka_matrix = np.zeros((len(features_per_layer), len(features_per_layer)))
+        avg_dist = 0.0
         
         # layers must be flatted
         for row, X in enumerate(features_per_layer.values()):
@@ -108,13 +125,33 @@ class CKA(Metric):
             for col, Y in enumerate(features_per_layer.values()):
                 Y = Y.reshape(Y.shape[0], -1)
                 
-                cka_matrix[row, col] = self.lin_cka_prime_dist(X, Y)
+                cka_dist = self.lin_cka_prime_dist(X, Y)
+                cka_matrix[row, col] = cka_dist
+                
+                # only cells out of the diagonal
+                if col != row:
+                    avg_dist += cka_dist
+                
+                # check bad values
                 if cka_matrix[row, col] < 0 or cka_matrix[row, col] > 1:
-                    warnings.warn(f"Warning: CKA has a negative value {cka_matrix[row, col]}")
+                    warnings.warn(f"Warning: CKA has a wrong value!")
                 
-        print(cka_matrix)
                 
-        self.results = {'cka_dist': cka_matrix}
+        cka_matrix = pd.DataFrame(cka_matrix, 
+                                  index=features_per_layer.keys(), 
+                                  columns=features_per_layer.keys())
+        # compute the avg distance of all the cells out of the diagonal, 
+        # higher is the value better it is, because it means that different 
+        # layers capture different information
+        avg_dist = avg_dist / (len(features_per_layer.values()) ** 2 - len(features_per_layer.values()))
+        print('CKA matrix:', cka_matrix)
+        print('average CKA:', avg_dist)
+                
+        self.results = {
+            'cka_dist': cka_matrix,
+            'avg_cka': avg_dist
+        }
+        
         return self.results
     
     '''
@@ -124,22 +161,52 @@ class CKA(Metric):
         features_per_layer1 = self._extract_features_from_model(self.model, 
                                                                 self.data_loader,
                                                                 self.activation_layers)
+        features_per_layer1 = {'[1] ' + key: value for key, value in features_per_layer1.items()}
+        
         features_per_layer2 = self._extract_features_from_model(model, 
                                                                 data_loader,
                                                                 activation_layers)
+        features_per_layer2 = {'[2] ' + key: value for key, value in features_per_layer2.items()}
         
+        # init the matrix
         cka_matrix = np.zeros((len(features_per_layer1), len(features_per_layer2)))
+        avg_dist = 0.0
+        
         # layers must be flatted
         for row, X in enumerate(features_per_layer1.values()):
             X = X.reshape(X.shape[0], -1)
             for col, Y in enumerate(features_per_layer2.values()):
                 Y = Y.reshape(Y.shape[0], -1)
                 
-                cka_matrix[row, col] = self.lin_cka_prime_dist(X, Y)
-                if cka_matrix[row, col] < 0 or cka_matrix[row, col] > 1:
-                    warnings.warn("Warning: CKA has a negative value:", {cka_matrix[row, col]})
+                #compute the CKA
+                cka_dist = self.lin_cka_prime_dist(X, Y)
+                cka_matrix[row, col] = cka_dist
                 
-        print(cka_matrix)
-
-        self.results = {'cka_dist': cka_matrix}
+                # only cells on the diagonal
+                if col == row:
+                    avg_dist += cka_dist
+                
+                # check bad values
+                if cka_matrix[row, col] < 0 or cka_matrix[row, col] > 1:
+                    warnings.warn(f"Warning: CKA has a wrong value!")
+                
+        cka_matrix = pd.DataFrame(cka_matrix, 
+                                  index=features_per_layer1.keys(), 
+                                  columns=features_per_layer2.keys())
+        # compute the avg distance of all the cells on the diagonal, 
+        # higher is the value different are the information learned by 
+        # the two architectures (only if the matrix is square)
+        if len(features_per_layer1.values()) == len(features_per_layer2.values()):
+            avg_dist = avg_dist / len(features_per_layer1.values())
+        else:
+            avg_dist = None
+            
+        print('CKA matrix:', cka_matrix)
+        print('average CKA:', avg_dist)
+                
+        self.results = {
+            'cka_dist': cka_matrix,
+            'avg_cka': avg_dist
+        }
+        
         return self.results
