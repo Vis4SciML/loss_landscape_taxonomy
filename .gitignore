@@ -189,3 +189,5 @@ kubernetes/checkpoint*
 kubernetes/econ*
 workspace/notebooks/lightning*
 HAWQ*
+checkpoint
+different_knobs_subset_10

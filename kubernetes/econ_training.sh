@@ -15,7 +15,7 @@ num_test=3
 accelerator="auto"
 
 # ranges of the scan 
-batch_sizes=(16 32 64 128 256 512 1024)
+sbatch_sizes=(16 32 64 128 256 512 1024)
 learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
 
 # precisions=(2 3 4 5 6 7 8 9 10 11)
@@ -111,7 +111,7 @@ spec:
             restartPolicy: Never
             containers:
               - name: gpu-container
-                image: jupyter/scipy-notebook
+                image: gitlab-registry.nrp-nautilus.io/prp/jupyter-stack/scipy
                 command: ["/bin/bash","-c"]
                 args: ["git clone https://github.com/balditommaso/loss_landscape_taxonomy.git;
                         cd /home/jovyan/loss_landscape_taxonomy;

@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: dev-ll-pod
+  name: dev-pod
 spec:
   containers:
   - name: gpu-container
-    image: jupyter/scipy-notebook
+    image: gitlab-registry.nrp-nautilus.io/prp/jupyter-stack/scipy
     command: ["/bin/bash","-c"]
     args: ["git clone https://github.com/balditommaso/loss_landscape_taxonomy.git;
             cd loss_landscape_taxonomy;
@@ -22,7 +22,7 @@ spec:
         nvidia.com/gpu: "1"
         memory: "64G"
         cpu: "16"
-  restartPolicy: Never
+  restartPolicy: OnFailure
   volumes:
     - name: loss-landscape-volume
       persistentVolumeClaim:
