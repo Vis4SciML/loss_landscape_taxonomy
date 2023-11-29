@@ -2,7 +2,7 @@
 
 # Constants
 ADD_PRECISION=3
-SAVING_FOLDER="/loss_landscape/checkpoint/different_knobs_subset_10"    # /loss_landscape -> shared volume
+SAVING_FOLDER="$HOME/checkpoint/different_knobs_subset_10"    # /loss_landscape -> shared volume
 DATA_DIR="../../../data/ECON/Elegun"
 DATA_FILE="$DATA_DIR/nELinks5.npy"
 
@@ -139,18 +139,6 @@ run_train() {
         if [ -e "$test_file" ]; then
             echo "Already computed!"
         else 
-            # create directories to retrieve informations of the training process
-            # log_folder="$saving_folder"log
-            # log_file=$log_folder"/log_"$size"_"$i".txt"
-
-            # error_folder="$saving_folder"error
-            # error_file=$error_folder"/err_"$size"_"$i".txt"
-
-            # mkdir -p $log_folder
-            # touch $log_file
-            # mkdir -p $error_folder
-            # touch $error_file
-
             # training of the model
             python code/train.py \
                 --saving_folder "$saving_folder" \
@@ -159,7 +147,6 @@ run_train() {
                 --batch_size $batch_size \
                 --num_workers $num_workers \
                 --accelerator $accelerator \
-                `if [ $no_train == true ]; then echo "--no_train"; fi` \
                 --weight_precision $precision \
                 --bias_precision $precision \
                 --act_precision $(($precision + $ADD_PRECISION))   \
@@ -168,7 +155,7 @@ run_train() {
                 --top_models $top_models \
                 --experiment $i \
                 --max_epochs $max_epochs \
-                >/dev/null 2>&1 &
+                >/$HOME/log_$i.txt 2>&1 &
 
             pids+=($!)
         fi
@@ -197,32 +184,6 @@ do
 done
 
 exit 0
-
-# DEBUG
-# mkdir -p "$SAVING_FOLDER/bs_16/ECON_2b/log"
-# mkdir -p "$SAVING_FOLDER/bs_16/ECON_2b/error"   
-# echo "********************** test **********************"
-# python code/train.py \
-#         --saving_folder "$SAVING_FOLDER/bs_1024/ECON_8"b/ \
-#         --data_dir "$DATA_DIR" \
-#         --data_file "$DATA_FILE" \
-#         --batch_size 1024 \
-#         --num_workers 1 \
-#         --accelerator "auto" \
-#         --no_train \
-#         --weight_precision 8 \
-#         --bias_precision 8 \
-#         --act_precision 11   \
-#         --lr 0.0015625 \
-#         --size "small" \
-#         --top_models 1 \
-#         --experiment 1 \
-#         --max_epochs 1 \
-#         > >(tee -a "$SAVING_FOLDER/bs_16/ECON_2b/log/log.txt") \
-#         2> >(tee -a "$SAVING_FOLDER/bs_16/ECON_2b/error/error.txt"    >&2)
-
-# return
-# END DEBUG
 
 # . scripts/train.sh --num_workers 8 --bs 1024 --lr 0.025 --max_epochs 25 --size small --top_models 3 --num_test 3 
 

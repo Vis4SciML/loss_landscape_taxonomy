@@ -14,9 +14,12 @@ top_models=3
 num_test=3
 accelerator="auto"
 
-# ranges of the scan 
-sbatch_sizes=(16 32 64 128 256 512 1024)
-learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
+# # ranges of the scan 
+# batch_sizes=(16 32 64 128 256 512 1024)
+# learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
+
+batch_sizes=(1024)
+learning_rates=(0.05)
 
 # precisions=(2 3 4 5 6 7 8 9 10 11)
 
@@ -128,7 +131,8 @@ spec:
                                         --num_test $num_test \
                                         --num_workers $num_workers \
                                         --accelerator $accelerator;
-                        echo Job completed!;"]
+                        mkdir -p /loss_landscape/$job_name/checkpoint;
+                        mv  /home/jovyan/checkpoint/different_knobs_subset_10/* /loss_landscape/$job_name/checkpoint/;"]
                 volumeMounts:
                   - mountPath: /loss_landscape
                     name: loss-landscape-volume
