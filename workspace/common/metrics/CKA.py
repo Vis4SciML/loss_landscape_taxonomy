@@ -154,9 +154,11 @@ class CKA(Metric):
         
         return self.results
     
-    '''
-    Compare two models with the CKA similarity'''
+    
     def compare(self, model, data_loader, activation_layers):
+        '''
+        Compare two models with the CKA similarity
+        '''
         # get the features of each layer
         features_per_layer1 = self._extract_features_from_model(self.model, 
                                                                 self.data_loader,
