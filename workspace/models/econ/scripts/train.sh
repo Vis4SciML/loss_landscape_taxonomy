@@ -20,7 +20,8 @@ learning_rate=0.0015625
 # ranges of the scan 
 # batch_sizes=(16 32 64 128 256 512 1024)
 # learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
-precisions=(2 3 4 5 6 7 8 9 10 11)
+# precisions=(2 3 4 5 6 7 8 9 10 11)
+precisions=(2)
 
 # Function to display script usage
 usage() {
@@ -169,6 +170,8 @@ run_train() {
         current_date_time=$(date '+%Y-%m-%d %H:%M:%S')
         echo "$current_date_time: Process with PID $pid finished"
     done
+
+    
 }
 
 # Main script execution
@@ -182,6 +185,9 @@ do
     # trainig with various batch sizes
     run_train
 done
+
+# archive everything and move it in the sahred folder
+tar -czvf /loss_landscape/bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
 
 exit 0
 
