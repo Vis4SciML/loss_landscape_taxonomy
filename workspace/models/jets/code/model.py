@@ -167,20 +167,20 @@ class JetTagger(pl.LightningModule):
     return optimizer
 
 
-####################################################
-# Helper functions
-####################################################
-def load_checkpoint(args, checkpoint_filename): 
-   # quantization scheme 
-   model_arch = args.arch.split('_')[0]
-   bitwidth_str = re.search(f'{model_arch}_(.*)b', args.arch)
-   bitwidth = int(bitwidth_str.group(1))
+# ####################################################
+# # Helper functions
+# ####################################################
+# def load_checkpoint(args, checkpoint_filename): 
+#    # quantization scheme 
+#    model_arch = args.arch.split('_')[0]
+#    bitwidth_str = re.search(f'{model_arch}_(.*)b', args.arch)
+#    bitwidth = int(bitwidth_str.group(1))
 
-   model = JetTagger([bitwidth, bitwidth, int(bitwidth+3)])
-   torchinfo.summary(model, (1, 16))
+#    model = JetTagger([bitwidth, bitwidth, int(bitwidth+3)])
+#    torchinfo.summary(model, (1, 16))
    
-   # Load checkpoint 
-   print('Loading checkpoint...', checkpoint_filename)
-   checkpoint = torch.load(checkpoint_filename)
-   model.load_state_dict(checkpoint['state_dict'])  # strict=False
-   return model
+#    # Load checkpoint 
+#    print('Loading checkpoint...', checkpoint_filename)
+#    checkpoint = torch.load(checkpoint_filename)
+#    model.load_state_dict(checkpoint['state_dict'])  # strict=False
+#    return model

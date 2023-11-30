@@ -3,6 +3,7 @@ from __future__ import print_function
 import numpy as np
 import warnings
 import math
+import torch
 from utils.feature_extractor import FeatureExtractor
 from metric import Metric
 from utils import *
@@ -64,8 +65,12 @@ class NeuralEfficiency(Metric):
         Get the number of neurons for each 
         '''
         # Get the number of neurons per layer using named_modules
-        return {name: module.out_features for name, module in self.model.named_modules() 
-                if 'weight' in module._parameters and hasattr(module, 'out_features')}
+        nodes_per_layer = {}
+        for name, layer in self.model.named_parameters():
+            if 'weight' in name:
+                nodes_per_layer[name.replace(".weight", "")] = torch.numel(layer)
+                
+        return nodes_per_layer
     
     
     def entropy_per_layer(self, layers):
@@ -88,12 +93,12 @@ class NeuralEfficiency(Metric):
                     warnings.warn(f"Attention: the layer " + name + " has None features!")
                     continue
                 elif isinstance(activations, tuple):
-                    # special case where I just consider the first tensor of the tuple
+                    # special case where I just consider the first tensor of the tuple (HAWQ problem)
                     warnings.warn(f"Attention: the layer " + name + " has tuple as features!")
                     activations = activations[0].detach().numpy()
                 else:
                     activations = activations.detach().numpy()
-                    
+                                        
                 # the convolutional layer will produce more outputs per input (one per channel),
                 # so I will iterate over each channel
                 outputs = self.get_outputs(activations)
@@ -110,7 +115,6 @@ class NeuralEfficiency(Metric):
                         state_space[name][quant_activation] = 1
                     else:
                         state_space[name][quant_activation] += 1
-                
                 
         for name, state_freq in state_space.items():
             # compute the probabilities for each output state
@@ -137,8 +141,8 @@ class NeuralEfficiency(Metric):
         
         # compute neuron efficiency for each layer
         layers_efficiency = {}
-        for name, num_nodes in neurons_per_layer.items():
-            layers_efficiency[name] = entropies[name] / num_nodes
+        for name, entropy in entropies.items():
+            layers_efficiency[name] = entropy / neurons_per_layer[name]
             
         print('layers neural efficiency:\n', layers_efficiency)
         
@@ -166,3 +170,5 @@ class NeuralEfficiency(Metric):
             'network_efficiency': network_efficiency,
             'aIQ': aIQ
         }
+        
+        return self.results
