@@ -2,7 +2,7 @@
 
 # Constants
 ADD_PRECISION=3
-SAVING_FOLDER="$HOME/checkpoint/different_knobs_subset_10"    # /loss_landscape -> shared volume
+SAVING_FOLDER="/home/jovyan/checkpoint/different_knobs_subset_10"    # /loss_landscape -> shared volume
 DATA_DIR="../../../data/ECON/Elegun"
 DATA_FILE="$DATA_DIR/nELinks5.npy"
 

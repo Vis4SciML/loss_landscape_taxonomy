@@ -131,8 +131,7 @@ spec:
                                         --num_test $num_test \
                                         --num_workers $num_workers \
                                         --accelerator $accelerator;
-                        mkdir -p /loss_landscape/$job_name/checkpoint;
-                        mv  /home/jovyan/checkpoint/different_knobs_subset_10/* /loss_landscape/$job_name/checkpoint/;"]
+                        tar /loss_landscape/$job_name.tar.gz $SAVING_FOLDER;"]
                 volumeMounts:
                   - mountPath: /loss_landscape
                     name: loss-landscape-volume
