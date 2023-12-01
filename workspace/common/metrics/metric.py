@@ -7,6 +7,9 @@ Class used to allow the loss landscape metrics to inherit basic methods and temp
 class Metric:
     
     def __init__(self, model=None, data_loader=None, name="metric") -> None:
+        
+        assert model != None and data_loader != None
+        
         self.model = model
         self.data_loader = data_loader
         self.name = name
