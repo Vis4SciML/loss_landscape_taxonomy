@@ -81,10 +81,8 @@ class NeuralEfficiency(Metric):
         
         #iterate over the batches to compute the probability of each state
         state_space = {}
-        num_batches = 0
+        num_outputs = 0
         for batch in self.data_loader:
-            # need the number of batches as denominator
-            num_batches += 1   
             # get the activations of each layer
             features_per_layer = feature_extractor.forward(batch)
             for name, activations in features_per_layer.items():
@@ -104,6 +102,7 @@ class NeuralEfficiency(Metric):
                 outputs = self.get_outputs(activations)
                 # each output state must be quantized and we record its frequency
                 for output_state in outputs:
+                    num_outputs += 1
                     # dictionary to record the probabilities
                     # quantize the activations (convert to bytes to use it as key)
                     quant_activation = self.quantize_activation(output_state).tobytes()
@@ -120,7 +119,7 @@ class NeuralEfficiency(Metric):
             # compute the probabilities for each output state
             probabilities = []
             for freq in state_freq.values():
-                probabilities.append(freq / num_batches)
+                probabilities.append(freq / num_outputs)
             
             # compute the entropy of the layer
             layer_entropy = self.entropy(probabilities)
