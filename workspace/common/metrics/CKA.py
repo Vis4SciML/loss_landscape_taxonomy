@@ -125,7 +125,7 @@ class CKA(Metric):
             for col, Y in enumerate(features_per_layer.values()):
                 Y = Y.reshape(Y.shape[0], -1)
                 
-                cka_dist = self.lin_cka_prime_dist(X, Y)
+                cka_dist = self.lin_cka_dist(X, Y)
                 cka_matrix[row, col] = cka_dist
                 
                 # only cells out of the diagonal
@@ -181,7 +181,7 @@ class CKA(Metric):
                 Y = Y.reshape(Y.shape[0], -1)
                 
                 #compute the CKA
-                cka_dist = self.lin_cka_prime_dist(X, Y)
+                cka_dist = self.lin_cka_dist(X, Y)
                 cka_matrix[row, col] = cka_dist
                 
                 # only cells on the diagonal

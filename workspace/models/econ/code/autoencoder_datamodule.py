@@ -268,11 +268,16 @@ class AutoEncoderDataModule(pl.LightningDataModule):
         """
         return self.val_dataloader()
 
-    def dataloaders(self):
+    def dataloaders(self, max_batches=None):
         """
         Return train and test as Tensor dataloaders. Used for metrics, not training
         """
-        val_data_tensor = torch.Tensor(self.val_data)
+        # limit the number of batches fo testing purpose
+        val_data= self.val_data
+        if max_batches is not None:
+            val_data = self.val_data[:max_batches]
+            
+        val_data_tensor = torch.Tensor(val_data)
         val_dataset = TensorDataset(val_data_tensor, val_data_tensor)
         val_loader = torch.utils.data.DataLoader(
             val_dataset, 

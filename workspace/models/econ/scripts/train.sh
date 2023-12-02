@@ -2,7 +2,7 @@
 
 # Constants
 ADD_PRECISION=3
-SAVING_FOLDER="$HOME/checkpoint/different_knobs_subset_10"    # /loss_landscape -> shared volume
+SAVING_FOLDER="/home/jovyan/checkpoint/different_knobs_subset_10"    # /loss_landscape -> shared volume
 DATA_DIR="../../../data/ECON/Elegun"
 DATA_FILE="$DATA_DIR/nELinks5.npy"
 
@@ -169,6 +169,8 @@ run_train() {
         current_date_time=$(date '+%Y-%m-%d %H:%M:%S')
         echo "$current_date_time: Process with PID $pid finished"
     done
+
+    
 }
 
 # Main script execution
@@ -182,6 +184,9 @@ do
     # trainig with various batch sizes
     run_train
 done
+
+# archive everything and move it in the sahred folder
+tar -czvf /loss_landscape/$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
 
 exit 0
 
