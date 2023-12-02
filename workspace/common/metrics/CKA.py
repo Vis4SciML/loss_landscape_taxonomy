@@ -133,8 +133,8 @@ class CKA(Metric):
                     avg_dist += cka_dist
                 
                 # check bad values
-                if cka_matrix[row, col] < 0 or cka_matrix[row, col] > 1:
-                    warnings.warn(f"Warning: CKA has a wrong value!")
+                # if cka_matrix[row, col] < 0 or cka_matrix[row, col] > 1:
+                #     warnings.warn(f"Warning: CKA has a wrong value!")
                 
                 
         cka_matrix = pd.DataFrame(cka_matrix, 
@@ -144,8 +144,6 @@ class CKA(Metric):
         # higher is the value better it is, because it means that different 
         # layers capture different information
         avg_dist = avg_dist / (len(features_per_layer.values()) ** 2 - len(features_per_layer.values()))
-        print('CKA matrix:', cka_matrix)
-        print('average CKA:', avg_dist)
                 
         self.results = {
             'cka_dist': cka_matrix,
@@ -202,9 +200,6 @@ class CKA(Metric):
             avg_dist = avg_dist / len(features_per_layer1.values())
         else:
             avg_dist = None
-            
-        print('CKA matrix:', cka_matrix)
-        print('average CKA:', avg_dist)
                 
         self.results = {
             'cka_dist': cka_matrix,

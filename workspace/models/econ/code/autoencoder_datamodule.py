@@ -182,7 +182,6 @@ class AutoEncoderDataModule(pl.LightningDataModule):
         Read and concat all csv files in the data directory into a single
         dataframe
         """
-        print(f"Reading files {os.listdir(self.data_dir)}")
         files = os.listdir(self.data_dir)
         data = pd.concat(
             [
@@ -192,7 +191,6 @@ class AutoEncoderDataModule(pl.LightningDataModule):
         )
         data = self.mask_data(data)
         data = data[self.calq_cols].astype("float32")
-        print(f"Input data shape: {data.shape}")
 
         return data
 
@@ -203,7 +201,6 @@ class AutoEncoderDataModule(pl.LightningDataModule):
         input_data = norm_data[:, ARRANGE]
         input_data[:, ARRANGE_MASK == 0] = 0  # zero out repeated entries
         shaped_data = input_data.reshape(len(input_data), shape[0], shape[1], shape[2])
-        print(f"Prepped shaped data shape: {shaped_data.shape}")
         return shaped_data
 
     def get_val_max_and_sum(self):
@@ -232,8 +229,6 @@ class AutoEncoderDataModule(pl.LightningDataModule):
         Load data from provided npy data_file
         """
         shaped_data = np.load(self.data_file)
-        print(f"Loaded shaped data shape: {shaped_data.shape}")
-        print(f"Loaded shaped data datatype: {shaped_data.dtype}")
 
         self.train_data = shaped_data[int(len(shaped_data) * self.valid_split) :]
         self.val_data = shaped_data[: int(len(shaped_data) * self.valid_split)]
@@ -253,7 +248,7 @@ class AutoEncoderDataModule(pl.LightningDataModule):
         """
         Return the validation dataloader
         """
-        # Take the first valid_split% of the data as validation data
+        # Take the first valid_split of the data as validation data
         return torch.utils.data.DataLoader(
             self.val_data, 
             batch_size=self.batch_size, 
