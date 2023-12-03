@@ -172,14 +172,3 @@ if __name__ == "__main__":
     main(args)
     
     
-# python code/test_encoder.py --saving_folder "/data/tbaldi/checkpoint/" \
-#                         --data_dir "../../../data/ECON/Elegun" \
-#                         --data_file "../../../data/ECON/Elegun/nELinks5.npy" \
-#                         --batch_size 1024 \
-#                         --num_workers 8 \
-#                         --lr 0.025 \
-#                         --size "small" \
-#                         --percentage 5 \
-#                         --precision 8 \
-#                         --noise_type "gaussian" \
-#                         --num_batches 1000 
