@@ -6,6 +6,7 @@ from statistics import mean
 import warnings
 from utils_pt import unnormalize, emd
 import torch
+from torch.utils.data import DataLoader
 import numpy as np
 import multiprocessing
 from q_autoencoder import AutoEncoder
@@ -137,9 +138,14 @@ def main(args):
     data_module.setup("test")
     
     # prepare noisy dataloader
-    noisy_dataloader = NoisyDataset(data_module.dataloaders()[1], 
+    noisy_dataset = NoisyDataset(data_module.dataloaders()[1], 
                                     args.percentage, 
                                     args.noise_type)
+    
+    noisy_dataloader = DataLoader(noisy_dataset, 
+                                  args.batch_size, 
+                                  shuffle=True,
+                                  num_workers=4)
     
     test_results = test_model(model, noisy_dataloader, args.num_batches)
     print(f'Noise type: {args.noise_type} - Percentage: {args.percentage}%')

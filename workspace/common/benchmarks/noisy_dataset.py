@@ -33,20 +33,31 @@ class NoisyDataset(Dataset):
         else:
             warnings.warn("Warn: not valid noise type.")
             self.noise_adder = Noise.add_random_perturbation
-            
+
+
+    def add_noise(self, sample):
+        noisy_sample = self.noise_adder(sample, self.percentage)
+        noisy_sample = np.float32(noisy_sample)
+        return torch.from_numpy(noisy_sample)
+
     
     def __len__(self):
         return len(self.original_dataloader.dataset)
     
     
     def __getitem__(self, index):
-        original_batch, target = self.original_dataloader.dataset[index]
+        # check if it is a tuple
+        sample = self.original_dataloader.dataset[index]
+        
+        if isinstance(sample, tuple):
+            original_batch, target = sample
+            noisy_batch = self.add_noise(original_batch)
+            return noisy_batch, target
+        
+        noisy_sample = self.add_noise(sample)
         # add the noise
-        original_batch = torch.Tensor.numpy(original_batch)
-        noisy_batch = self.noise_adder(original_batch, self.percentage)
-        noisy_batch = np.float32(noisy_batch)
-        noisy_batch = torch.from_numpy(noisy_batch)
-        return noisy_batch, target
+        
+        return noisy_sample
     
     
 # test 
@@ -57,7 +68,7 @@ if __name__ == "__main__":
     data_module = AutoEncoderDataModule(
         data_dir=DATASET_DIR,
         data_file=os.path.join(DATASET_DIR, DATASET_FILE),
-        batch_size=1,
+        batch_size=16,
         num_workers=4)
     
     # check if we have processed the data
@@ -67,16 +78,32 @@ if __name__ == "__main__":
 
     data_module.setup(0)
     
-    noisy_dataloader = NoisyDataset(data_module.dataloaders()[1], 10, 'random')
+    print("test tuple")
+    noisy_dataset = NoisyDataset(data_module.dataloaders()[1], 10, 'gaussian')
+    dataloader = DataLoader(noisy_dataset, batch_size=16, shuffle=True, num_workers=4)
     
     print("Without noise")
     for batch, target in data_module.dataloaders()[1]:
-        print('batch:', batch)
-        print('target:', target)
+        print('batch:', batch.shape)
+        print('target:', target.shape)
         break
     
     print("With noise")
-    for batch, target in noisy_dataloader:
+    for batch, target in dataloader:
+        print('noisy batch:', batch.shape)
+        print('target:', target.shape)
+        break
+    
+    print("test single")
+    noisy_dataset = NoisyDataset(data_module.val_dataloader(), 0, 'gaussian')
+    dataloader = DataLoader(noisy_dataset, batch_size=16, shuffle=True, num_workers=4)
+    
+    print("Without noise")
+    for batch in data_module.val_dataloader():
+        print('batch:', batch)
+        break
+    
+    print("With noise")
+    for batch in dataloader:
         print('noisy batch:', batch)
-        print('target:', target)
         break

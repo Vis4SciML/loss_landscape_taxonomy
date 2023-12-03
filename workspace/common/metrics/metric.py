@@ -8,7 +8,7 @@ class Metric:
     
     def __init__(self, model=None, data_loader=None, name="metric") -> None:
         
-        assert model != None and data_loader != None
+        assert model != None
         
         self.model = model
         self.data_loader = data_loader

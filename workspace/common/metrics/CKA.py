@@ -19,37 +19,51 @@ import pandas as pd
 # ---------------------------------------------------------------------------- #
         
 class CKA(Metric):
-    def __init__(self, model=None, data_loader=None, name="CKA_similarity", activation_layers=[]):
-        super().__init__(model, data_loader, name)
-        self.activation_layers = activation_layers
+    def __init__(self, model=None, name="CKA_similarity", layers=[]):
+        super().__init__(model, None, name)
+        self.layers = layers
         self.results = {}   # there will be different values
-        
-    def lin_cka_dist(self, A, B):
+
+    @staticmethod
+    def extract_features_from_model(target_model, layers):
+        '''
+        Utility methods used to extract the feature from each layer of the model.
+        those features will be used to compute the CKA similarity temperature map.
+        '''
+            
+        structure = {}
+        # remove possible tuples and none among the layers
+        for name, params in target_model.named_parameters():
+            if 'weight' in name:
+                name = name.replace('.weight', '')
+                if name in layers:
+                    structure[name] = params.detach().numpy()
+                    
+        return structure
+    
+
+    @staticmethod
+    def lin_cka_dist(A, B):
         """
         Computes Linear CKA distance between representations A and B
         """
-        # check if the matrix contains only zeros
-        if np.any(A):
-            # center each row
-            A = A - A.mean(axis=1, keepdims=True)
-            # normalize each representation
-            A = A / np.linalg.norm(A, ord="fro")
-        else:
-            warnings.warn("Warning: matrix A contains only zeros!")
-            
-        if np.any(B):
-            B = B - B.mean(axis=1, keepdims=True)
-            B = B / np.linalg.norm(B, ord="fro")
-        else:
-            warnings.warn("Warning: matrix B contains only zeros!")
+
+        # center each row
+        A = A - A.mean(axis=1, keepdims=True)
+        B = B - B.mean(axis=1, keepdims=True)
+        # normalize each representation
+        A = A / np.linalg.norm(A)
+        B = B / np.linalg.norm(B)
                 
+        
         similarity = np.linalg.norm(B @ A.T, ord="fro") ** 2
         normalization = np.linalg.norm(A @ A.T, ord="fro") * \
                         np.linalg.norm(B @ B.T, ord="fro")
         return 1 - similarity / normalization
 
-    
-    def lin_cka_prime_dist(self, A, B):
+
+    @staticmethod
+    def lin_cka_prime_dist(A, B):
         """
         Computes Linear CKA prime distance between representations A and B
         The version here is suited to a, b >> n
@@ -80,92 +94,17 @@ class CKA(Metric):
             similarity = np.linalg.norm(B @ A.T, ord="fro") ** 2
             denominator = np.sum(A ** 2) ** 2 + np.sum(B ** 2) ** 2
             return 1 - 2 * similarity / denominator
-
-    
-    def _extract_features_from_model(self, target_model, data_loader, activations_layers):
-        '''
-        Utility methods used to extract the feature from each layer of the model.
-        those features will be used to compute the CKA similarity temperature map.
-        '''
-        # do not train the network
-        target_model.eval()
-        # wrap the model with the feature extractor class
-        feature_extractor = FeatureExtractor(target_model, activations_layers)
-        # iterate over the the samples of the data_loader
-        for batch in data_loader:
-            features = feature_extractor.forward(batch)
-
-        # remove possible tuples and none among the layers
-        for name, feature in features.items():
-            if feature is None:
-                warnings.warn(f"Attention: the layer {name} has None features!")
-            elif isinstance(feature, tuple):
-                features[name] = feature[0].detach().numpy()
-            else:
-                features[name] = feature.detach().numpy()
-        return features
-        
-    
-    def compute(self):
-        '''
-        Compute the CKA similarity among the layers of the same model.
-        '''
-        print("Computing the CKA similarity...")
-        # get the features of each layer
-        features_per_layer = self._extract_features_from_model(self.model, 
-                                                               self.data_loader,
-                                                               self.activation_layers)
-        #init the matrix
-        cka_matrix = np.zeros((len(features_per_layer), len(features_per_layer)))
-        avg_dist = 0.0
-        
-        # layers must be flatted
-        for row, X in enumerate(features_per_layer.values()):
-            X = X.reshape(X.shape[0], -1)
-            for col, Y in enumerate(features_per_layer.values()):
-                Y = Y.reshape(Y.shape[0], -1)
-                
-                cka_dist = self.lin_cka_dist(X, Y)
-                cka_matrix[row, col] = cka_dist
-                
-                # only cells out of the diagonal
-                if col != row:
-                    avg_dist += cka_dist
-                
-                # check bad values
-                # if cka_matrix[row, col] < 0 or cka_matrix[row, col] > 1:
-                #     warnings.warn(f"Warning: CKA has a wrong value!")
-                
-                
-        cka_matrix = pd.DataFrame(cka_matrix, 
-                                  index=features_per_layer.keys(), 
-                                  columns=features_per_layer.keys())
-        # compute the avg distance of all the cells out of the diagonal, 
-        # higher is the value better it is, because it means that different 
-        # layers capture different information
-        avg_dist = avg_dist / (len(features_per_layer.values()) ** 2 - len(features_per_layer.values()))
-                
-        self.results = {
-            'cka_dist': cka_matrix,
-            'avg_cka': avg_dist
-        }
-        
-        return self.results
     
     
-    def compare(self, model, data_loader, activation_layers):
+    def compare(self, model, layers):
         '''
         Compare two models with the CKA similarity
         '''
         # get the features of each layer
-        features_per_layer1 = self._extract_features_from_model(self.model, 
-                                                                self.data_loader,
-                                                                self.activation_layers)
+        features_per_layer1 = CKA.extract_features_from_model(self.model, self.layers)
         features_per_layer1 = {'[1] ' + key: value for key, value in features_per_layer1.items()}
         
-        features_per_layer2 = self._extract_features_from_model(model, 
-                                                                data_loader,
-                                                                activation_layers)
+        features_per_layer2 = CKA.extract_features_from_model(model, layers)
         features_per_layer2 = {'[2] ' + key: value for key, value in features_per_layer2.items()}
         
         # init the matrix
@@ -174,22 +113,27 @@ class CKA(Metric):
         
         # layers must be flatted
         for row, X in enumerate(features_per_layer1.values()):
-            X = X.reshape(X.shape[0], -1)
             for col, Y in enumerate(features_per_layer2.values()):
+                if len(X.shape) != len(Y.shape):
+                    # structural difference (max distance)
+                    cka_matrix[row, col] = 1
+                    continue
+                
+                X = X.reshape(X.shape[0], -1)
                 Y = Y.reshape(Y.shape[0], -1)
                 
+                # TODO:  interpolation?
+                if X.shape != Y.shape:
+                    cka_matrix[row, col] = 1
+                    continue
+                
                 #compute the CKA
-                cka_dist = self.lin_cka_dist(X, Y)
+                cka_dist = CKA.lin_cka_dist(X, Y)
                 cka_matrix[row, col] = cka_dist
                 
-                # only cells on the diagonal
-                if col == row:
+                if row == col:
                     avg_dist += cka_dist
-                
-                # check bad values
-                if cka_matrix[row, col] < 0 or cka_matrix[row, col] > 1:
-                    warnings.warn(f"Warning: CKA has a wrong value!")
-                
+            
         cka_matrix = pd.DataFrame(cka_matrix, 
                                   index=features_per_layer1.keys(), 
                                   columns=features_per_layer2.keys())
