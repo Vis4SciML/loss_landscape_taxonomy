@@ -8,9 +8,7 @@ DATA_FILE="$DATA_DIR/nELinks5.npy"
 # Default variable values
 num_workers=4
 size="baseline"
-top_models=3
 num_batches=1000
-percentage=5
 noise_type="gaussian"
 
 
@@ -18,9 +16,10 @@ noise_type="gaussian"
 # ranges of the scan 
 # batch_sizes=(16 32 64 128 256 512 1024)
 # learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
-batch_sizes=(128)
+batch_sizes=(16 32 64 128 256 512 1024)
 learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
 precisions=(2 3 4 5 6 7 8 9 10 11)
+percentages=(5 25 50 75 100)
 
 # Function to display script usage
 usage() {
@@ -30,7 +29,6 @@ usage() {
     echo "--num_workers        Number of workers"
     echo "--num_batches        Max number of batches to test"
     echo "--size               Model size [baseline, small, large]"
-    echo "--percentage         Percentage of noise to add to the input data"
     echo "--noise_type         Type of noise [gaussian, random, salt_pepper]"
 }
 
@@ -71,13 +69,6 @@ handle_options() {
                     shift
                 fi
                 ;;
-            --percentage)
-                if has_argument $@; then
-                    percentage=$(extract_argument $@)
-                    echo "Percentage of noise: $percentage"
-                    shift
-                fi
-                ;;
             --noise_type)
                 if has_argument $@; then
                     noise_type=$(extract_argument $@)
@@ -97,25 +88,29 @@ handle_options() {
 
 run_test() {
 
-    echo ""
-    echo " BATCH SIZE $bs - LEARNING_RATE $lr - PRECISION $p - noise $noise_type - precison $percentage% "
-    echo ""
+    for per in ${percentages[*]}
+    do
+        echo ""
+        echo " BATCH SIZE $bs - LEARNING_RATE $lr - PRECISION $p - noise $noise_type - precison $percentage% "
+        echo ""
 
-    # training of the model
-    python code/test_encoder.py --saving_folder $SAVING_FOLDER \
-                        --data_dir $DATA_DIR \
-                        --data_file $DATA_FILE \
-                        --batch_size $bs \
-                        --num_workers $num_workers \
-                        --lr $lr \
-                        --size $size \
-                        --percentage $percentage \
-                        --precision $p \
-                        --noise_type $noise_type \
-                        --num_batches $num_batches 
+        
+        # training of the model
+        python code/test_encoder.py --saving_folder $SAVING_FOLDER \
+                            --data_dir $DATA_DIR \
+                            --data_file $DATA_FILE \
+                            --batch_size $bs \
+                            --num_workers $num_workers \
+                            --lr $lr \
+                            --size $size \
+                            --percentage $per \
+                            --precision $p \
+                            --noise_type $noise_type \
+                            --num_batches $num_batches 
 
-    echo ""
-    echo "-----------------------------------------------------------"
+        echo ""
+        echo "-----------------------------------------------------------"
+    done
 }
 
 # Main script execution
@@ -138,7 +133,7 @@ done
 
 exit 0
 
-# . scripts/test.sh --num_workers 8 --num_batches 1000 --size small --noise_type gaussian --percentage 5 
+# . scripts/test.sh --num_workers 8 --num_batches 1000000 --size small --noise_type random & >dev/null
 
 # python code/test_encoder.py --saving_folder "/data/tbaldi/checkpoint/" \
 #                         --data_dir "../../../data/ECON/Elegun" \

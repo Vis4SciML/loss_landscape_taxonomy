@@ -180,6 +180,8 @@ data/
 
 events*
 
+*out
+
 # old files/folders
 src_deprecated/
 

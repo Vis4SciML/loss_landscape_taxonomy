@@ -1,5 +1,5 @@
 import numpy as np
-
+import torch
 
 class Noise:
     '''
@@ -23,15 +23,15 @@ class Noise:
     
     @staticmethod
     def add_salt_and_pepper_noise(data, percentage=5):
-        noisy_data = data.copy()
+        noisy_data = data.clone()
         
         # salt noise
         salt_mask = np.random.rand(*data.shape) < (percentage / 200)
-        noisy_data[salt_mask] = 1.0
+        noisy_data[[salt_mask]] = 1.0
         
         # pepper noise
         pepper_mask = np.random.rand(*data.shape) < (percentage / 200)
-        noisy_data[pepper_mask] = 0.0
+        noisy_data[[pepper_mask]] = 0.0
         
         return noisy_data
     
@@ -39,7 +39,7 @@ class Noise:
 
 # test 
 if __name__ == "__main__":
-    original_data = np.array([1, 2, 3, 4, 5])
+    original_data = torch.Tensor([[[1, 2, 3, 4, 5]]])
     
     noisy_data = Noise.add_gaussian_noise(original_data, 5)
     print('Gaussin noise:', noisy_data)
@@ -47,5 +47,5 @@ if __name__ == "__main__":
     noisy_data = Noise.add_random_perturbation(original_data, 5)
     print('Random noise:', noisy_data)
     
-    noisy_data = Noise.add_salt_and_pepper_noise(original_data, salt_prob=0.25, pepper_prob=0.25)
+    noisy_data = Noise.add_salt_and_pepper_noise(original_data, 20)
     print('Salt & Pepper noise:', noisy_data)
