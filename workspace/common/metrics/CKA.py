@@ -1,17 +1,29 @@
 
-"""The following code is adapted from 
-Similarity of Neural Network Representations Revisited
-Simon Kornblith, Mohammad Norouzi, Honglak Lee and Geoffrey Hinton
-https://colab.research.google.com/github/google-research/google-research/blob/master/representation_similarity/Demo.ipynb
+"""The following code is adapted from:
+DO WIDE AND DEEP NETWORKS LEARN THE SAME
+THINGS? UNCOVERING HOW NEURAL NETWORK
+REPRESENTATIONS VARY WITH WIDTH AND DEPTH
+Thao Nguyen, AI Resident, Google Research
+https://blog.research.google/2021/05/do-wide-and-deep-networks-learn-same.html
 """
 from __future__ import print_function
-
+import os
+import sys
+import ast
+import torch
 import warnings
+from statistics import mean
 from metric import Metric
 from utils.feature_extractor import FeatureExtractor
 
 import numpy as np
 import pandas as pd
+
+# test
+# module_path = os.path.abspath(os.path.join('../../../workspace/models/econ/code/')) # or the path to your source code
+# sys.path.insert(0, module_path)
+# from autoencoder_datamodule import AutoEncoderDataModule
+# from q_autoencoder import AutoEncoder
 
 
 # ---------------------------------------------------------------------------- #
@@ -19,135 +31,271 @@ import pandas as pd
 # ---------------------------------------------------------------------------- #
         
 class CKA(Metric):
-    def __init__(self, model=None, name="CKA_similarity", layers=[]):
-        super().__init__(model, None, name)
+    def __init__(self, model, data_loader, name="CKA_similarity", layers=[], max_batches=100):
+        super().__init__(model, data_loader, name)
         self.layers = layers
+        self.max_batches = max_batches
         self.results = {}   # there will be different values
 
-    @staticmethod
-    def extract_features_from_model(target_model, layers):
-        '''
-        Utility methods used to extract the feature from each layer of the model.
-        those features will be used to compute the CKA similarity temperature map.
-        '''
-            
-        structure = {}
-        # remove possible tuples and none among the layers
-        for name, params in target_model.named_parameters():
-            if 'weight' in name:
-                name = name.replace('.weight', '')
-                if name in layers:
-                    structure[name] = params.detach().numpy()
-                    
-        return structure
     
-
     @staticmethod
-    def lin_cka_dist(A, B):
-        """
-        Computes Linear CKA distance between representations A and B
-        """
+    def gram_matrix(X):
+        '''
+        Generate Gram matrix and preprocess to compute unbiased HSIC.
 
-        # center each row
-        A = A - A.mean(axis=1, keepdims=True)
-        B = B - B.mean(axis=1, keepdims=True)
-        # normalize each representation
-        A = A / np.linalg.norm(A)
-        B = B / np.linalg.norm(B)
-                
-        
-        similarity = np.linalg.norm(B @ A.T, ord="fro") ** 2
-        normalization = np.linalg.norm(A @ A.T, ord="fro") * \
-                        np.linalg.norm(B @ B.T, ord="fro")
-        return 1 - similarity / normalization
+        This formulation of the U-statistic is from Szekely, G. J., & Rizzo, M.
+        L. (2014). Partial distance correlation with methods for dissimilarities.
+        The Annals of Statistics, 42(6), 2382-2412.
 
+        Args:
+        x: A [num_examples, num_features] matrix.
 
-    @staticmethod
-    def lin_cka_prime_dist(A, B):
-        """
-        Computes Linear CKA prime distance between representations A and B
-        The version here is suited to a, b >> n
-        """
-        # check if the matrix contains only zeros
-        if np.any(A):
-            # center each row
-            A = A - A.mean(axis=1, keepdims=True)
-            # normalize each representation
-            A = A / np.linalg.norm(A, ord="fro")
-        else:
-            warnings.warn("Warning: matrix A contains only zeros!")
-            
-        if np.any(B):
-            B = B - B.mean(axis=1, keepdims=True)
-            B = B / np.linalg.norm(B, ord="fro")
-        else:
-            warnings.warn("Warning: matrix B contains only zeros!")
-        
-        
-        if A.shape[0] > A.shape[1]:
-            At_A = A.T @ A  # O(n * n * a)
-            Bt_B = B.T @ B  # O(n * n * a)
-            numerator = np.sum((At_A - Bt_B) ** 2)
-            denominator = np.sum(A ** 2) ** 2 + np.sum(B ** 2) ** 2
-            return numerator / denominator
-        else:
-            similarity = np.linalg.norm(B @ A.T, ord="fro") ** 2
-            denominator = np.sum(A ** 2) ** 2 + np.sum(B ** 2) ** 2
-            return 1 - 2 * similarity / denominator
+        Returns:
+        A [num_examples ** 2] vector.
+        '''
+        X = X.reshape(X.shape[0], -1)
+        gram_X = X @ X.T
+        n = gram_X.shape[0]
+        np.fill_diagonal(gram_X, 0)
+        means = np.sum(gram_X, axis=0) / (n - 2)
+        means -= np.sum(means) / 2 * (n - 1)
+        gram_X -= means[:, None]
+        gram_X -= means[None, :]
+        np.fill_diagonal(gram_X, 0)
+        return gram_X.reshape((-1,))
     
     
-    def compare(self, model, layers):
+    @staticmethod
+    def update_state(hsic_accumulator, activations):
+        layers_gram = []
+        for x in activations.values():
+            if x is None:
+                continue
+            elif isinstance(x, tuple):
+                layers_gram.append(CKA.gram_matrix(x[0].detach().numpy()))    # HAWQ nesting problem
+            else:
+                layers_gram.append(CKA.gram_matrix(x.detach().numpy()))
+        layers_gram = np.stack(layers_gram, axis=0)
+        return hsic_accumulator + np.matmul(layers_gram, layers_gram.T)
+    
+    
+    @staticmethod
+    def update_state_across_models(hsic_accumulator,
+                                   hsic_accumulator1, 
+                                   activations1, 
+                                   hsic_accumulator2, 
+                                   activations2):
+        # dimension test
+        np.testing.assert_equal(
+            hsic_accumulator1.shape[0],
+            len(activations1),
+            'Number of activation vectors does not match num_layers.'
+        )
+        np.testing.assert_equal(
+            hsic_accumulator2.shape[0],
+            len(activations2),
+            'Number of activation vectors does not match num_layers.'
+        )
+        # activation 1
+        layers_gram1 = []
+        for x in activations1.values():
+            if x is None:
+                continue
+            elif isinstance(x, tuple):
+                layers_gram1.append(CKA.gram_matrix(x[0].detach().numpy()))    # HAWQ nesting problem
+            else:
+                layers_gram1.append(CKA.gram_matrix(x.detach().numpy()))
+        layers_gram1 = np.stack(layers_gram1, axis=0)
+        # activation 2
+        layers_gram2 = []
+        for x in activations2.values():
+            if x is None:
+                continue
+            elif isinstance(x, tuple):
+                layers_gram2.append(CKA.gram_matrix(x[0].detach().numpy()))    # HAWQ nesting problem
+            else:
+                layers_gram2.append(CKA.gram_matrix(x.detach().numpy()))
+        layers_gram2 = np.stack(layers_gram2, axis=0)
+        
+        return hsic_accumulator + np.matmul(layers_gram1, layers_gram2.T), \
+                hsic_accumulator1 + np.einsum('ij,ij->i', layers_gram1, layers_gram1), \
+                hsic_accumulator2 + np.einsum('ij,ij->i', layers_gram2, layers_gram2)
+    
+    
+    def compare(self, model, layers=None):
         '''
-        Compare two models with the CKA similarity
+        Compare the CKA similarity between the layers of two models
         '''
-        # get the features of each layer
-        features_per_layer1 = CKA.extract_features_from_model(self.model, self.layers)
-        features_per_layer1 = {'[1] ' + key: value for key, value in features_per_layer1.items()}
+        # second model can have different layers
+        layers1 = self.layers
+        layers2 = self.layers
+        if layers is not None:
+            layers2 = layers
+        num_layers1 = len(layers1)
+        num_layers2 = len(layers2)
         
-        features_per_layer2 = CKA.extract_features_from_model(model, layers)
-        features_per_layer2 = {'[2] ' + key: value for key, value in features_per_layer2.items()}
+        hsic_accumulator = np.zeros((num_layers1, num_layers2), dtype=np.float32)
+        hsic_accumulator1 = np.zeros((num_layers1,), dtype=np.float32)
+        hsic_accumulator2 = np.zeros((num_layers2,), dtype=np.float32)
         
-        # init the matrix
-        cka_matrix = np.zeros((len(features_per_layer1), len(features_per_layer2)))
-        avg_dist = 0.0
+        model1 = FeatureExtractor(self.model, layers1)
+        model1.eval()
+        model2 = FeatureExtractor(model, layers2)
+        model2.eval()
         
-        # layers must be flatted
-        for row, X in enumerate(features_per_layer1.values()):
-            for col, Y in enumerate(features_per_layer2.values()):
-                if len(X.shape) != len(Y.shape):
-                    # structural difference (max distance)
-                    cka_matrix[row, col] = 1
-                    continue
-                
-                X = X.reshape(X.shape[0], -1)
-                Y = Y.reshape(Y.shape[0], -1)
-                
-                # TODO:  interpolation?
-                if X.shape != Y.shape:
-                    cka_matrix[row, col] = 1
-                    continue
-                
-                #compute the CKA
-                cka_dist = CKA.lin_cka_dist(X, Y)
-                cka_matrix[row, col] = cka_dist
-                
-                if row == col:
-                    avg_dist += cka_dist
+        count = 0
+        for batch in self.data_loader:
+            count += 1
             
-        cka_matrix = pd.DataFrame(cka_matrix, 
-                                  index=features_per_layer1.keys(), 
-                                  columns=features_per_layer2.keys())
-        # compute the avg distance of all the cells on the diagonal, 
-        # higher is the value different are the information learned by 
-        # the two architectures (only if the matrix is square)
-        if len(features_per_layer1.values()) == len(features_per_layer2.values()):
-            avg_dist = avg_dist / len(features_per_layer1.values())
-        else:
-            avg_dist = None
-                
-        self.results = {
-            'cka_dist': cka_matrix,
-            'avg_cka': avg_dist
-        }
+            activations1 = model1.forward(batch)
+            activations2 = model2.forward(batch)
+            hsic_accumulator, hsic_accumulator1, hsic_accumulator2 = \
+                                            CKA.update_state_across_models(hsic_accumulator,
+                                                                           hsic_accumulator1,
+                                                                           activations1,
+                                                                           hsic_accumulator2,
+                                                                           activations2)
+            if count == self.max_batches:
+                break
+            
+        mean_hsic = hsic_accumulator
+        normalization1 = np.sqrt(hsic_accumulator1)
+        normalization2 = np.sqrt(hsic_accumulator2)
+        mean_hsic /= normalization1[:, None]
+        mean_hsic /= normalization2[None, :]
         
+        cka_matrix = pd.DataFrame(mean_hsic, 
+                                  index=layers1, 
+                                  columns=layers2)
+        
+        
+        self.results['cka_dist'] = 1 - np.mean(np.diagonal(mean_hsic))
+        self.results['compared_cka'] = cka_matrix
         return self.results
+    
+    
+    def compute(self):
+        '''
+        Compare the CKA similarity among the layers of a model.
+        '''
+        num_layers = len(self.layers)
+        hsic_accumulator = np.zeros((num_layers, num_layers), dtype=np.float32)
+        # bind a hook to the outputs of the models' layers
+        model = FeatureExtractor(self.model, self.layers)
+        model.eval()
+
+        # iterate over the dataset
+        count = 0
+        for batch in self.data_loader:
+            count += 1
+            # compare the layers one against the other
+            activations = model.forward(batch)
+            hsic_accumulator = CKA.update_state(hsic_accumulator, activations)
+            if count == self.max_batches:
+                break
+                
+        mean_hsic = hsic_accumulator
+        normalization = np.sqrt(np.diagonal(hsic_accumulator))
+        mean_hsic = mean_hsic / normalization[:, None]
+        mean_hsic = mean_hsic / normalization[None, :]
+            
+        cka_matrix = pd.DataFrame(mean_hsic, 
+                                  index=self.layers, 
+                                  columns=self.layers)
+        
+        self.result['internal_cka'] = cka_matrix
+        return self.result
+            
+
+# test 
+# DATA_PATH = '/data/tbaldi/checkpoint/'
+
+# def get_model_index_and_relative_EMD(batch_size, learning_rate, precision, size, num_tests=3):
+#     '''
+#     Return the average EMDs achieved by the model and the index of best experiment
+#     '''
+#     EMDs = []
+#     min_emd = 1000
+#     min_emd_index = 0
+#     for i in range (1, num_tests+1):
+#         file_path = DATA_PATH + f'bs{batch_size}_lr{learning_rate}/' \
+#                     f'ECON_{precision}b/{size}/{size}_emd_{i}.txt'
+#         try:
+#             emd_file = open(file_path)
+#             emd_text = emd_file.read()
+#             emd = ast.literal_eval(emd_text)
+#             emd = emd[0]['AVG_EMD']
+#             EMDs.append(emd)
+#             if min_emd >= emd:
+#                 min_emd = emd
+#                 min_emd_index = i
+#             emd_file.close()
+#         except Exception as e:
+#             warnings.warn("Warning: " + file_path + " not found!")
+#             continue
+        
+#     if len(EMDs) == 0:
+#         warnings.warn(f"Attention: There is no EMD value for the model: " \
+#                       f"bs{batch_size}_lr{learning_rate}/ECON_{precision}b/{size}")
+#         #TODO: I may compute if the model is there
+#         return
+    
+#     return mean(EMDs), min_emd_index
+
+
+# def load_model(batch_size, learning_rate, precision, size):
+#     '''
+#     Method used to get the model and the relative EMD value
+#     '''
+#     emd, idx = get_model_index_and_relative_EMD(batch_size, learning_rate, precision, size)
+#     model_path = DATA_PATH + f'bs{batch_size}_lr{learning_rate}/ECON_{precision}b/{size}/net_{idx}_best.pkl'
+    
+#     # load the model
+#     model = AutoEncoder(
+#         quantize=(precision < 32),
+#         precision=[
+#             precision,
+#             precision,
+#             precision+3
+#         ],
+#         learning_rate=learning_rate,
+#         econ_type=size
+#     )
+    
+#     # to set the map location
+#     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+#     model(torch.randn((1, 1, 8, 8)))  # Update tensor shapes 
+#     model_param = torch.load(model_path, map_location=device)
+#     model.load_state_dict(model_param['state_dict'])
+    
+#     return model, emd
+
+
+# if __name__ == "__main__":
+#     DATASET_DIR = '../../../data/ECON/Elegun'
+#     DATASET_FILE = 'nELinks5.npy'
+#     # get the datamodule
+#     data_module = AutoEncoderDataModule(
+#         data_dir=DATASET_DIR,
+#         data_file=os.path.join(DATASET_DIR, DATASET_FILE),
+#         batch_size=16,
+#         num_workers=4)
+    
+#     # check if we have processed the data
+#     if not os.path.exists(os.path.join(DATASET_DIR, DATASET_FILE)):
+#         print('Processing the data...')
+#         data_module.process_data(save=True)
+
+#     data_module.setup(0)
+    
+#     model, _ = load_model(16, 0.05, 8, 'small')
+#     model2, _ = load_model(16, 0.003125, 8, 'baseline')
+#     cka = CKA(model, 
+#               data_module.test_dataloader(), 
+#               layers=['encoder.conv', 'encoder.enc_dense'],
+#               max_batches=100)
+#     result = cka.compare(model2)
+#     print(result)
+    
+    

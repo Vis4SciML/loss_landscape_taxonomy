@@ -14,12 +14,12 @@ class FeatureExtractor(nn.Module):
         self.model = model
         self.target_layers = target_layers
         self.features = OrderedDict()
-
         # Register hooks for target layers
         for name, layer in self.model.named_modules():
             if name in self.target_layers:
                 self.features[name] = None
                 layer.register_forward_hook(self._hook_fn(name))
+
 
     def _hook_fn(self, name):
         def hook(module, input, output):
