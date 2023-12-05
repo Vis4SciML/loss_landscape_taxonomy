@@ -7,12 +7,12 @@ Thao Nguyen, AI Resident, Google Research
 https://blog.research.google/2021/05/do-wide-and-deep-networks-learn-same.html
 """
 from __future__ import print_function
-import os
-import sys
-import ast
-import torch
-import warnings
-from statistics import mean
+# import os
+# import sys
+# import ast
+# import torch
+# import warnings
+# from statistics import mean
 from metric import Metric
 from utils.feature_extractor import FeatureExtractor
 
