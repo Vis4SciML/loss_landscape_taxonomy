@@ -114,7 +114,7 @@ handle_options() {
 }
 
 run_train() {
-    saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/ECON_"$precision"b/
+    saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/JTAG_"$precision"b/
     pids=()
     for i in $(eval echo "{1..$num_test}")
     do
