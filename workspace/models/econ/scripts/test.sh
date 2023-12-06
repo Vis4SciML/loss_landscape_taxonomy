@@ -20,7 +20,7 @@ batch_sizes=(16 32 64 128 256 512 1024)
 learning_rates=(0.025 0.0125 0.00625 0.003125 0.0015625)
 precisions=(2 3 4 5 6 7 8 9 10 11)
 percentages=(5 25 50 75 100)
-bit_flip=0
+bits_flip=(1 2 3 4 5 6 7 8 9 10)
 
 # Function to display script usage
 usage() {
@@ -97,31 +97,57 @@ handle_options() {
 
 run_test() {
 
-    for per in ${percentages[*]}
-    do
-        echo ""
-        echo " BATCH SIZE $bs - LEARNING_RATE $lr - PRECISION $p - noise $noise_type - precison $per% "
-        echo ""
+    if [ "$bit_flip" -gt 0 ]; then
+        for bit in ${bits_flip[*]}
+        do
+            echo ""
+            echo " BATCH SIZE $bs - LEARNING_RATE $lr - PRECISION $p - BIT $bit"
+            echo ""
 
-        
-        # training of the model
-        python code/test_encoder.py --saving_folder $SAVING_FOLDER \
-                            --data_dir $DATA_DIR \
-                            --data_file $DATA_FILE \
-                            --batch_size $bs \
-                            --num_workers $num_workers \
-                            --lr $lr \
-                            --size $size \
-                            --percentage $per \
-                            --precision $p \
-                            --noise_type $noise_type \
-                            --num_batches $num_batches \
-                            --bit_flip $bit_flip 
+            # training of the model
+            python code/test_encoder.py --saving_folder $SAVING_FOLDER \
+                                --data_dir $DATA_DIR \
+                                --data_file $DATA_FILE \
+                                --batch_size $bs \
+                                --num_workers $num_workers \
+                                --lr $lr \
+                                --size $size \
+                                --percentage 0 \
+                                --precision $p \
+                                --num_batches $num_batches \
+                                --bit_flip $bit 
 
 
-        echo ""
-        echo "-----------------------------------------------------------"
-    done
+            echo ""
+            echo "-----------------------------------------------------------"
+        done
+    else
+        for per in ${percentages[*]}
+        do
+            echo ""
+            echo " BATCH SIZE $bs - LEARNING_RATE $lr - PRECISION $p - noise $noise_type - precison $per% "
+            echo ""
+
+            # training of the model
+            python code/test_encoder.py --saving_folder $SAVING_FOLDER \
+                                --data_dir $DATA_DIR \
+                                --data_file $DATA_FILE \
+                                --batch_size $bs \
+                                --num_workers $num_workers \
+                                --lr $lr \
+                                --size $size \
+                                --percentage $per \
+                                --precision $p \
+                                --noise_type $noise_type \
+                                --num_batches $num_batches \
+                                --bit_flip $bit_flip 
+
+
+            echo ""
+            echo "-----------------------------------------------------------"
+        done
+    fi
+    
 }
 
 # Main script execution
@@ -144,7 +170,7 @@ done
 
 exit 0
 
-# nohup bash scripts/test.sh --num_workers 4 --num_batches 5000 --size small --noise_type gaussian & 
+# nohup bash scripts/test.sh --num_workers 4 --num_batches 5000 --size small --bit_flip 1 > bitflip.out 2>&1 &
 
 # python code/test_encoder.py --saving_folder "/data/tbaldi/checkpoint/" \
 #                         --data_dir "../../../data/ECON/Elegun" \

@@ -24,10 +24,14 @@ class Metric:
         
     def load_from_file(self, path="./"):
         print('Loading the result...')
-        f = open(os.path.join(path, self.name + ".pkl"), "rb")
-        data = pickle.load(f)
-        f.close()
-        self.result = data[self.name]  
+        try:
+            f = open(os.path.join(path, self.name + ".pkl"), "rb")
+            data = pickle.load(f)
+            f.close()
+        except:
+            print('File ' + self.name + '.pkl not found!')
+            return False
+        self.results = data 
         print('Loading complete')
         
-        return self.result
+        return True

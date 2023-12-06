@@ -31,6 +31,7 @@ import pandas as pd
 # ---------------------------------------------------------------------------- #
         
 class CKA(Metric):
+    
     def __init__(self, model, data_loader, name="CKA_similarity", layers=[], max_batches=100):
         super().__init__(model, data_loader, name)
         self.layers = layers

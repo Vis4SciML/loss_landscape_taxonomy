@@ -80,7 +80,6 @@ def test_model(model, test_loader, max_batches):
             input_calQ_list.append(input_calQ)
             output_calQ_list.append(output_calQ)
             # terminate the test
-            print(f"Benchmark: {count_batches}/{max_batches}")
             if count_batches == max_batches:
                 break
             
@@ -168,9 +167,9 @@ def main(args):
     # ---------------------------------------------------------------------------- #
     if args.bit_flip > 0:
         print('-'*80)
-        print(f'Bit flipped: {args.bit_flip}%')
+        print(f'Number bits flipped: {args.bit_flip}')
         bit_flip = BitFlip(model, args.precision, ['encoder.conv', 'encoder.enc_dense'])
-        bit_flip.flip_bits(args.bit_flip)
+        bit_flip.flip_bits(number=args.bit_flip)
         
     # ---------------------------------------------------------------------------- #
     #                                   BENCHMARK                                  #
