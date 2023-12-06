@@ -38,11 +38,10 @@ def main(args):
             args.act_precision
         ],
         learning_rate=args.lr,
-        econ_type=args.size,
     )
     torchinfo.summary(model, input_size=(1, 16))
 
-    tb_logger = pl_loggers.TensorBoardLogger(args.saving_folder, name=args.size)
+    tb_logger = pl_loggers.TensorBoardLogger(args.saving_folder)
 
     # Stop training when model converges
     early_stop_callback = EarlyStopping(
@@ -59,12 +58,12 @@ def main(args):
         save_last=True,
         monitor="val_loss",
         mode="min",
-        dirpath=os.path.join(args.saving_folder, args.size),
+        dirpath=args.saving_folder,
         filename=f'net_{args.experiment}_best',
         auto_insert_metric_name=False,
     )
     top_checkpoint_callback.FILE_EXTENSION = '.pkl'
-    print(f'Saving to dir: {os.path.join(args.saving_folder, args.size)}')
+    print(f'Saving to dir: {args.saving_folder}')
     print(f'Running experiment: {args.experiment}')
 
     # ------------------------
@@ -96,14 +95,14 @@ def main(args):
     # 4 EVALUTE MODEL
     # ------------------------
     # load the model from file
-    checkpoint_file = os.path.join(args.saving_folder, args.size, f'net_{args.experiment}_best.pkl')
+    checkpoint_file = os.path.join(args.saving_folder, f'net_{args.experiment}_best.pkl')
     print('Loading checkpoint...', checkpoint_file)
     checkpoint = torch.load(checkpoint_file)  
     model.load_state_dict(checkpoint['state_dict'])
     test_results = trainer.test(model, dataloaders=data_module.test_dataloader())
     # save the results on file
     test_results_log = os.path.join(
-        args.saving_folder, args.size, args.size + f"_emd_{args.experiment}.txt"
+        args.saving_folder, f"accuracy_{args.experiment}.txt"
     )
     with open(test_results_log, "w") as f:
         f.write(str(test_results))
@@ -115,7 +114,6 @@ if __name__ == "__main__":
     parser.add_argument("--saving_folder", type=str)
     parser.add_argument("--no_train", action="store_true", default=False)
     parser.add_argument("--max_epochs", type=int, default=10)
-    parser.add_argument("--size", type=str, default="baseline")
     parser.add_argument("--weight_precision", type=int, default=8)
     parser.add_argument("--bias_precision", type=int, default=8)
     parser.add_argument("--act_precision", type=int, default=11)

@@ -107,8 +107,6 @@ def preprocess_data(data, preprocess):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, default='config.yml')
-    parser.add_argument('--noise', default=False, action='store_true')
-    parser.add_argument('--noise-magnitude', type=float, default=0.0)
     parser.add_argument('--noise-type', type=str)
     parser.add_argument('--save-path', type=str, default='data/JT')
     args = parser.parse_args()
@@ -130,38 +128,13 @@ if __name__ == '__main__':
     X_train, y_train = train_dataset[:]
     X_test, y_test = test_dataset[:]
     
-    random_seed = 12345
-    np.random.seed(random_seed)
-
     train_dataset_shape = X_train.shape
     test_dataset_shape = X_test.shape
-
-    if args.noise_type == 'bernoulli':
-        noise_tr = np.random.randint(0, args.noise_magnitude, size = train_dataset_shape, dtype=np.uint8)*2-1
-        noise_ts = np.random.randint(0, args.noise_magnitude, size = test_dataset_shape, dtype=np.uint8)*2-1
-    elif args.noise_type == 'gaussian':
-        noise_tr = np.random.normal(0, args.noise_magnitude, size = train_dataset_shape)
-        noise_ts = np.random.normal(0, args.noise_magnitude, size = test_dataset_shape)
-    elif args.noise_type == 'uniform':
-        noise_tr = np.random.uniform(-1, 1, size = train_dataset_shape)
-        noise_ts = np.random.uniform(-1, 1, size = test_dataset_shape)
-    elif args.noise_type == 'positive_uniform':
-        noise_tr = np.random.uniform(0, 1, size = train_dataset_shape)
-        noise_ts = np.random.uniform(0, 1, size = test_dataset_shape)
-
-    file_suffix = ''
-    if args.noise:
-        print(f'Adding {args.noise_type} noise')
-        file_suffix = f'_{args.noise_type}{args.noise_magnitude}'
-        print(f'Noise shape (train): {noise_tr.shape}')
-        print(f'Noise shape (test): {noise_ts.shape}')
-        X_train += noise_tr
-        X_test += noise_ts
 
     X_train = preprocess_data(X_train, preprocess)
     X_test = preprocess_data(X_test, preprocess)
 
-    np.save(os.path.join(args.save_path, 'X_train' + file_suffix + '.npy'), X_train)
-    np.save(os.path.join(args.save_path, 'y_train' + file_suffix + '.npy'), y_train)
-    np.save(os.path.join(args.save_path, 'X_test'  + file_suffix + '.npy'), X_test)
-    np.save(os.path.join(args.save_path, 'y_test'  + file_suffix + '.npy'), y_test)
+    np.save(os.path.join(args.save_path, 'X_train.npy'), X_train)
+    np.save(os.path.join(args.save_path, 'y_train.npy'), y_train)
+    np.save(os.path.join(args.save_path, 'X_test.npy'), X_test)
+    np.save(os.path.join(args.save_path, 'y_test.npy'), y_test)

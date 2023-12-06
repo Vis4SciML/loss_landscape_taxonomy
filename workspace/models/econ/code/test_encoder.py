@@ -7,6 +7,7 @@ import warnings
 from utils_pt import unnormalize, emd
 import torch
 from torch.utils.data import DataLoader
+import pytorch_lightning as pl 
 import numpy as np
 import multiprocessing
 from q_autoencoder import AutoEncoder
@@ -15,6 +16,7 @@ from autoencoder_datamodule import AutoEncoderDataModule
 module_path = os.path.abspath(os.path.join('../../common/benchmarks/')) 
 sys.path.insert(0, module_path)
 from noisy_dataset import NoisyDataset
+from bit_flip import BitFlip
 
 def get_model_index_and_relative_EMD(path, batch_size, learning_rate, precision, size, num_tests=3):
     '''
@@ -59,13 +61,14 @@ def test_model(model, test_loader, max_batches):
     output_calQ_list = []
     with torch.no_grad():
         count_batches = 0
-        for noisy_batch, original_batch in test_loader:
+        max_batches = min(max_batches, len(test_loader))
+        for batch, original_batch in test_loader:
             count_batches += 1
             # move to the right device
-            noisy_batch = noisy_batch.to(model.device)
+            batch = batch.to(model.device)
             original_batch = original_batch.to(model.device)
             # compute the encoded outputs
-            output = model(noisy_batch)
+            output = model(batch)
             input_calQ = model.map_to_calq(original_batch)
             output_calQ_fr = model.map_to_calq(output)
             input_calQ = torch.stack(
@@ -77,6 +80,7 @@ def test_model(model, test_loader, max_batches):
             input_calQ_list.append(input_calQ)
             output_calQ_list.append(output_calQ)
             # terminate the test
+            print(f"Benchmark: {count_batches}/{max_batches}")
             if count_batches == max_batches:
                 break
             
@@ -97,6 +101,9 @@ def main(args):
     if not os.path.exists(args.saving_folder):
         os.makedirs(args.saving_folder)
         
+    # ---------------------------------------------------------------------------- #
+    #                                  DATA MODULE                                 #
+    # ---------------------------------------------------------------------------- #
     #load the datamodule
     data_module = AutoEncoderDataModule.from_argparse_args(args)
     # process the dataset if required
@@ -105,7 +112,9 @@ def main(args):
         data_module.process_data()
         
     
-    # load the model
+    # ---------------------------------------------------------------------------- #
+    #                                     MODEL                                    #
+    # ---------------------------------------------------------------------------- #
     original_emd, idx = get_model_index_and_relative_EMD(args.saving_folder, 
                                                 args.batch_size, 
                                                 args.lr, 
@@ -137,24 +146,53 @@ def main(args):
     model.set_val_sum(val_sum)
     data_module.setup("test")
     
-    # prepare noisy dataloader
-    noisy_dataset = NoisyDataset(data_module.dataloaders()[1], 
-                                    args.percentage, 
-                                    args.noise_type)
+    _, dataloader = data_module.dataloaders()
     
-    noisy_dataloader = DataLoader(noisy_dataset, 
-                                  args.batch_size, 
-                                  shuffle=True,
-                                  num_workers=4)
+    # ---------------------------------------------------------------------------- #
+    #                                   ADD NOISE                                  #
+    # ---------------------------------------------------------------------------- #
+    if args.percentage > 0:
+        print('-'*80)
+        print(f'Noise type: {args.noise_type} - Percentage: {args.percentage}%')
+        # prepare noisy dataloader
+        noisy_dataset = NoisyDataset(dataloader, 
+                                     args.percentage, 
+                                     args.noise_type)
+        dataloader = DataLoader(noisy_dataset, 
+                                args.batch_size, 
+                                shuffle=False,
+                                num_workers=4)
     
-    test_results = test_model(model, noisy_dataloader, args.num_batches)
-    print(f'Noise type: {args.noise_type} - Percentage: {args.percentage}%')
-    print(test_results)
+    # ---------------------------------------------------------------------------- #
+    #                                   FLIP BIT                                   #
+    # ---------------------------------------------------------------------------- #
+    if args.bit_flip > 0:
+        print('-'*80)
+        print(f'Bit flipped: {args.bit_flip}%')
+        bit_flip = BitFlip(model, args.precision, ['encoder.conv', 'encoder.enc_dense'])
+        bit_flip.flip_bits(args.bit_flip)
+        
+    # ---------------------------------------------------------------------------- #
+    #                                   BENCHMARK                                  #
+    # ---------------------------------------------------------------------------- #
+    # prepare the trainer
+    print('-'*80)
+    test_results = test_model(model, dataloader, args.num_batches)
+    print(f'Original EMD:\t{original_emd}\nBenchmark EMD:\t{test_results}')
     
     # save the results on file
+    file_name = args.size + f"_emd"
+    if args.percentage > 0:
+        file_name += f"_{args.noise_type}_{args.percentage}"
+    elif args.bit_flip > 0:
+        file_name += f"_bitflip_{args.bit_flip}"
+    file_name += ".txt"
+    
     test_results_log = os.path.join(
-        args.saving_folder, f'bs{args.batch_size}_lr{args.lr}/ECON_{args.precision}b/{args.size}', args.size + f"_emd_{args.noise_type}_{args.percentage}.txt"
+        args.saving_folder, f'bs{args.batch_size}_lr{args.lr}/ECON_{args.precision}b/{args.size}', file_name
     )
+    
+    print('Result stored in: ' + test_results_log)
     with open(test_results_log, "w") as f:
         f.write(str(test_results))
         f.close()
@@ -165,16 +203,16 @@ if __name__ == "__main__":
     parser.add_argument("--saving_folder", type=str)
     parser.add_argument("--size", type=str, default="baseline")
     parser.add_argument("--precision", type=int, default=8)
-    parser.add_argument("--percentage", type=int, default=5)
+    parser.add_argument("--percentage", type=int, default=0)
     parser.add_argument("--lr", type=float, default=0.0015625)
     parser.add_argument("--noise_type", type=str, default="gaussian")
     parser.add_argument("--num_batches", type=int, default=1000)
+    parser.add_argument("--bit_flip", type=int, default=0)
     
     parser = AutoEncoderDataModule.add_argparse_args(parser)
     
     args = parser.parse_args()
     
-    print(' '.join(f'{k}={v}\n' for k, v in vars(args).items()))
     main(args)
     
     
