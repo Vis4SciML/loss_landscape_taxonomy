@@ -15,6 +15,7 @@ dependencies:
   - giflib=5.2.1=h5eee18b_3
   - gmp=6.2.1=h295c915_3
   - gnutls=3.6.15=he1e5248_0
+  - h5py
   - intel-openmp=2021.4.0=h06a4308_3561
   - jpeg=9e=h5eee18b_1
   - lame=3.100=h7b6447c_0
