@@ -1,25 +1,19 @@
 #!/bin/sh
 
-# Constants
-ADD_PRECISION=3
-SAVING_FOLDER="/home/jovyan/checkpoint/different_knobs_subset_10"
-DATA_DIR="/home/jovyan/loss_landscape_taxonomy/data/ECON/Elegun"
-DATA_FILE="$DATA_DIR/nELinks5.npy"
-
 # Default variable values
-num_workers=4
-max_epochs=25
-size="baseline"
+num_workers=8
+max_epochs=50
 top_models=3
-num_test=3
+num_test=5
 accelerator="auto"
 
 # # ranges of the scan 
 batch_sizes=(16 32 64 128 256 512 1024)
 learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
-
-
 # precisions=(2 3 4 5 6 7 8 9 10 11)
+
+batch_sizes=(1024)
+learning_rates=(0.1)
 
 # Function to display script usage
 usage() {
@@ -28,7 +22,6 @@ usage() {
     echo " -h, --help          Display this help message"
     echo "--num_workers        Number of workers"
     echo "--max_epochs         Max number of epochs"
-    echo "--size               Model size [baseline, small, large]"
     echo "--top_models         Number of top models to store"
     echo "--num_test           Number of time we repeat the computation"
     echo "--accelerator        Accelerator to use during training [auto, cpu, gpu, tpu]"
@@ -71,13 +64,6 @@ handle_options() {
                     shift
                 fi
                 ;;
-            --size)
-                if has_argument $@; then
-                    size=$(extract_argument $@)
-                    echo "Size of the model: $size"
-                    shift
-                fi
-                ;;
             --top_models)
                 if has_argument $@; then
                     top_models=$(extract_argument $@)
@@ -97,7 +83,6 @@ handle_options() {
     done
 }
 
-# TOD generate the right Job
 # Function to generate a Kubernetes Job YAML file
 generate_job_yaml() {
 
@@ -117,14 +102,13 @@ spec:
                 args: ["git clone https://github.com/balditommaso/loss_landscape_taxonomy.git;
                         cd /home/jovyan/loss_landscape_taxonomy;
                         conda env create -f environment.yml;
-                        . /home/jovyan/loss_landscape_taxonomy/workspace/models/econ/scripts/get_econ_data.sh;
+                        . /home/jovyan/loss_landscape_taxonomy/workspace/models/econ/scripts/jet_dataset_download.sh;
                         source activate loss_landscape;
-                        cd /home/jovyan/loss_landscape_taxonomy/workspace/models/econ/;
+                        cd /home/jovyan/loss_landscape_taxonomy/workspace/models/jets/;
                         . scripts/train.sh \
                                         --bs $bs \
                                         --lr $lr \
                                         --max_epochs $max_epochs \
-                                        --size $size \
                                         --top_models $top_models \
                                         --num_test $num_test \
                                         --num_workers $num_workers \
@@ -163,7 +147,7 @@ for bs in ${batch_sizes[*]}
 do
     for lr in ${learning_rates[*]}
     do
-        job_name=$(echo "econ_"$size"_bs"$bs"_lr$lr" | sed 's/\./_/g')
+        job_name=$(echo "jtag_bs"$bs"_lr$lr" | sed 's/\./_/g')
         generate_job_yaml $job_name
         start_kubernetes_job
     done    
@@ -175,8 +159,8 @@ exit 0
 # END MAIN
 
 # SMALL
-# bash econ_training.sh --num_workers 8 --max_epochs 25 --size small --top_models 3 --num_test 3
+# bash jtag_training.sh --num_workers 8 --max_epochs 25 --top_models 3 --num_test 3
 # BASELINE
-# bash econ_training.sh --num_workers 8 --max_epochs 25 --size baseline --top_models 3 --num_test 3
+# bash jtag_training.sh --num_workers 8 --max_epochs 25 --top_models 3 --num_test 3
 # LARGE
-# bash econ_training.sh --num_workers 8 --max_epochs 25 --size large --top_models 3 --num_test 3
+# bash jtag_training.sh --num_workers 8 --max_epochs 25 --top_models 3 --num_test 3

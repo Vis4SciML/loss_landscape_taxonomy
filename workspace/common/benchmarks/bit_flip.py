@@ -31,8 +31,11 @@ class BitFlip:
                 self.bits_number += self.quant_weights[name].size * self.precision
                         
         
-    def flip_bits(self, percentage):
-        num = int(self.bits_number * percentage)
+    def flip_bits(self, percentage=0, number=0):
+        '''
+        Method used to flip a certain number of bits in the target layers of a neural network.
+        '''
+        num = int(number + self.bits_number * percentage)
         flip_indexes = np.random.randint(0, self.bits_number, size=num)
         for flip_index in flip_indexes:
             weight_index = flip_index // self.precision

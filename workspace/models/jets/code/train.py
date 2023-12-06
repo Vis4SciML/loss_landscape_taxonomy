@@ -25,7 +25,9 @@ def main(args):
     if not os.path.exists(args.data_file):
         print("Processing data...")
         data_module.process_data()
-    
+        
+    # split the dataset
+    data_module.setup(0)
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------

@@ -132,6 +132,7 @@ class JetDataModule(pl.LightningDataModule):
         self.scale_data()
         if save:
             self.save_data()
+            
 
     # PyTorch Lightning specific methods
     def setup(self, stage):

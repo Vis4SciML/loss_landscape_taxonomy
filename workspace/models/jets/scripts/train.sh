@@ -2,14 +2,13 @@
 
 # Constants
 ADD_PRECISION=3
-SAVING_FOLDER="/home/jovyan/checkpoint/different_knobs_subset_10"    # /loss_landscape -> shared volume
-DATA_DIR="../../../data/jets"
-DATA_FILE="$DATA_DIR/train"
+SAVING_FOLDER="/home/jovyan/checkpoint/different_knobs_subset_10"    
+DATA_DIR="../../../data/JTAG"
+DATA_FILE="$DATA_DIR/processed_dataset.h5"
 
 # Default variable values
 num_workers=4
 max_epochs=50
-no_train=false
 top_models=3
 num_test=5
 accelerator="auto"
@@ -33,7 +32,6 @@ usage() {
     echo "--top_models         Number of top models to store"
     echo "--num_test           Number of time we repeat the computation"
     echo "--accelerator        Accelerator to use during training [auto, cpu, gpu, tpu]"
-    echo "--no_train            Flag which specify if the model need to be train"
 }
 
 has_argument() {
@@ -159,8 +157,6 @@ run_train() {
         current_date_time=$(date '+%Y-%m-%d %H:%M:%S')
         echo "$current_date_time: Process with PID $pid finished"
     done
-
-    
 }
 
 # Main script execution
