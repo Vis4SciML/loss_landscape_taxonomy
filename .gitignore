@@ -179,7 +179,6 @@ data/
 # *.pkl
 
 events*
-
 *out
 
 # old files/folders
@@ -189,6 +188,7 @@ src_deprecated/
 workspace/checkpoint*
 kubernetes/checkpoint*
 kubernetes/econ*
+kubernetes/jtag*
 workspace/notebooks/lightning*
 HAWQ*
 checkpoint
