@@ -31,7 +31,7 @@ class Metric:
         except:
             print('File ' + self.name + '.pkl not found!')
             return False
-        self.results = data 
+        self.results = data[self.name]
         print('Loading complete')
         
         return True

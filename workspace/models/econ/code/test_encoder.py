@@ -147,54 +147,69 @@ def main(args):
     
     _, dataloader = data_module.dataloaders()
     
+    tests = None
     # ---------------------------------------------------------------------------- #
     #                                   ADD NOISE                                  #
     # ---------------------------------------------------------------------------- #
     if args.percentage > 0:
+        tests = [5, 25, 50, 75, 100]
         print('-'*80)
-        print(f'Noise type: {args.noise_type} - Percentage: {args.percentage}%')
-        # prepare noisy dataloader
-        noisy_dataset = NoisyDataset(dataloader, 
-                                     args.percentage, 
-                                     args.noise_type)
-        dataloader = DataLoader(noisy_dataset, 
-                                args.batch_size, 
-                                shuffle=False,
-                                num_workers=4)
+        print(f'Noise type: {args.noise_type}')
     
     # ---------------------------------------------------------------------------- #
     #                                   FLIP BIT                                   #
     # ---------------------------------------------------------------------------- #
     if args.bit_flip > 0:
+        tests = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         print('-'*80)
-        print(f'Number bits flipped: {args.bit_flip}')
-        bit_flip = BitFlip(model, args.precision, ['encoder.conv', 'encoder.enc_dense'])
-        bit_flip.flip_bits(number=args.bit_flip)
+        print(f'Radiation test')
         
     # ---------------------------------------------------------------------------- #
     #                                   BENCHMARK                                  #
     # ---------------------------------------------------------------------------- #
-    # prepare the trainer
-    print('-'*80)
-    test_results = test_model(model, dataloader, args.num_batches)
-    print(f'Original EMD:\t{original_emd}\nBenchmark EMD:\t{test_results}')
+    for test in tests:
+        print('-'*80)
+        # prepare the trainer
+        if args.bit_flip > 0:
+            print(f'Flipped bits: {test}')
+            bit_flip = BitFlip(model, 
+                               args.precision, 
+                               ['encoder.conv', 'encoder.enc_dense'])
+            bit_flip.flip_bits(number=1)    # we are using the same model, so I flip just one time per iteration
+            
+        if args.percentage > 0:
+            # prepare noisy dataloader
+            print(f'Noise percentage: {test}%')
+            noisy_dataset = NoisyDataset(dataloader, 
+                                         test, 
+                                         args.noise_type)
+            dataloader = DataLoader(noisy_dataset, 
+                                    args.batch_size, 
+                                    shuffle=False,
+                                    num_workers=4)
+        print('-'*80)
+        
+        test_results = test_model(model, dataloader, args.num_batches)
+        print(f'Original EMD:\t{original_emd}\nBenchmark EMD:\t{test_results}')
+        
+        # save the results on file
+        file_name = args.size + f"_emd"
+        if args.percentage > 0:
+            file_name += f"_{args.noise_type}_{test}"
+        elif args.bit_flip > 0:
+            file_name += f"_bitflip_{test}"
+        file_name += ".txt"
+        
+        test_results_log = os.path.join(
+            args.saving_folder, f'bs{args.batch_size}_lr{args.lr}/ECON_{args.precision}b/{args.size}', file_name
+        )
+        
+        print('Result stored in: ' + test_results_log)
+        with open(test_results_log, "w") as f:
+            f.write(str(test_results))
+            f.close()
     
-    # save the results on file
-    file_name = args.size + f"_emd"
-    if args.percentage > 0:
-        file_name += f"_{args.noise_type}_{args.percentage}"
-    elif args.bit_flip > 0:
-        file_name += f"_bitflip_{args.bit_flip}"
-    file_name += ".txt"
-    
-    test_results_log = os.path.join(
-        args.saving_folder, f'bs{args.batch_size}_lr{args.lr}/ECON_{args.precision}b/{args.size}', file_name
-    )
-    
-    print('Result stored in: ' + test_results_log)
-    with open(test_results_log, "w") as f:
-        f.write(str(test_results))
-        f.close()
+    print('Test over!')
 
 
 if __name__ == "__main__":
