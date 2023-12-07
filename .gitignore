@@ -187,8 +187,8 @@ src_deprecated/
 # other 
 workspace/checkpoint*
 kubernetes/checkpoint*
-kubernetes/econ*
-kubernetes/jtag*
+kubernetes/econ*.yaml
+kubernetes/jtag*.yaml
 workspace/notebooks/lightning*
 HAWQ*
 checkpoint
