@@ -10,9 +10,10 @@ num_workers=14
 
 
 # # ranges of the scan 
-batch_sizes=(16 32 64 128 256 512 1024)
-learning_rates=(0.025 0.0125 0.00625 0.003125 0.0015625)
-
+# batch_sizes=(16 32 64 128 256 512 1024)
+# learning_rates=(0.025 0.0125 0.00625 0.003125 0.0015625)
+batch_sizes=(1024)
+learning_rates=(0.05)
 bit_flip=0
 noise_type="gaussian"
 
@@ -97,7 +98,7 @@ spec:
                 command: ["/bin/bash","-c"]
                 args: ["cp /loss_landscape/checkpoint.tar.gz /home/jovyan/;
                         cd /home/jovyan/;
-                        tar -xvf checkpoint.tar.gz
+                        tar -xf checkpoint.tar.gz;
                         git clone https://github.com/balditommaso/loss_landscape_taxonomy.git;
                         cd /home/jovyan/loss_landscape_taxonomy;
                         conda env create -f environment.yml;
@@ -109,6 +110,7 @@ spec:
                                         --learning_rate $lr \
                                         --size $size \
                                         --bit_flip $bit_flip \
+                                        --noise_type $noise_type \
                                         --num_workers $num_workers"]
                 volumeMounts:
                   - mountPath: /loss_landscape
@@ -156,8 +158,8 @@ exit 0
 # END MAIN
 
 # SMALL
-# bash econ_training.sh --num_workers 8 --noise_type gaussian --size small --bit_flip 0
+# bash econ_benchmarks.sh --num_workers 12 --noise_type gaussian --size small --bit_flip 0
 # BASELINE
-# bash econ_training.sh --num_workers 8 --noise_type gaussian --size baseline --bit_flip 0
+# bash econ_benchmarks.sh --num_workers 12 --noise_type gaussian --size baseline --bit_flip 0
 # LARGE
-# bash econ_training.sh --num_workers 8 --noise_type gaussian --size large --bit_flip 0
+# bash econ_benchmarks.sh --num_workers 12 --noise_type gaussian --size large --bit_flip 0

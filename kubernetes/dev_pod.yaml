@@ -21,7 +21,7 @@ spec:
       limits:
         nvidia.com/gpu: "1"
         memory: "64G"
-        cpu: "16"
+        cpu: "32"
   restartPolicy: OnFailure
   volumes:
     - name: loss-landscape-volume

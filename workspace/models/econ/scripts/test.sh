@@ -125,7 +125,8 @@ run_test() {
                                 --size $size \
                                 --precision $p \
                                 --percentage 0 \
-                                --bit_flip $i 
+                                --bit_flip $i \
+                                >/$HOME/log_$i.txt 2>&1 &
 
             pids+=($!)
         done
@@ -150,7 +151,8 @@ run_test() {
                             --precision $p \
                             --noise_type $noise_type \
                             --percentage $i \
-                            --bit_flip 0
+                            --bit_flip 0 \
+                            >/$HOME/log_$i.txt 2>&1 &
         
             pids+=($!)
         done
