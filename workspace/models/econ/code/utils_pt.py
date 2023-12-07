@@ -100,24 +100,28 @@ def unnormalize(norm_data, max_vals, sumlog2=True):
     return norm_data
 
 
-def emd(_x, _y, threshold=-1):
+def emd(x, y, threshold=-1):
     # if np.sum(_x) == 0:
     #     return -1.0
     # if np.sum(_y) == 0:
     #     epsilon = 1e-10
     #     _y = np.array(_y) + epsilon
-    x = np.array(_x, dtype=np.float64)
-    y = np.array(_y, dtype=np.float64)
-    x = (1.0 / x.sum() if x.sum() else 1.0) * x.flatten()
-    y = (1.0 / y.sum() if y.sum() else 1.0) * y.flatten()
+    # x = np.array(_x, dtype=np.float64)
+    # y = np.array(_y, dtype=np.float64)
+    x = torch.Tensor(x)
+    y = torch.Tensor(y)
+    x = (1.0 / x.sum() if x.sum() else 1.0) * torch.flatten(x)
+    y = (1.0 / y.sum() if y.sum() else 1.0) * torch.flatten(y)
 
     if threshold > 0:
         # only keep entries above 2%, e.g.
-        x = np.where(x > threshold, x, 0)
-        y = np.where(y > threshold, y, 0)
+        x = torch.where(x > threshold, x, 0)
+        y = torch.where(y > threshold, y, 0)
         x = 1.0 * x / x.sum()
         y = 1.0 * y / y.sum()
         
     # result = ot.emd2(x, y, hex_metric)
+    x = np.float64(x.cpu().numpy())
+    y = np.float64(y.cpu().numpy())
     result = pyemd.emd(x, y, hex_metric)
     return result

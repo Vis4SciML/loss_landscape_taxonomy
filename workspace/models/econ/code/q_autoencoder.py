@@ -260,7 +260,7 @@ class AutoEncoder(pl.LightningModule):
         """
         remap = self.invert_arrange()
         image_size = self.shape[0] * self.shape[1] * self.shape[2]
-        reshaped_x = x.reshape(len(x), image_size)
+        reshaped_x = torch.reshape(x, (len(x), image_size))
         reshaped_x[:, ARRANGE_MASK == 0] = 0
         return reshaped_x[:, remap]
 

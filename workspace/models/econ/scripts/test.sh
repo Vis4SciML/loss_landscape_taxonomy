@@ -8,19 +8,20 @@ DATA_FILE="$DATA_DIR/nELinks5.npy"
 # Default variable values
 num_workers=4
 size="baseline"
-num_batches=1000
 noise_type="gaussian"
 bit_flip=0
-percentage=0
+batch_size=1024
+learning_rate=0.1
 
 
 
 # ranges of the scan 
 # batch_sizes=(16 32 64 128 256 512 1024)
 # learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
-batch_sizes=(16 32 64 128 256 512 1024)
-learning_rates=(0.025 0.0125 0.00625 0.003125 0.0015625)
+
 precisions=(2 3 4 5 6 7 8 9 10 11)
+percentages=(5 25 50 75 100)
+bit_flips=(1, 2, 3, 4)
 
 
 # Function to display script usage
@@ -29,11 +30,11 @@ usage() {
     echo "Options:"
     echo " -h, --help          Display this help message"
     echo "--num_workers        Number of workers"
-    echo "--num_batches        Max number of batches to test"
     echo "--size               Model size [baseline, small, large]"
     echo "--noise_type         Type of noise [gaussian, random, salt_pepper]"
     echo "--bit_flip           Flag to simulate the radiation environment"
-    echo "--percentage         Flag to simulate noise in the input"
+    echo "--batch_size         Select the model by batch size"
+    echo "--learning_rate      Select the model by learning rate"
 }
 
 has_argument() {
@@ -52,24 +53,11 @@ handle_options() {
                 usage
                 return
                 ;;
-            --num_batches)
-                if has_argument $@; then
-                    num_batches=$(extract_argument $@)
-                    echo "Max number of batches: $num_batches"
-                    shift
-                fi
-                ;;
+
             --bit_flip)
                 if has_argument $@; then
                     bit_flip=$(extract_argument $@)
                     echo "Max number of batches: $bit_flip"
-                    shift
-                fi
-                ;;
-            --percentage)
-                if has_argument $@; then
-                    percentage=$(extract_argument $@)
-                    echo "Max number of batches: $percentage"
                     shift
                 fi
                 ;;
@@ -94,6 +82,20 @@ handle_options() {
                     shift
                 fi
                 ;;
+            --batch_size)
+                if has_argument $@; then
+                    batch_size=$(extract_argument $@)
+                    echo "Number of test per model: $batch_size"
+                    shift
+                fi
+                ;;
+            --learning_rate)
+                if has_argument $@; then
+                    learning_rate=$(extract_argument $@)
+                    echo "Number of test per model: $learning_rate"
+                    shift
+                fi
+                ;;
             *)
                 echo "Invalid option: $1" >&2
                 usage
@@ -105,53 +107,63 @@ handle_options() {
 }
 
 run_test() {
-
+    pids=()
     if [ "$bit_flip" -gt 0 ]; then
 
         echo ""
-        echo " BATCH SIZE $bs - LEARNING_RATE $lr - PRECISION $p "
+        echo " BATCH SIZE $batch_size - LEARNING_RATE $learning_rate - PRECISION $p "
         echo ""
+        for i in $(eval echo "{1..$bit_flips}")
+        do
+            # training of the model
+            python code/test_encoder.py --saving_folder $SAVING_FOLDER \
+                                --data_dir $DATA_DIR \
+                                --data_file $DATA_FILE \
+                                --batch_size $batch_size \
+                                --num_workers $num_workers \
+                                --learning_rate $learning_rate \
+                                --size $size \
+                                --precision $p \
+                                --percentage 0 \
+                                --bit_flip $i 
 
-        # training of the model
-        python code/test_encoder.py --saving_folder $SAVING_FOLDER \
-                            --data_dir $DATA_DIR \
-                            --data_file $DATA_FILE \
-                            --batch_size $bs \
-                            --num_workers $num_workers \
-                            --lr $lr \
-                            --size $size \
-                            --percentage 0 \
-                            --precision $p \
-                            --num_batches $num_batches \
-                            --bit_flip 1 
-
+            pids+=($!)
+        done
+        
 
         echo ""
         echo "-----------------------------------------------------------"
     else
         echo ""
-        echo " BATCH SIZE $bs - LEARNING_RATE $lr - PRECISION $p"
+        echo " BATCH SIZE $batch_size - LEARNING_RATE $learning_rate - PRECISION $p"
         echo ""
-
-        # training of the model
-        python code/test_encoder.py --saving_folder $SAVING_FOLDER \
+        for i in $(eval echo "{1..$percentages}")
+        do
+            # training of the model
+            python code/test_encoder.py --saving_folder $SAVING_FOLDER \
                             --data_dir $DATA_DIR \
                             --data_file $DATA_FILE \
-                            --batch_size $bs \
+                            --batch_size $batch_size \
                             --num_workers $num_workers \
-                            --lr $lr \
+                            --learning_rate $learning_rate \
                             --size $size \
-                            --percentage $percentage \
                             --precision $p \
                             --noise_type $noise_type \
-                            --num_batches $num_batches \
+                            --percentage $i \
                             --bit_flip 0
-
+        
+            pids+=($!)
+        done
 
         echo ""
         echo "-----------------------------------------------------------"
     fi
-    
+    # Wait for all background processes to finish
+    for pid in "${pids[@]}"; do
+        wait $pid
+        current_date_time=$(date '+%Y-%m-%d %H:%M:%S')
+        echo "$current_date_time: Process with PID $pid finished"
+    done
 }
 
 # Main script execution
@@ -160,35 +172,32 @@ handle_options "$@"
 mkdir -p $DATA_DIR
 
 #iterate over the precision
-for bs in ${batch_sizes[*]}
+for p in ${precisions[*]}
 do
-    for lr in ${learning_rates[*]}
-    do
-        for p in ${precisions[*]}
-        do
-            # trainig with various batch sizes
-            run_test
-        done
-    done
+    # trainig with various batch sizes
+    run_test
 done
+
+# archive everything and move it in the sahred folder
+tar -czvf /loss_landscape/bench_mark_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/bs$batch_size"_lr"$learning_rate"/"
+
+
 
 exit 0
 
-# nohup bash scripts/test.sh --num_workers 4 --num_batches 1000 --size large --noise_type random --percentage 1 > noise_large.out 2>&1 &
-# nohup bash scripts/test.sh --num_workers 4 --num_batches 1000 --size baseline --noise_type random --percentage 1 > noise_baseline.out 2>&1 &
-# nohup bash scripts/test.sh --num_workers 4 --num_batches 1000 --size small --noise_type random --percentage 1 > noise_small.out 2>&1 &
-# nohup bash scripts/test.sh --num_workers 4 --num_batches 1000 --size large --bit_flip 1 > bitflip_large.out 2>&1 &
-# nohup bash scripts/test.sh --num_workers 4 --num_batches 1000 --size baseline --bit_flip 1 > bitflip_baseline.out 2>&1 &
-# nohup bash scripts/test.sh --num_workers 4 --num_batches 1000 --size small --bit_flip 1 > bitflip_small.out 2>&1 &
+# nohup bash scripts/test.sh --num_workers 8 --size large --noise_type random > noise_large.out 2>&1 &
+# nohup bash scripts/test.sh --num_workers 8 --size baseline --noise_type random > noise_baseline.out 2>&1 &
+# nohup bash scripts/test.sh --num_workers 8 --size small --noise_type random > noise_small.out 2>&1 &
+# nohup bash scripts/test.sh --num_workers 8 --size large --bit_flip 1 > bitflip_large.out 2>&1 &
+# nohup bash scripts/test.sh --num_workers 8 --size baseline --bit_flip 1 > bitflip_baseline.out 2>&1 &
+# nohup bash scripts/test.sh --num_workers 8 --size small --bit_flip 1 > bitflip_small.out 2>&1 &
 
 # python code/test_encoder.py --saving_folder "/data/tbaldi/checkpoint/" \
 #                         --data_dir "../../../data/ECON/Elegun" \
 #                         --data_file "../../../data/ECON/Elegun/nELinks5.npy" \
 #                         --batch_size 16 \
 #                         --num_workers 8 \
-#                         --lr 0.00625 \
+#                         --learning_rate 0.00625 \
 #                         --size "baseline" \
-#                         --percentage 5 \
 #                         --precision 8 \
 #                         --noise_type "gaussian" \
-#                         --num_batches 1000 
