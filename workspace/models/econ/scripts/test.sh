@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-SAVING_FOLDER="/home/jovyan/checkpoint/ "    # /loss_landscape -> shared volume
+SAVING_FOLDER="/home/jovyan/checkpoint/"    # /loss_landscape -> shared volume
 DATA_DIR="../../../data/ECON/Elegun"
 DATA_FILE="$DATA_DIR/nELinks5.npy"
 
@@ -181,9 +181,7 @@ do
 done
 
 # archive everything and move it in the sahred folder
-tar -czvf /loss_landscape/bench_mark_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/bs$batch_size"_lr"$learning_rate"/"
-
-
+tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate"/" -czvf /loss_landscape/bench_mark_$size"_"bs$batch_size"_lr$learning_rate".tar.gz ./
 
 exit 0
 
@@ -194,12 +192,10 @@ exit 0
 # nohup bash scripts/test.sh --num_workers 8 --size baseline --bit_flip 1 > bitflip_baseline.out 2>&1 &
 # nohup bash scripts/test.sh --num_workers 8 --size small --bit_flip 1 > bitflip_small.out 2>&1 &
 
-# python code/test_encoder.py --saving_folder "/data/tbaldi/checkpoint/" \
-#                         --data_dir "../../../data/ECON/Elegun" \
-#                         --data_file "../../../data/ECON/Elegun/nELinks5.npy" \
-#                         --batch_size 16 \
-#                         --num_workers 8 \
-#                         --learning_rate 0.00625 \
-#                         --size "baseline" \
-#                         --precision 8 \
-#                         --noise_type "gaussian" \
+# . scripts/test.sh \
+#                                         --batch_size 1024 \
+#                                         --learning_rate 0.1 \
+#                                         --size small \
+#                                         --bit_flip 0 \
+#                                         --noise_type gaussian \
+#                                         --num_workers 12

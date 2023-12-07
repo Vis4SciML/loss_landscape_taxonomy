@@ -112,10 +112,10 @@ def main(args):
         print('-'*80)
         print(f'Noise type: {args.noise_type}')
         print(f'Flipped bits: {args.bit_flip}')
-            bit_flip = BitFlip(model, 
-                               args.precision, 
-                               ['encoder.conv', 'encoder.enc_dense'])
-            bit_flip.flip_bits(number=args.bit_flip)    # we are using the same model, so I flip just one time per iteration
+        bit_flip = BitFlip(model, 
+                           args.precision, 
+                           ['encoder.conv', 'encoder.enc_dense'])
+        bit_flip.flip_bits(number=args.bit_flip)    # we are using the same model, so I flip just one time per iteration
             
     
     # ---------------------------------------------------------------------------- #
@@ -142,8 +142,6 @@ def main(args):
         accelerator='auto',
         devices=-1,
     )
-    
-
         
     test_results = trainer.test(model=model, dataloaders=dataloader)
     print(f'Original EMD:\t{original_emd}\nBenchmark EMD:\t{test_results}')
