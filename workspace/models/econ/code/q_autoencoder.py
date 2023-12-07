@@ -296,8 +296,9 @@ class AutoEncoder(pl.LightningModule):
         return loss
     
     def test_step(self, batch, batch_idx):
-        output = self(batch)
-        input_calQ = self.map_to_calq(batch)
+        input, target = batch
+        output = self(input)
+        input_calQ = self.map_to_calq(target)
         output_calQ_fr = self.map_to_calq(output)
         input_calQ = torch.stack(
             [input_calQ[i] * self.val_sum[i] for i in range(len(input_calQ))]

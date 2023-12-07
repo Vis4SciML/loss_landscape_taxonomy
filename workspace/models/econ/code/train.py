@@ -100,8 +100,9 @@ def main(args):
     _, val_sum = data_module.get_val_max_and_sum()
     model.set_val_sum(val_sum)
     data_module.setup("test")
-    # test_results = test_model(model, data_module.test_dataloader())
-    test_results = trainer.test(model, dataloaders=data_module.test_dataloader())
+    # run the test on the trainer
+    _, test_dataloader = data_module.dataloaders()
+    test_results = trainer.test(model, dataloaders=test_dataloader)
     # save the results on file
     test_results_log = os.path.join(
         args.saving_folder, args.size, args.size + f"_emd_{args.experiment}.txt"
