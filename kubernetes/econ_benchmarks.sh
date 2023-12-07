@@ -13,7 +13,7 @@ num_workers=14
 # batch_sizes=(16 32 64 128 256 512 1024)
 # learning_rates=(0.025 0.0125 0.00625 0.003125 0.0015625)
 batch_sizes=(1024)
-learning_rates=(0.05)
+learning_rates=(1 0.05)
 bit_flip=0
 noise_type="gaussian"
 
