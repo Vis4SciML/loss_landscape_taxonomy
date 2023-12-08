@@ -290,8 +290,8 @@ if __name__ == "__main__":
 
     data_module.setup(0)
     
-    model, _ = load_model(16, 0.0015625, 2, 'baseline')
-    model2, _ = load_model(256, 0.00625, 10, 'baseline')
+    model, _ = load_model(16, 0.0015625, 2, 'small')
+    model2, _ = load_model(256, 0.00625, 10, 'large')
     cka = CKA(model, 
               data_module.test_dataloader(), 
               layers=['encoder.conv', 'encoder.enc_dense'],

@@ -1,13 +1,12 @@
 #!/bin/bash
 
 
-SAVING_FOLDER="/home/jovyan/checkpoint/"    # /loss_landscape -> shared volume
-DATA_DIR="../../../data/ECON/Elegun"
-DATA_FILE="$DATA_DIR/nELinks5.npy"
+SAVING_FOLDER="/home/jovyan/checkpoint/different_knobs_subset_10"    
+DATA_DIR="../../../data/JTAG"
+DATA_FILE="$DATA_DIR/processed_dataset.h5"
 
 # Default variable values
 num_workers=4
-size="baseline"
 noise_type="gaussian"
 bit_flip=0
 batch_size=1024
@@ -30,7 +29,6 @@ usage() {
     echo "Options:"
     echo " -h, --help          Display this help message"
     echo "--num_workers        Number of workers"
-    echo "--size               Model size [baseline, small, large]"
     echo "--noise_type         Type of noise [gaussian, random, salt_pepper]"
     echo "--bit_flip           Flag to simulate the radiation environment"
     echo "--batch_size         Select the model by batch size"
@@ -65,13 +63,6 @@ handle_options() {
                 if has_argument $@; then
                     num_workers=$(extract_argument $@)
                     echo "Number of workers: $num_workers"
-                    shift
-                fi
-                ;;
-            --size)
-                if has_argument $@; then
-                    size=$(extract_argument $@)
-                    echo "Size of the model: $size"
                     shift
                 fi
                 ;;
@@ -116,13 +107,12 @@ run_test() {
         for i in ${bit_flips[*]}
         do
             # training of the model
-            python code/test_encoder.py --saving_folder $SAVING_FOLDER \
+            python code/test_jet.py --saving_folder $SAVING_FOLDER \
                                 --data_dir $DATA_DIR \
                                 --data_file $DATA_FILE \
                                 --batch_size $batch_size \
                                 --num_workers $num_workers \
                                 --learning_rate $learning_rate \
-                                --size $size \
                                 --precision $p \
                                 --percentage 0 \
                                 --bit_flip $i \
@@ -141,13 +131,12 @@ run_test() {
         for i in ${percentages[*]}
         do
             # training of the model
-            python code/test_encoder.py --saving_folder $SAVING_FOLDER \
+            python code/test_jet.py --saving_folder $SAVING_FOLDER \
                             --data_dir $DATA_DIR \
                             --data_file $DATA_FILE \
                             --batch_size $batch_size \
                             --num_workers $num_workers \
                             --learning_rate $learning_rate \
-                            --size $size \
                             --precision $p \
                             --noise_type $noise_type \
                             --percentage $i \

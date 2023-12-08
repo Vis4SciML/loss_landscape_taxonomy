@@ -26,7 +26,6 @@ usage() {
     echo " -h, --help          Display this help message"
     echo "--num_workers        Number of workers"
     echo "--noise_type         Type of noise [gaussian, random, salt_pepper]"
-    echo "--size               Model size [baseline, small, large]"
     echo "--bit_flip           Flag to simulate the radiation environment"
 }
 
@@ -67,13 +66,6 @@ handle_options() {
                     shift
                 fi
                 ;;
-            --size)
-                if has_argument $@; then
-                    size=$(extract_argument $@)
-                    echo "Size of the model: $size"
-                    shift
-                fi
-                ;;
         esac
         shift
     done
@@ -101,13 +93,12 @@ spec:
                         git clone https://github.com/balditommaso/loss_landscape_taxonomy.git;
                         cd /home/jovyan/loss_landscape_taxonomy;
                         conda env create -f environment.yml;
-                        . /home/jovyan/loss_landscape_taxonomy/workspace/models/econ/scripts/get_econ_data.sh;
+                        . /home/jovyan/loss_landscape_taxonomy/workspace/models/jets/scripts/jet_dataset_download.sh;
                         source activate loss_landscape;
-                        cd /home/jovyan/loss_landscape_taxonomy/workspace/models/econ/;
+                        cd /home/jovyan/loss_landscape_taxonomy/workspace/models/jets/;
                         . scripts/test.sh \
                                         --batch_size $bs \
                                         --learning_rate $lr \
-                                        --size $size \
                                         --bit_flip $bit_flip \
                                         --noise_type $noise_type \
                                         --num_workers $num_workers"]
@@ -145,7 +136,7 @@ for bs in ${batch_sizes[*]}
 do
     for lr in ${learning_rates[*]}
     do
-        job_name=$(echo "econ_benchmark_"$size"_bs"$bs"_lr$lr" | sed 's/\./_/g')
+        job_name=$(echo "jtag_benchmark_bs"$bs"_lr$lr" | sed 's/\./_/g')
         generate_job_yaml $job_name
         start_kubernetes_job
     done    
@@ -156,9 +147,8 @@ exit 0
 
 # END MAIN
 
-# SMALL
-# bash econ_benchmarks.sh --num_workers 12 --noise_type gaussian --size small --bit_flip 0
-# BASELINE
-# bash econ_benchmarks.sh --num_workers 12 --noise_type gaussian --size baseline --bit_flip 0
-# LARGE
-# bash econ_benchmarks.sh --num_workers 12 --noise_type gaussian --size large --bit_flip 0
+# NoISE
+# bash jtag_benchmarks.sh --num_workers 12 --noise_type gaussian --bit_flip 0
+# BIT FLIP
+# bash jtag_benchmarks.sh --num_workers 12 --noise_type gaussian --bit_flip 1
+

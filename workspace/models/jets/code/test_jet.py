@@ -10,45 +10,45 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl 
 import numpy as np
 import multiprocessing
-from q_autoencoder import AutoEncoder
-from autoencoder_datamodule import AutoEncoderDataModule
+from model import JetTagger
+from jet_datamodule import JetDataModule
 
 module_path = os.path.abspath(os.path.join('../../common/benchmarks/')) 
 sys.path.insert(0, module_path)
 from noisy_dataset import NoisyDataset
 from bit_flip import BitFlip
 
-def get_model_index_and_relative_EMD(path, batch_size, learning_rate, precision, size, num_tests=3):
+def get_model_index_and_relative_accuracy(path, batch_size, learning_rate, precision, num_tests=5):
     '''
     Return the average EMDs achieved by the model and the index of best experiment
     '''
-    EMDs = []
-    min_emd = 1000
-    min_emd_index = 0
+    performances = []
+    max_acc = 0
+    max_acc_index = 0
     for i in range (1, num_tests+1):
         file_path = path + f'bs{batch_size}_lr{learning_rate}/' \
-                    f'ECON_{precision}b/{size}/{size}_emd_{i}.txt'
+                    f'JTAG_{precision}b/accuracy_{i}.txt'
         try:
-            emd_file = open(file_path)
-            emd_text = emd_file.read()
-            emd = ast.literal_eval(emd_text)
-            emd = emd[0]['AVG_EMD']
-            EMDs.append(emd)
-            if min_emd >= emd:
-                min_emd = emd
-                min_emd_index = i
-            emd_file.close()
+            jtag_file = open(file_path)
+            jtag_text = jtag_file.read()
+            accuracy = ast.literal_eval(jtag_text)
+            accuracy = accuracy[0]['test_acc']
+            performances.append(emd)
+            if accuracy >= max_acc:
+                max_acc = accuracy
+                max_acc_index = i
+            jtag_file.close()
         except Exception as e:
             warnings.warn("Warning: " + file_path + " not found!")
             continue
         
-    if len(EMDs) == 0:
+    if len(performances) == 0:
         warnings.warn(f"Attention: There is no EMD value for the model: " \
                       f"bs{batch_size}_lr{learning_rate}/ECON_{precision}b/{size}")
         #TODO: I may compute if the model is there
         return
     
-    return mean(EMDs), min_emd_index
+    return mean(performances), max_acc_index
 
 
 def main(args):
@@ -61,7 +61,7 @@ def main(args):
     #                                  DATA MODULE                                 #
     # ---------------------------------------------------------------------------- #
     #load the datamodule
-    data_module = AutoEncoderDataModule.from_argparse_args(args)
+    data_module = JetDataModule.from_argparse_args(args)
     # process the dataset if required
     if not os.path.exists(args.data_file):
         print("Processing data...")
@@ -71,37 +71,32 @@ def main(args):
     # ---------------------------------------------------------------------------- #
     #                                     MODEL                                    #
     # ---------------------------------------------------------------------------- #
-    original_emd, idx = get_model_index_and_relative_EMD(args.saving_folder, 
+    original_accuracy, idx = get_model_index_and_relative_accuracy(args.saving_folder, 
                                                          args.batch_size, 
                                                          args.learning_rate, 
-                                                         args.precision, 
-                                                         args.size)
+                                                         args.precision)
     model_path = args.saving_folder + f'bs{args.batch_size}_lr{args.learning_rate}' \
-                f'/ECON_{args.precision}b/{args.size}/net_{idx}_best.pkl'
+                f'/JTAG_{args.precision}b/net_{idx}_best.pkl'
 
-    model = AutoEncoder(
+    model = JetTagger(
         quantize=(args.precision < 32),
         precision=[
             args.precision,
             args.precision,
             args.precision+3
         ],
-        learning_rate=args.learning_rate,
-        econ_type=args.size
+        learning_rate=args.learning_rate    
     )
     
     # to set the map location
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
-    model(torch.randn((1, 1, 8, 8)))  # Update tensor shapes 
+    # model(torch.randn((1, 1, 8, 8)))  # ASK Javi
     model_param = torch.load(model_path, map_location=device)
     model.load_state_dict(model_param['state_dict'])
     
-    # eval the model
-    _, val_sum = data_module.get_val_max_and_sum()
-    model.set_val_sum(val_sum)
     data_module.setup("test")
-    _, dataloader = data_module.dataloaders()
+    dataloader = data_module.test_dataloader()
     
     # ---------------------------------------------------------------------------- #
     #                                   FLIP BIT                                   #
@@ -142,10 +137,11 @@ def main(args):
     )
         
     test_results = trainer.test(model=model, dataloaders=dataloader)
-    print(f'Original EMD:\t{original_emd}\nBenchmark EMD:\t{test_results}')
+    print(f'Original accuracy:\t{original_accuracy}\n' \
+          f'Benchmark accuracy:\t{test_results}')
     
     # save the results on file
-    file_name = args.size + f"_emd"
+    file_name = "accuracy_"
     if args.percentage > 0:
         file_name += f"_{args.noise_type}_{args.percentage}"
     elif args.bit_flip > 0:
@@ -153,7 +149,7 @@ def main(args):
     file_name += ".txt"
     
     test_results_log = os.path.join(
-        args.saving_folder, f'bs{args.batch_size}_lr{args.learning_rate}/ECON_{args.precision}b/{args.size}', file_name
+        args.saving_folder, f'bs{args.batch_size}_lr{args.learning_rate}/JTAG_{args.precision}b', file_name
     )
     
     print('Result stored in: ' + test_results_log)
@@ -167,14 +163,13 @@ def main(args):
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--saving_folder", type=str)
-    parser.add_argument("--size", type=str, default="baseline")
     parser.add_argument("--precision", type=int, default=8)
     parser.add_argument("--percentage", type=int, default=0)
     parser.add_argument("--learning_rate", type=float, default=0.0015625)
     parser.add_argument("--noise_type", type=str, default="gaussian")
     parser.add_argument("--bit_flip", type=int, default=0)
 
-    parser = AutoEncoderDataModule.add_argparse_args(parser)
+    parser = JetDataModule.add_argparse_args(parser)
     
     args = parser.parse_args()
     
