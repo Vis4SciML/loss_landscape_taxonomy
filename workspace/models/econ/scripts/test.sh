@@ -113,7 +113,7 @@ run_test() {
         echo ""
         echo " BATCH SIZE $batch_size - LEARNING_RATE $learning_rate - PRECISION $p "
         echo ""
-        for i in $(eval echo "{1..$bit_flips}")
+        for i in ${bit_flips[*]}
         do
             # training of the model
             python code/test_encoder.py --saving_folder $SAVING_FOLDER \
@@ -138,7 +138,7 @@ run_test() {
         echo ""
         echo " BATCH SIZE $batch_size - LEARNING_RATE $learning_rate - PRECISION $p"
         echo ""
-        for i in $(eval echo "{1..$percentages}")
+        for i in ${percentages[*]}
         do
             # training of the model
             python code/test_encoder.py --saving_folder $SAVING_FOLDER \
