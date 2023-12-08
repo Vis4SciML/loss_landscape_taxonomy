@@ -136,10 +136,12 @@ class CKA(Metric):
         hsic_accumulator1 = torch.zeros((num_layers1,), device=self.device, dtype=torch.float32)
         hsic_accumulator2 = torch.zeros((num_layers2,), device=self.device, dtype=torch.float32)
         
+        self.model.eval()
+        model.eval()
+        
         model1 = FeatureExtractor(self.model, layers1)
-        model1.eval()
         model2 = FeatureExtractor(model, layers2)
-        model2.eval()
+        
         model2.to(self.device)
         
         count = 0
@@ -288,14 +290,14 @@ if __name__ == "__main__":
 
     data_module.setup(0)
     
-    model, _ = load_model(16, 0.05, 2, 'small')
-    model2, _ = load_model(16, 0.003125, 11, 'baseline')
+    model, _ = load_model(16, 0.0015625, 2, 'baseline')
+    model2, _ = load_model(256, 0.00625, 10, 'baseline')
     cka = CKA(model, 
               data_module.test_dataloader(), 
               layers=['encoder.conv', 'encoder.enc_dense'],
-              max_batches=10)
+              max_batches=10000)
     start = time.perf_counter()
-    result = cka.compute()
+    result = cka.compare(model2)
     end = time.perf_counter()
     print('time:', end - start)
     print(result)
