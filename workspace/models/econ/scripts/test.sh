@@ -21,7 +21,7 @@ learning_rate=0.1
 
 precisions=(2 3 4 5 6 7 8 9 10 11)
 percentages=(5 25 50 75 100)
-bit_flips=(1, 2, 3, 4)
+bit_flips=(1 2 3 4)
 
 
 # Function to display script usage
