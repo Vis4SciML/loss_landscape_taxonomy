@@ -116,7 +116,7 @@ run_test() {
                                 --precision $p \
                                 --percentage 0 \
                                 --bit_flip $i \
-                                # >/$HOME/log_$i.txt 2>&1 &
+                                >/$HOME/log_$i.txt 2>&1 &
 
             pids+=($!)
         done
@@ -141,7 +141,7 @@ run_test() {
                             --noise_type $noise_type \
                             --percentage $i \
                             --bit_flip 0 \
-                            # >/$HOME/log_$i.txt 2>&1 &
+                            >/$HOME/log_$i.txt 2>&1 &
         
             pids+=($!)
         done
@@ -169,7 +169,6 @@ do
     run_test
 done
 
-return
 # archive everything and move it in the sahred folder
 tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate"/" -czvf /loss_landscape/bench_mark_$size"_"bs$batch_size"_lr$learning_rate".tar.gz ./
 
