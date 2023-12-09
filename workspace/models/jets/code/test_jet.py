@@ -4,12 +4,10 @@ import os
 import sys
 from statistics import mean
 import warnings
-from utils_pt import unnormalize, emd
 import torch
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl 
-import numpy as np
-import multiprocessing
+
 from model import JetTagger
 from jet_datamodule import JetDataModule
 
@@ -33,7 +31,7 @@ def get_model_index_and_relative_accuracy(path, batch_size, learning_rate, preci
             jtag_text = jtag_file.read()
             accuracy = ast.literal_eval(jtag_text)
             accuracy = accuracy[0]['test_acc']
-            performances.append(emd)
+            performances.append(accuracy)
             if accuracy >= max_acc:
                 max_acc = accuracy
                 max_acc_index = i
@@ -43,8 +41,8 @@ def get_model_index_and_relative_accuracy(path, batch_size, learning_rate, preci
             continue
         
     if len(performances) == 0:
-        warnings.warn(f"Attention: There is no EMD value for the model: " \
-                      f"bs{batch_size}_lr{learning_rate}/ECON_{precision}b/{size}")
+        warnings.warn(f"Attention: There is no accuracy value for the model: " \
+                      f"bs{batch_size}_lr{learning_rate}/JTAG_{precision}b")
         #TODO: I may compute if the model is there
         return
     
@@ -91,7 +89,8 @@ def main(args):
     # to set the map location
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
-    # model(torch.randn((1, 1, 8, 8)))  # ASK Javi
+    print(model_path)
+    model(torch.randn((16, 16)))  # ASK Javi
     model_param = torch.load(model_path, map_location=device)
     model.load_state_dict(model_param['state_dict'])
     
@@ -117,7 +116,6 @@ def main(args):
     
     if args.percentage > 0:
         print('-'*80)
-        print(f'Radiation test')
         # prepare noisy dataloader
         print(f'Noise percentage: {args.percentage}%')
         noisy_dataset = NoisyDataset(dataloader, 
@@ -131,6 +129,8 @@ def main(args):
     # ---------------------------------------------------------------------------- #
     #                                   BENCHMARK                                  #
     # ---------------------------------------------------------------------------- #
+    print('-'*80)
+    
     trainer = pl.Trainer(
         accelerator='auto',
         devices=-1,

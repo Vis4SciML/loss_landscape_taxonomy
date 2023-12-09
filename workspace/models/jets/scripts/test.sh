@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-SAVING_FOLDER="/home/jovyan/checkpoint/different_knobs_subset_10"    
+SAVING_FOLDER="/home/jovyan/checkpoint/"    
 DATA_DIR="../../../data/JTAG"
 DATA_FILE="$DATA_DIR/processed_dataset.h5"
 
@@ -116,7 +116,7 @@ run_test() {
                                 --precision $p \
                                 --percentage 0 \
                                 --bit_flip $i \
-                                >/$HOME/log_$i.txt 2>&1 &
+                                # >/$HOME/log_$i.txt 2>&1 &
 
             pids+=($!)
         done
@@ -141,7 +141,7 @@ run_test() {
                             --noise_type $noise_type \
                             --percentage $i \
                             --bit_flip 0 \
-                            >/$HOME/log_$i.txt 2>&1 &
+                            # >/$HOME/log_$i.txt 2>&1 &
         
             pids+=($!)
         done
@@ -169,12 +169,13 @@ do
     run_test
 done
 
+return
 # archive everything and move it in the sahred folder
 tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate"/" -czvf /loss_landscape/bench_mark_$size"_"bs$batch_size"_lr$learning_rate".tar.gz ./
 
 exit 0
 
-# nohup bash scripts/test.sh --num_workers 8 --size large --noise_type random > noise_large.out 2>&1 &
+# nohup bash scripts/test.sh --num_workers 8 --noise_type random > noise_large.out 2>&1 &
 # nohup bash scripts/test.sh --num_workers 8 --size baseline --noise_type random > noise_baseline.out 2>&1 &
 # nohup bash scripts/test.sh --num_workers 8 --size small --noise_type random > noise_small.out 2>&1 &
 # nohup bash scripts/test.sh --num_workers 8 --size large --bit_flip 1 > bitflip_large.out 2>&1 &
@@ -184,7 +185,6 @@ exit 0
 # . scripts/test.sh \
 #                                         --batch_size 1024 \
 #                                         --learning_rate 0.1 \
-#                                         --size small \
 #                                         --bit_flip 0 \
 #                                         --noise_type gaussian \
 #                                         --num_workers 12
