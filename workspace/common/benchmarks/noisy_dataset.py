@@ -2,15 +2,15 @@ import os
 import sys
 import torch
 import numpy as np
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 import warnings
 
 from noise import Noise
 
 # test
-module_path = os.path.abspath(os.path.join('../../../workspace/models/econ/code/')) # or the path to your source code
-sys.path.insert(0, module_path)
-from autoencoder_datamodule import AutoEncoderDataModule
+# module_path = os.path.abspath(os.path.join('../../../workspace/models/econ/code/')) # or the path to your source code
+# sys.path.insert(0, module_path)
+# from autoencoder_datamodule import AutoEncoderDataModule
 
 
 
@@ -61,49 +61,49 @@ class NoisyDataset(Dataset):
     
     
 # test 
-if __name__ == "__main__":
-    DATASET_DIR = '../../../data/ECON/Elegun'
-    DATASET_FILE = 'nELinks5.npy'
-    # get the datamodule
-    data_module = AutoEncoderDataModule(
-        data_dir=DATASET_DIR,
-        data_file=os.path.join(DATASET_DIR, DATASET_FILE),
-        batch_size=16,
-        num_workers=4)
+# if __name__ == "__main__":
+#     DATASET_DIR = '../../../data/ECON/Elegun'
+#     DATASET_FILE = 'nELinks5.npy'
+#     # get the datamodule
+#     data_module = AutoEncoderDataModule(
+#         data_dir=DATASET_DIR,
+#         data_file=os.path.join(DATASET_DIR, DATASET_FILE),
+#         batch_size=16,
+#         num_workers=4)
     
-    # check if we have processed the data
-    if not os.path.exists(os.path.join(DATASET_DIR, DATASET_FILE)):
-        print('Processing the data...')
-        data_module.process_data(save=True)
+#     # check if we have processed the data
+#     if not os.path.exists(os.path.join(DATASET_DIR, DATASET_FILE)):
+#         print('Processing the data...')
+#         data_module.process_data(save=True)
 
-    data_module.setup(0)
+#     data_module.setup(0)
     
-    print("test tuple")
-    noisy_dataset = NoisyDataset(data_module.dataloaders()[1], 10, 'gaussian')
-    dataloader = DataLoader(noisy_dataset, batch_size=16, shuffle=True, num_workers=4)
+#     print("test tuple")
+#     noisy_dataset = NoisyDataset(data_module.dataloaders()[1], 10, 'gaussian')
+#     dataloader = DataLoader(noisy_dataset, batch_size=16, shuffle=True, num_workers=4)
     
-    print("Without noise")
-    for batch, target in data_module.dataloaders()[1]:
-        print('batch:', batch.shape)
-        print('target:', target.shape)
-        break
+#     print("Without noise")
+#     for batch, target in data_module.dataloaders()[1]:
+#         print('batch:', batch.shape)
+#         print('target:', target.shape)
+#         break
     
-    print("With noise")
-    for batch, target in dataloader:
-        print('noisy batch:', batch.shape)
-        print('target:', target.shape)
-        break
+#     print("With noise")
+#     for batch, target in dataloader:
+#         print('noisy batch:', batch.shape)
+#         print('target:', target.shape)
+#         break
     
-    print("test single")
-    noisy_dataset = NoisyDataset(data_module.val_dataloader(), 0, 'gaussian')
-    dataloader = DataLoader(noisy_dataset, batch_size=16, shuffle=True, num_workers=4)
+#     print("test single")
+#     noisy_dataset = NoisyDataset(data_module.val_dataloader(), 0, 'gaussian')
+#     dataloader = DataLoader(noisy_dataset, batch_size=16, shuffle=True, num_workers=4)
     
-    print("Without noise")
-    for batch in data_module.val_dataloader():
-        print('batch:', batch)
-        break
+#     print("Without noise")
+#     for batch in data_module.val_dataloader():
+#         print('batch:', batch)
+#         break
     
-    print("With noise")
-    for batch in dataloader:
-        print('noisy batch:', batch)
-        break
+#     print("With noise")
+#     for batch in dataloader:
+#         print('noisy batch:', batch)
+#         break

@@ -141,7 +141,7 @@ def main(args):
           f'Benchmark accuracy:\t{test_results}')
     
     # save the results on file
-    file_name = "accuracy_"
+    file_name = "accuracy"
     if args.percentage > 0:
         file_name += f"_{args.noise_type}_{args.percentage}"
     elif args.bit_flip > 0:
