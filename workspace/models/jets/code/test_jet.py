@@ -106,7 +106,7 @@ def main(args):
         print(f'Flipped bits: {args.bit_flip}')
         bit_flip = BitFlip(model, 
                            args.precision, 
-                           ['encoder.conv', 'encoder.enc_dense'])
+                           ['model.dense_1', 'model.dense_2', 'model.dense_3', 'model.dense_4'])
         bit_flip.flip_bits(number=args.bit_flip)    # we are using the same model, so I flip just one time per iteration
             
     

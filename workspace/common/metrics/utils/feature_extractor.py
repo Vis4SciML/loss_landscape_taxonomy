@@ -17,6 +17,7 @@ class FeatureExtractor(nn.Module):
         # Register hooks for target layers
         for name, layer in self.model.named_modules():
             if name in self.target_layers:
+                # print(name, layer.weight)
                 self.features[name] = None
                 layer.register_forward_hook(self._hook_fn(name))
 
