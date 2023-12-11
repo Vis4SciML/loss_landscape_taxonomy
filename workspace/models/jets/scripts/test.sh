@@ -20,7 +20,7 @@ learning_rate=0.1
 
 precisions=(2 3 4 5 6 7 8 9 10 11)
 percentages=(10 15 20)
-bit_flips=(1 2 3 4)
+bit_flips=(1)
 
 
 # Function to display script usage
@@ -182,8 +182,8 @@ exit 0
 # nohup bash scripts/test.sh --num_workers 8 --size small --bit_flip 1 > bitflip_small.out 2>&1 &
 
 # . scripts/test.sh \
-#                                         --batch_size 128 \
-#                                         --learning_rate 0.0125 \
+#                                         --batch_size 32 \
+#                                         --learning_rate 0.025 \
 #                                         --bit_flip 0 \
 #                                         --noise_type gaussian \
 #                                         --num_workers 12
