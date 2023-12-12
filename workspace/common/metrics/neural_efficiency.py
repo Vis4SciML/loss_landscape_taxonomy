@@ -14,11 +14,18 @@ from utils import *
 # ---------------------------------------------------------------------------- #
 
 class NeuralEfficiency(Metric):
-    def __init__(self, model=None, data_loader=None, name="neural_efficiency", performance=None):
+    def __init__(self, 
+                 model=None, 
+                 data_loader=None, 
+                 name="neural_efficiency", 
+                 performance=None, 
+                 max_batches=None):
         super().__init__(model, data_loader, name)
         self.performance = performance  # used to compute the aIQ
         self.results = {}   # there will be different values
-        
+        self.max_batches = max_batches
+        if max_batches is None:
+            self.max_batches = len(self.data_loader)
         
     def entropy(self, probabilities):
         """
@@ -37,7 +44,7 @@ class NeuralEfficiency(Metric):
         '''
         We are interested only if the neuron fired (>0) or not (=0)
         '''
-        return np.where(x > 0, 1, 0)
+        return torch.where(x > 0, 1, 0)
     
     
     def get_outputs(self, activation):
@@ -82,7 +89,13 @@ class NeuralEfficiency(Metric):
         #iterate over the batches to compute the probability of each state
         state_space = {}
         num_outputs = 0
+        counter = 0
         for batch in self.data_loader:
+            counter += 1
+            # check if there are also the label
+            if isinstance(batch, list):
+                batch = batch[0]
+                
             # get the activations of each layer
             features_per_layer = feature_extractor.forward(batch)
             for name, activations in features_per_layer.items():
@@ -93,9 +106,9 @@ class NeuralEfficiency(Metric):
                 elif isinstance(activations, tuple):
                     # special case where I just consider the first tensor of the tuple (HAWQ problem)
                     warnings.warn(f"Attention: the layer " + name + " has tuple as features!")
-                    activations = activations[0].detach().numpy()
+                    activations = activations[0]
                 else:
-                    activations = activations.detach().numpy()
+                    activations = activations
                                         
                 # the convolutional layer will produce more outputs per input (one per channel),
                 # so I will iterate over each channel
@@ -105,7 +118,7 @@ class NeuralEfficiency(Metric):
                     num_outputs += 1
                     # dictionary to record the probabilities
                     # quantize the activations (convert to bytes to use it as key)
-                    quant_activation = self.quantize_activation(output_state).tobytes()
+                    quant_activation = self.quantize_activation(output_state).detach().cpu().numpy().tobytes()
                     # record the probabilities for each layer
                     if name not in state_space:
                         state_space[name] = {}
@@ -114,6 +127,8 @@ class NeuralEfficiency(Metric):
                         state_space[name][quant_activation] = 1
                     else:
                         state_space[name][quant_activation] += 1
+            if counter >= self.max_batches:
+                break
                 
         for name, state_freq in state_space.items():
             # compute the probabilities for each output state
