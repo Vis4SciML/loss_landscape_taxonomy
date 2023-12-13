@@ -42,19 +42,20 @@ class ThreeLayer(nn.Module):
         super(ThreeLayer, self).__init__()
 
         # half of the weights
-        self.dense_1 = nn.Linear(16, 32)
-        self.dense_2 = nn.Linear(32, 16)
-        self.dense_3 = nn.Linear(16, 16)
-        self.dense_4 = nn.Linear(16, 5)
+        self.dense_1 = nn.Linear(16, 5)
+        # self.dense_2 = nn.Linear(8, 8)
+        # self.dense_3 = nn.Linear(16, 16)
+        #self.dense_4 = nn.Linear(32, 5)
 
         self.act = nn.ReLU()
         self.softmax = nn.Softmax(1)
 
     def forward(self, x):
         x = self.act(self.dense_1(x))
-        x = self.act(self.dense_2(x))
-        x = self.act(self.dense_3(x))
-        return self.softmax(self.dense_4(x))
+        # x = self.act(self.dense_2(x))
+        # x = self.act(self.dense_3(x))
+        # return self.softmax(self.dense_4(x))
+        return self.softmax(x)
 
 
 ####################################################
@@ -69,13 +70,13 @@ class QThreeLayer(QModel):
         self.init_dense(model, "dense_1")
         self.quant_act_1 = QuantAct(act_precision)
 
-        self.init_dense(model, "dense_2")
-        self.quant_act_2 = QuantAct(act_precision)
+        # self.init_dense(model, "dense_2")
+        # self.quant_act_2 = QuantAct(act_precision)
 
-        self.init_dense(model, "dense_3")
-        self.quant_act_3 = QuantAct(act_precision)
+        # self.init_dense(model, "dense_3")
+        # self.quant_act_3 = QuantAct(act_precision)
 
-        self.init_dense(model, "dense_4")
+        # self.init_dense(model, "dense_4")
 
         self.act = nn.ReLU()
         self.softmax = nn.Softmax(dim=1)
@@ -86,13 +87,13 @@ class QThreeLayer(QModel):
         x = self.act(self.dense_1(x, act_scaling_factor))
         x, act_scaling_factor = self.quant_act_1(x, act_scaling_factor)
         
-        x = self.act(self.dense_2(x, act_scaling_factor))
-        x, act_scaling_factor = self.quant_act_2(x, act_scaling_factor)
+        # x = self.act(self.dense_2(x, act_scaling_factor))
+        # x, act_scaling_factor = self.quant_act_2(x, act_scaling_factor)
         
-        x = self.act(self.dense_3(x, act_scaling_factor))
-        x, act_scaling_factor = self.quant_act_3(x, act_scaling_factor)
+        # x = self.act(self.dense_3(x, act_scaling_factor))
+        # x, act_scaling_factor = self.quant_act_3(x, act_scaling_factor)
         
-        x = self.dense_4(x, act_scaling_factor)
+        # x = self.dense_4(x, act_scaling_factor)
         x = self.softmax(x)
         return x
 
@@ -250,6 +251,7 @@ def main():
     print('Loading checkpoint...', checkpoint_file)
     checkpoint = torch.load(checkpoint_file)  
     model.load_state_dict(checkpoint['state_dict'])
+    
     test_results = trainer.test(model, dataloaders=data_module.test_dataloader())
     # save the results on file
     test_results_log = os.path.join(

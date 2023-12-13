@@ -6,7 +6,7 @@ import math
 import torch
 from utils.feature_extractor import FeatureExtractor
 from metric import Metric
-from utils import *
+from scipy.stats import entropy
 
 
 # ---------------------------------------------------------------------------- #
@@ -18,26 +18,16 @@ class NeuralEfficiency(Metric):
                  model=None, 
                  data_loader=None, 
                  name="neural_efficiency", 
+                 target_layers=[],
                  performance=None, 
                  max_batches=None):
         super().__init__(model, data_loader, name)
         self.performance = performance  # used to compute the aIQ
         self.results = {}   # there will be different values
         self.max_batches = max_batches
+        self.target_layers = target_layers
         if max_batches is None:
             self.max_batches = len(self.data_loader)
-        
-    def entropy(self, probabilities):
-        """
-        Compute Shannon's entropy for a given probability distribution.
-
-        Parameters:
-        - probabilities: List of probabilities for each outcome.
-
-        Returns:
-        - entropy: Shannon's entropy.
-        """
-        return -sum(p * math.log2(p) for p in probabilities if p > 0)
     
     
     def quantize_activation(self, x):
@@ -72,17 +62,22 @@ class NeuralEfficiency(Metric):
         return outputs
         
     
-    def neurons_per_layer(self):
-        '''
-        Get the number of neurons for each 
-        '''
-        # Get the number of neurons per layer using named_modules
-        nodes_per_layer = {}
-        for name, layer in self.model.named_parameters():
-            if 'weight' in name:
-                nodes_per_layer[name.replace(".weight", "")] = torch.numel(layer)
+    # def neurons_per_layer(self):
+    #     '''
+    #     Get the number of neurons for each 
+    #     '''
+    #     # Get the number of neurons per layer using named_modules
+    #     nodes_per_layer = {}
+    #     for name, layer in self.model.named_parameters():
+    #         if 'weight' in name:
+    #             if len(layer.shape) == 2:
+    #                 # dense layere
+    #                 nodes_per_layer[name.replace(".weight", "")] = layer.shape[1]
+    #             elif len(layer.shape) == 3:
+    #                 pass
                 
-        return nodes_per_layer
+                
+    #     return nodes_per_layer
     
     
     def entropy_per_layer(self, layers):
@@ -124,10 +119,7 @@ class NeuralEfficiency(Metric):
                     quant_activation = self.quantize_activation(output_state).detach().cpu().numpy().tobytes()
                     # record the probabilities for each layer
                     if name not in state_space:
-                        state_space[name] = {'output': 0}
-                        
-                    # update output per layer
-                    state_space[name]['output'] += 1
+                        state_space[name] = {'num_neurons': torch.numel(output_state)}
                         
                     if quant_activation not in state_space[name]:
                         state_space[name][quant_activation] = 1
@@ -139,12 +131,14 @@ class NeuralEfficiency(Metric):
         for name, state_freq in state_space.items():
             # compute the probabilities for each output state
             probabilities = []
+            num_outputs = sum(state_freq.values())
             for freq in state_freq.values():
-                probabilities.append(freq / state_freq['output'])
+                probabilities.append(freq / num_outputs)
             
             # compute the entropy of the layer
-            layer_entropy = self.entropy(probabilities)
-            state_space[name] = layer_entropy
+            probabilities = np.array(probabilities)
+            layer_entropy = entropy(probabilities, base=2)
+            state_space[name]['entropy'] = layer_entropy
                 
         return state_space
         
@@ -154,15 +148,15 @@ class NeuralEfficiency(Metric):
         '''
         print("Computing the Neural efficiency...")
         
-        # get the number of neurons for each layer
-        neurons_per_layer = self.neurons_per_layer()
+
         # compute the entropy for each layer
-        entropies = self.entropy_per_layer(neurons_per_layer.keys())
+        entropies = self.entropy_per_layer(self.target_layers)
         
         # compute neuron efficiency for each layer
         layers_efficiency = {}
-        for name, entropy in entropies.items():
-            layers_efficiency[name] = entropy / neurons_per_layer[name]
+        for name, layer in entropies.items():
+            print(layer['num_neurons'])
+            layers_efficiency[name] = layer['entropy'] / layer['num_neurons']
             
         # print('layers neural efficiency:\n', layers_efficiency)
         
