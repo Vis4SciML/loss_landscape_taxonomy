@@ -37,7 +37,7 @@ def main(args):
         precision=[
             args.weight_precision, 
             args.bias_precision, 
-            args.act_precision
+            args.act_precision + 3
         ],
         learning_rate=args.lr,
     )

@@ -142,7 +142,6 @@ class NeuralEfficiency(Metric):
             for freq in state_freq.values():
                 probabilities.append(freq / state_freq['output'])
             
-            print(state_freq['output'])
             # compute the entropy of the layer
             layer_entropy = self.entropy(probabilities)
             state_space[name] = layer_entropy
@@ -165,7 +164,7 @@ class NeuralEfficiency(Metric):
         for name, entropy in entropies.items():
             layers_efficiency[name] = entropy / neurons_per_layer[name]
             
-        print('layers neural efficiency:\n', layers_efficiency)
+        # print('layers neural efficiency:\n', layers_efficiency)
         
         # compute network efficiency, which is the geometric mean of the efficiency 
         # of all the layers
@@ -175,7 +174,7 @@ class NeuralEfficiency(Metric):
             
         network_efficiency = network_efficiency ** (1/len(layers_efficiency.items()))
         
-        print('network neural efficiency:\n', network_efficiency)
+        # print('network neural efficiency:\n', network_efficiency)
         
         #compute the aIQ, which is a combination between neural network efficiency and model performance
         aIQ = None
@@ -184,7 +183,7 @@ class NeuralEfficiency(Metric):
         else:
             warnings.warn("Warning: you cannot compute the aIQ without the performance of the model (accuracy, EMD, MSE, ...).")
             
-        print('aIQ\n', aIQ)
+        # print('aIQ\n', aIQ)
         
         self.results = {
             'layers_efficiency': layers_efficiency,
