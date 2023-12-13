@@ -52,13 +52,18 @@ class NeuralEfficiency(Metric):
         the convolutional layer will produce more outputs per input (one per channel),
         so we will iterate over each channel and return an array with all the outputs.
         '''
+        assert activation.shape[0] == 1, \
+            f'The batch size should be 1 instead of {activation.shape[0]}!'
+            
         outputs = []
-        if len(activation.shape) == 4:
+        # removing the batch size
+        activation = torch.squeeze(activation, dim=0)
+        if len(activation.shape) == 3:
             # 2dconv
-            for channel_idx in range(activation.shape[1]):
-                channel_output = activation[:, channel_idx, :, :]
+            for channel_idx in range(activation.shape[0]):
+                channel_output = activation[channel_idx, :, :]
                 outputs.append(channel_output)
-        elif len(activation.shape) == 2:
+        elif len(activation.shape) == 1:
             # dense (or similar)
             outputs.append(activation)
         else:
@@ -88,7 +93,6 @@ class NeuralEfficiency(Metric):
         
         #iterate over the batches to compute the probability of each state
         state_space = {}
-        num_outputs = 0
         counter = 0
         for batch in self.data_loader:
             counter += 1
@@ -115,13 +119,15 @@ class NeuralEfficiency(Metric):
                 outputs = self.get_outputs(activations)
                 # each output state must be quantized and we record its frequency
                 for output_state in outputs:
-                    num_outputs += 1
                     # dictionary to record the probabilities
                     # quantize the activations (convert to bytes to use it as key)
                     quant_activation = self.quantize_activation(output_state).detach().cpu().numpy().tobytes()
                     # record the probabilities for each layer
                     if name not in state_space:
-                        state_space[name] = {}
+                        state_space[name] = {'output': 0}
+                        
+                    # update output per layer
+                    state_space[name]['output'] += 1
                         
                     if quant_activation not in state_space[name]:
                         state_space[name][quant_activation] = 1
@@ -134,8 +140,9 @@ class NeuralEfficiency(Metric):
             # compute the probabilities for each output state
             probabilities = []
             for freq in state_freq.values():
-                probabilities.append(freq / num_outputs)
+                probabilities.append(freq / state_freq['output'])
             
+            print(state_freq['output'])
             # compute the entropy of the layer
             layer_entropy = self.entropy(probabilities)
             state_space[name] = layer_entropy
