@@ -125,8 +125,8 @@ run_test() {
                                 --size $size \
                                 --precision $p \
                                 --percentage 0 \
-                                --bit_flip $i \
-                                >/$HOME/log_$i.txt 2>&1 &
+                                --bit_flip $i 
+                                # >/$HOME/log_$i.txt 2>&1 &
 
             pids+=($!)
         done
@@ -138,34 +138,34 @@ run_test() {
         echo ""
         echo " BATCH SIZE $batch_size - LEARNING_RATE $learning_rate - PRECISION $p"
         echo ""
-        for i in ${percentages[*]}
-        do
+        # for i in ${percentages[*]}
+        # do
             # training of the model
-            python code/test_encoder.py --saving_folder $SAVING_FOLDER \
-                            --data_dir $DATA_DIR \
-                            --data_file $DATA_FILE \
-                            --batch_size $batch_size \
-                            --num_workers $num_workers \
-                            --learning_rate $learning_rate \
-                            --size $size \
-                            --precision $p \
-                            --noise_type $noise_type \
-                            --percentage $i \
-                            --bit_flip 0 \
-                            >/$HOME/log_$i.txt 2>&1 &
+        python code/test_encoder.py --saving_folder $SAVING_FOLDER \
+                        --data_dir $DATA_DIR \
+                        --data_file $DATA_FILE \
+                        --batch_size $batch_size \
+                        --num_workers $num_workers \
+                        --learning_rate $learning_rate \
+                        --size $size \
+                        --precision $p \
+                        --noise_type $noise_type \
+                        --percentage $i \
+                        --bit_flip 0 
+                        # >/$HOME/log_$i.txt 2>&1 &
         
-            pids+=($!)
-        done
+        #     pids+=($!)
+        # done
 
         echo ""
         echo "-----------------------------------------------------------"
     fi
     # Wait for all background processes to finish
-    for pid in "${pids[@]}"; do
-        wait $pid
-        current_date_time=$(date '+%Y-%m-%d %H:%M:%S')
-        echo "$current_date_time: Process with PID $pid finished"
-    done
+    # for pid in "${pids[@]}"; do
+    #     wait $pid
+    #     current_date_time=$(date '+%Y-%m-%d %H:%M:%S')
+    #     echo "$current_date_time: Process with PID $pid finished"
+    # done
 }
 
 # Main script execution
@@ -181,7 +181,7 @@ do
 done
 
 # archive everything and move it in the sahred folder
-tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate"/" -czvf /loss_landscape/bench_mark_$size"_"bs$batch_size"_lr$learning_rate".tar.gz ./
+tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate"/" -czvf /loss_landscape/benchmark_ECON_$size"_"bs$batch_size"_lr$learning_rate".tar.gz ./
 
 exit 0
 
@@ -195,7 +195,7 @@ exit 0
 # . scripts/test.sh \
 #                                         --batch_size 1024 \
 #                                         --learning_rate 0.1 \
-#                                         --size small \
+#                                         --size baseline \
 #                                         --bit_flip 0 \
 #                                         --noise_type gaussian \
 #                                         --num_workers 12

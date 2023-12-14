@@ -18,6 +18,11 @@ sys.path.insert(0, module_path)
 from noisy_dataset import NoisyDataset
 from bit_flip import BitFlip
 
+module_path = os.path.abspath(os.path.join('../../common/metrics')) 
+sys.path.insert(0, module_path)
+from CKA import CKA
+from neural_efficiency import NeuralEfficiency
+
 def get_model_index_and_relative_EMD(path, batch_size, learning_rate, precision, size, num_tests=3):
     '''
     Return the average EMDs achieved by the model and the index of best experiment
@@ -103,63 +108,84 @@ def main(args):
     data_module.setup("test")
     _, dataloader = data_module.dataloaders()
     
-    # ---------------------------------------------------------------------------- #
-    #                                   FLIP BIT                                   #
-    # ---------------------------------------------------------------------------- #
-    if args.bit_flip > 0:
-        print('-'*80)
-        print(f'Noise type: {args.noise_type}')
-        print(f'Flipped bits: {args.bit_flip}')
-        bit_flip = BitFlip(model, 
-                           args.precision, 
-                           ['encoder.conv', 'encoder.enc_dense'])
-        bit_flip.flip_bits(number=args.bit_flip)    # we are using the same model, so I flip just one time per iteration
+    # # ---------------------------------------------------------------------------- #
+    # #                                   FLIP BIT                                   #
+    # # ---------------------------------------------------------------------------- #
+    # if args.bit_flip > 0:
+    #     print('-'*80)
+    #     print(f'Noise type: {args.noise_type}')
+    #     print(f'Flipped bits: {args.bit_flip}')
+    #     bit_flip = BitFlip(model, 
+    #                        args.precision, 
+    #                        ['encoder.conv', 'encoder.enc_dense'])
+    #     bit_flip.flip_bits(number=args.bit_flip)    # we are using the same model, so I flip just one time per iteration
             
     
-    # ---------------------------------------------------------------------------- #
-    #                                   ADD NOISE                                  #
-    # ---------------------------------------------------------------------------- #
+    # # ---------------------------------------------------------------------------- #
+    # #                                   ADD NOISE                                  #
+    # # ---------------------------------------------------------------------------- #
     
-    if args.percentage > 0:
-        print('-'*80)
-        print(f'Radiation test')
-        # prepare noisy dataloader
-        print(f'Noise percentage: {args.percentage}%')
-        noisy_dataset = NoisyDataset(dataloader, 
-                                     args.percentage, 
-                                     args.noise_type)
-        dataloader = DataLoader(noisy_dataset, 
-                                args.batch_size, 
-                                shuffle=False,
-                                num_workers=args.num_workers)
+    # if args.percentage > 0:
+    #     print('-'*80)
+    #     print(f'Radiation test')
+    #     # prepare noisy dataloader
+    #     print(f'Noise percentage: {args.percentage}%')
+    #     noisy_dataset = NoisyDataset(dataloader, 
+    #                                  args.percentage, 
+    #                                  args.noise_type)
+    #     dataloader = DataLoader(noisy_dataset, 
+    #                             args.batch_size, 
+    #                             shuffle=False,
+    #                             num_workers=args.num_workers)
         
-    # ---------------------------------------------------------------------------- #
-    #                                   BENCHMARK                                  #
-    # ---------------------------------------------------------------------------- #
-    trainer = pl.Trainer(
-        accelerator='auto',
-        devices=-1,
-    )
+    # # ---------------------------------------------------------------------------- #
+    # #                                   BENCHMARK                                  #
+    # # ---------------------------------------------------------------------------- #
+    # trainer = pl.Trainer(
+    #     accelerator='auto',
+    #     devices=-1,
+    # )
         
-    test_results = trainer.test(model=model, dataloaders=dataloader)
-    print(f'Original EMD:\t{original_emd}\nBenchmark EMD:\t{test_results}')
+    # test_results = trainer.test(model=model, dataloaders=dataloader)
+    # print(f'Original EMD:\t{original_emd}\nBenchmark EMD:\t{test_results}')
     
-    # save the results on file
-    file_name = args.size + f"_emd"
-    if args.percentage > 0:
-        file_name += f"_{args.noise_type}_{args.percentage}"
-    elif args.bit_flip > 0:
-        file_name += f"_bitflip_{args.bit_flip}"
-    file_name += ".txt"
+    saving_path = os.path.join(args.saving_folder, f'bs{args.batch_size}_lr{args.learning_rate}' \
+                f'/ECON_{args.precision}b/{args.size}/')
     
-    test_results_log = os.path.join(
-        args.saving_folder, f'bs{args.batch_size}_lr{args.learning_rate}/ECON_{args.precision}b/{args.size}', file_name
-    )
+    cka = CKA(model, 
+              dataloader, 
+              layers=['encoder.conv', 'encoder.enc_dense'],
+              max_batches=50000)
+    cka.compute()
+    cka.save_on_file(path=saving_path)
     
-    print('Result stored in: ' + test_results_log)
-    with open(test_results_log, "w") as f:
-        f.write(str(test_results))
-        f.close()
+    
+    data_module.batch_size = 1
+    
+    metric = NeuralEfficiency(model, 
+                              data_module.test_dataloader(), 
+                              performance=original_emd, 
+                              max_batches=50000,
+                              target_layers=['encoder.conv', 'encoder.enc_dense'])
+    metric.compute(beta=0.5)
+    metric.save_on_file(path=saving_path)
+    
+    # # save the results on file
+    # file_name = args.size + f"_emd"
+    # if args.percentage > 0:
+    #     file_name += f"_{args.noise_type}_{args.percentage}"
+    # elif args.bit_flip > 0:
+    #     file_name += f"_bitflip_{args.bit_flip}"
+    # file_name += ".txt"
+    
+    # test_results_log = os.path.join(
+    #     args.saving_folder, f'bs{args.batch_size}_lr{args.learning_rate}/ECON_{args.precision}b/{args.size}', file_name
+    # )
+    
+    # print('Result stored in: ' + test_results_log)
+    # with open(test_results_log, "w") as f:
+    #     f.write(str(test_results))
+    #     f.close()
     
     print('Test over!')
 
