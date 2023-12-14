@@ -134,7 +134,7 @@ class JetTagger(pl.LightningModule):
 
     self.model = ThreeLayer()
     if self.quantize:
-      print('Loading quantized model with bitwidth', precision[0])
+      # print('Loading quantized model with bitwidth', precision[0])
       self.model = QThreeLayer(self.model, precision[0], precision[1], precision[2])
     
   def forward(self, x):

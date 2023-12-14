@@ -16,14 +16,14 @@ class Metric:
         self.results = None
     
     def save_on_file(self, path="./"):
-        print('Storing the result...')
+        # print('Storing the result...')
         f = open(os.path.join(path, self.name + ".pkl"), "wb")
         pickle.dump({self.name: self.results}, f)
         f.close()
         print('Complete')
         
     def load_from_file(self, path="./"):
-        print('Loading the result...')
+        # print('Loading the result...')
         try:
             f = open(os.path.join(path, self.name + ".pkl"), "rb")
             data = pickle.load(f)
@@ -32,6 +32,6 @@ class Metric:
             print('File ' + self.name + '.pkl not found!')
             return False
         self.results = data[self.name]
-        print('Loading complete')
+        # print('Loading complete')
         
         return True

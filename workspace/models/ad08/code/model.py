@@ -189,7 +189,7 @@ class AD08(pl.LightningModule):
     self.decoder = Decoder()
 
     if precision[0] < 32 or precision[1] < 32:
-      print('Loading quantized model with bitwidth', precision[0])
+      # print('Loading quantized model with bitwidth', precision[0])
       self.encoder = QEncoder(self.encoder, precision[0], precision[1], precision[2])
       self.decoder = QDecoder(self.decoder, precision[0], precision[1], precision[2])
 
