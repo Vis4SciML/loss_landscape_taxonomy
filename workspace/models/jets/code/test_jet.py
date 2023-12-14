@@ -152,7 +152,7 @@ def main(args):
     cka = CKA(model, 
               dataloader, 
               layers=['model.dense_1', 'model.dense_2', 'model.dense_3', 'model.dense_4'],
-              max_batches=5)
+              max_batches=80000)
     cka.compute()
     cka.save_on_file(path=saving_path)
     
@@ -162,7 +162,7 @@ def main(args):
     metric = NeuralEfficiency(model, 
                               data_module.test_dataloader(), 
                               performance=original_accuracy, 
-                              max_batches=5,
+                              max_batches=80000,
                               target_layers=['model.dense_1', 'model.dense_2', 'model.dense_3', 'model.dense_4'])
     metric.compute(beta=2)
     metric.save_on_file(path=saving_path)
