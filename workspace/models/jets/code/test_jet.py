@@ -191,7 +191,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--saving_folder", type=str)
     parser.add_argument("--precision", type=int, default=8)
-    parser.add_argument("--percentage", type=int, default=0)
+    # parser.add_argument("--percentage", type=int, default=0)
     parser.add_argument("--learning_rate", type=float, default=0.0015625)
     parser.add_argument("--noise_type", type=str, default="gaussian")
     parser.add_argument("--bit_flip", type=int, default=0)

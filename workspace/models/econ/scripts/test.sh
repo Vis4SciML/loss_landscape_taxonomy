@@ -150,7 +150,7 @@ run_test() {
                         --size $size \
                         --precision $p \
                         --noise_type $noise_type \
-                        --percentage $i \
+                        # --percentage $i \
                         --bit_flip 0 
                         # >/$HOME/log_$i.txt 2>&1 &
         
