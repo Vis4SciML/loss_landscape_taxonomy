@@ -6,12 +6,12 @@ DATA_DIR="../../../data/ECON/Elegun"
 DATA_FILE="$DATA_DIR/nELinks5.npy"
 
 # Default variable values
-num_workers=4
-size="baseline"
-noise_type="gaussian"
-bit_flip=0
+num_workers=12
 batch_size=1024
 learning_rate=0.1
+size="baseline"
+metric="noise"
+num_batches=1
 
 
 
@@ -20,8 +20,6 @@ learning_rate=0.1
 # learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
 
 precisions=(2 3 4 5 6 7 8 9 10 11)
-percentages=(10 15 20)
-bit_flips=(1 2 3 4)
 
 
 # Function to display script usage
@@ -29,10 +27,10 @@ usage() {
     echo "Usage: $0 [OPTIONS]"
     echo "Options:"
     echo " -h, --help          Display this help message"
+    echo "--metric             Name of the test"
     echo "--num_workers        Number of workers"
     echo "--size               Model size [baseline, small, large]"
-    echo "--noise_type         Type of noise [gaussian, random, salt_pepper]"
-    echo "--bit_flip           Flag to simulate the radiation environment"
+    echo "--num_batches        Number to batches to test"
     echo "--batch_size         Select the model by batch size"
     echo "--learning_rate      Select the model by learning rate"
 }
@@ -53,11 +51,17 @@ handle_options() {
                 usage
                 return
                 ;;
-
-            --bit_flip)
+            --metric)
                 if has_argument $@; then
-                    bit_flip=$(extract_argument $@)
-                    echo "Max number of batches: $bit_flip"
+                    metric=$(extract_argument $@)
+                    echo "Max number of batches: $metric"
+                    shift
+                fi
+                ;;
+            --num_batches)
+                if has_argument $@; then
+                    num_batches=$(extract_argument $@)
+                    echo "Max number of batches: $num_batches"
                     shift
                 fi
                 ;;
@@ -72,13 +76,6 @@ handle_options() {
                 if has_argument $@; then
                     size=$(extract_argument $@)
                     echo "Size of the model: $size"
-                    shift
-                fi
-                ;;
-            --noise_type)
-                if has_argument $@; then
-                    noise_type=$(extract_argument $@)
-                    echo "Number of test per model: $noise_type"
                     shift
                 fi
                 ;;
@@ -106,82 +103,100 @@ handle_options() {
     done
 }
 
-run_test() {
-    pids=()
-    if [ "$bit_flip" -gt 0 ]; then
-
-        echo ""
-        echo " BATCH SIZE $batch_size - LEARNING_RATE $learning_rate - PRECISION $p "
-        echo ""
-        for i in ${bit_flips[*]}
-        do
-            # training of the model
-            python code/test_encoder.py --saving_folder $SAVING_FOLDER \
-                                --data_dir $DATA_DIR \
-                                --data_file $DATA_FILE \
-                                --batch_size $batch_size \
-                                --num_workers $num_workers \
-                                --learning_rate $learning_rate \
-                                --size $size \
-                                --precision $p \
-                                --percentage 0 \
-                                --bit_flip $i 
-                                # >/$HOME/log_$i.txt 2>&1 &
-
-            pids+=($!)
-        done
-        
-
-        echo ""
-        echo "-----------------------------------------------------------"
-    else
-        echo ""
-        echo " BATCH SIZE $batch_size - LEARNING_RATE $learning_rate - PRECISION $p"
-        echo ""
-        # for i in ${percentages[*]}
-        # do
-            # training of the model
-        python code/test_encoder.py --saving_folder $SAVING_FOLDER \
-                        --data_dir $DATA_DIR \
-                        --data_file $DATA_FILE \
-                        --batch_size $batch_size \
-                        --num_workers $num_workers \
-                        --learning_rate $learning_rate \
-                        --size $size \
-                        --precision $p \
-                        --noise_type $noise_type \
-                        # --percentage $i \
-                        --bit_flip 0 
-                        # >/$HOME/log_$i.txt 2>&1 &
-        
-        #     pids+=($!)
-        # done
-
-        echo ""
-        echo "-----------------------------------------------------------"
-    fi
-    # Wait for all background processes to finish
-    # for pid in "${pids[@]}"; do
-    #     wait $pid
-    #     current_date_time=$(date '+%Y-%m-%d %H:%M:%S')
-    #     echo "$current_date_time: Process with PID $pid finished"
-    # done
-}
 
 # Main script execution
 handle_options "$@"
 # creating the directories if required
 mkdir -p $DATA_DIR
-
-#iterate over the precision
 for p in ${precisions[*]}
 do
-    # trainig with various batch sizes
-    run_test
+    case $metric in
+        noise)
+            pids=()
+            noise_type="gaussian"
+            percentages=(5 10 15 20)
+            for i in ${percentages[*]}
+            do
+                python code/test_jet.py --saving_folder $SAVING_FOLDER \
+                            --metric noise \
+                            --data_dir $DATA_DIR \
+                            --data_file $DATA_FILE \
+                            --num_workers $num_workers \
+                            --batch_size $batch_size \
+                            --learning_rate $learning_rate \
+                            --size $size \
+                            --precision $p \
+                            --noise_type $noise_type \
+                            --percentage $i \
+                            >/$HOME/log_$i.txt 2>&1 &
+                pids+=($!)
+            done
+            for pid in "${pids[@]}"; do
+                wait $pid
+                current_date_time=$(date '+%Y-%m-%d %H:%M:%S')
+                echo "$current_date_time: Process with PID $pid finished"
+            done
+            ;;
+        bitflip)
+            pids=()
+            num_bits=(1 2 3 4 5)
+            for b in ${num_bits[*]}
+            do
+                python code/test_jet.py --saving_folder $SAVING_FOLDER \
+                            --metric bitflip \
+                            --data_dir $DATA_DIR \
+                            --data_file $DATA_FILE \
+                            --num_workers $num_workers \
+                            --batch_size $batch_size \
+                            --learning_rate $learning_rate \
+                            --size $size \
+                            --precision $p \
+                            --bit_flip $b \
+                            >/$HOME/log_$b.txt 2>&1 &
+                pids+=($!)
+            done
+            for pid in "${pids[@]}"; do
+                wait $pid
+                current_date_time=$(date '+%Y-%m-%d %H:%M:%S')
+                echo "$current_date_time: Process with PID $pid finished"
+            done
+            ;;
+        CKA)
+            python code/test_jet.py --saving_folder $SAVING_FOLDER \
+                            --metric CKA \
+                            --data_dir $DATA_DIR \
+                            --data_file $DATA_FILE \
+                            --num_workers $num_workers \
+                            --batch_size $batch_size \
+                            --learning_rate $learning_rate \
+                            --size $size \
+                            --precision $p \
+                            --num_batches $num_batches \
+                            >/$HOME/log_$b.txt 2>&1 &
+            ;;
+        neural_efficiency)
+            python code/test_jet.py --saving_folder $SAVING_FOLDER \
+                            --metric neural_efficiency \
+                            --data_dir $DATA_DIR \
+                            --data_file $DATA_FILE \
+                            --num_workers $num_workers \
+                            --batch_size $batch_size \
+                            --learning_rate $learning_rate \
+                            --size $size \
+                            --precision $p \
+                            --num_batches $num_batches \
+                            >/$HOME/log_$b.txt 2>&1 &
+            ;;
+        # ADD THE NEW METRIC HERE
+        *)
+            echo $metric not implemented yet!
+            exit
+            ;;
+    esac
 done
 
 # archive everything and move it in the sahred folder
-tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate"/" -czvf /loss_landscape/benchmark_ECON_$size"_"bs$batch_size"_lr$learning_rate".tar.gz ./
+tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate"/" -czvf /loss_landscape/ECON_$size"_"$metric"_"bs$batch_size"_lr$learning_rate".tar.gz ./
 
 exit 0
 
