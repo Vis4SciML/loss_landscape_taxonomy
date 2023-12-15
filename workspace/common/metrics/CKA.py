@@ -39,7 +39,6 @@ class CKA(Metric):
         self.results = {}   # there will be different values
         self.device = 'cpu'
         if torch.cuda.is_available():
-            print('CUDA available!')
             self.model.cuda()
             self.device = 'cuda'
 
