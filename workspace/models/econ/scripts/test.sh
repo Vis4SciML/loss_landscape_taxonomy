@@ -117,7 +117,7 @@ do
             percentages=(5 10 15 20)
             for i in ${percentages[*]}
             do
-                python code/test_jet.py --saving_folder $SAVING_FOLDER \
+                python code/test_encoder.py --saving_folder $SAVING_FOLDER \
                             --metric noise \
                             --data_dir $DATA_DIR \
                             --data_file $DATA_FILE \
@@ -142,7 +142,7 @@ do
             num_bits=(1 2 3 4 5)
             for b in ${num_bits[*]}
             do
-                python code/test_jet.py --saving_folder $SAVING_FOLDER \
+                python code/test_encoder.py --saving_folder $SAVING_FOLDER \
                             --metric bitflip \
                             --data_dir $DATA_DIR \
                             --data_file $DATA_FILE \
@@ -162,7 +162,7 @@ do
             done
             ;;
         CKA)
-            python code/test_jet.py --saving_folder $SAVING_FOLDER \
+            python code/test_encoder.py --saving_folder $SAVING_FOLDER \
                             --metric CKA \
                             --data_dir $DATA_DIR \
                             --data_file $DATA_FILE \
@@ -175,7 +175,7 @@ do
                             >/$HOME/log_$b.txt 2>&1 &
             ;;
         neural_efficiency)
-            python code/test_jet.py --saving_folder $SAVING_FOLDER \
+            python code/test_encoder.py --saving_folder $SAVING_FOLDER \
                             --metric neural_efficiency \
                             --data_dir $DATA_DIR \
                             --data_file $DATA_FILE \
@@ -211,6 +211,6 @@ exit 0
 #                                         --batch_size 1024 \
 #                                         --learning_rate 0.1 \
 #                                         --size baseline \
-#                                         --bit_flip 0 \
-#                                         --noise_type gaussian \
+#                                         --metric noise \
+#                                         --num_batches 10 \
 #                                         --num_workers 12

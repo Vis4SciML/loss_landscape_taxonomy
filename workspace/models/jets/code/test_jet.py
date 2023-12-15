@@ -122,7 +122,7 @@ def main(args):
                                 args.batch_size, 
                                 shuffle=False,
                                 num_workers=args.num_workers)
-        trainer = pl.Trainer(accelerator='auto', devices=-1)
+        trainer = pl.Trainer(accelerator='auto', devices='code')
         test_results = trainer.test(model=model, dataloaders=dataloader)
         print(f'Original accuracy:\t{original_accuracy}\n' \
               f'Benchmark accuracy:\t{test_results}')
@@ -141,7 +141,7 @@ def main(args):
         print('-'*80)
         bit_flip = BitFlip(model, args.precision, JTAG_layers)
         bit_flip.flip_bits(number=args.bit_flip) 
-        trainer = pl.Trainer(accelerator='auto', devices=-1)
+        trainer = pl.Trainer(accelerator='auto', devices='code')
         test_results = trainer.test(model=model, dataloaders=dataloader)
         print(f'Original accuracy:\t{original_accuracy}\n' \
               f'Benchmark accuracy:\t{test_results}')
