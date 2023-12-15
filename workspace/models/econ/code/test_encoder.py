@@ -23,6 +23,9 @@ sys.path.insert(0, module_path)
 from CKA import CKA
 from neural_efficiency import NeuralEfficiency
 
+ECON_layers = ['encoder.conv', 'encoder.enc_dense']
+
+
 def get_model_index_and_relative_EMD(path, batch_size, learning_rate, precision, size, num_tests=3):
     '''
     Return the average EMDs achieved by the model and the index of best experiment
@@ -62,6 +65,10 @@ def main(args):
     if not os.path.exists(args.saving_folder):
         os.makedirs(args.saving_folder)
         
+    saving_path = os.path.join(
+        args.saving_folder, 
+        f'bs{args.batch_size}_lr{args.learning_rate}/ECON_{args.precision}b/{args.size}/'
+    )
     # ---------------------------------------------------------------------------- #
     #                                  DATA MODULE                                 #
     # ---------------------------------------------------------------------------- #
@@ -81,8 +88,7 @@ def main(args):
                                                          args.learning_rate, 
                                                          args.precision, 
                                                          args.size)
-    model_path = args.saving_folder + f'bs{args.batch_size}_lr{args.learning_rate}' \
-                f'/ECON_{args.precision}b/{args.size}/net_{idx}_best.pkl'
+    model_path = saving_path + f'net_{idx}_best.pkl'
 
     model = AutoEncoder(
         quantize=(args.precision < 32),
@@ -108,99 +114,95 @@ def main(args):
     data_module.setup("test")
     _, dataloader = data_module.dataloaders()
     
-    # # ---------------------------------------------------------------------------- #
-    # #                                   FLIP BIT                                   #
-    # # ---------------------------------------------------------------------------- #
-    # if args.bit_flip > 0:
-    #     print('-'*80)
-    #     print(f'Noise type: {args.noise_type}')
-    #     print(f'Flipped bits: {args.bit_flip}')
-    #     bit_flip = BitFlip(model, 
-    #                        args.precision, 
-    #                        ['encoder.conv', 'encoder.enc_dense'])
-    #     bit_flip.flip_bits(number=args.bit_flip)    # we are using the same model, so I flip just one time per iteration
-            
-    
-    # # ---------------------------------------------------------------------------- #
-    # #                                   ADD NOISE                                  #
-    # # ---------------------------------------------------------------------------- #
-    
-    # if args.percentage > 0:
-    #     print('-'*80)
-    #     print(f'Radiation test')
-    #     # prepare noisy dataloader
-    #     print(f'Noise percentage: {args.percentage}%')
-    #     noisy_dataset = NoisyDataset(dataloader, 
-    #                                  args.percentage, 
-    #                                  args.noise_type)
-    #     dataloader = DataLoader(noisy_dataset, 
-    #                             args.batch_size, 
-    #                             shuffle=False,
-    #                             num_workers=args.num_workers)
+    print('-'*80)
+    print(f"Metric:\t{args.metric}")
+    if args.metric == 'noise':
+        # ---------------------------------------------------------------------------- #
+        #                                     NOISE                                    #
+        # ---------------------------------------------------------------------------- #
+        print(f'Noise type:\t{args.noise_type}')
+        print(f'Noise percentage:\t{args.percentage}%')
+        print('-'*80)
+        noisy_dataset = NoisyDataset(dataloader, 
+                                     args.percentage, 
+                                     args.noise_type)
+        dataloader = DataLoader(noisy_dataset, 
+                                args.batch_size, 
+                                shuffle=False,
+                                num_workers=args.num_workers)
+        trainer = pl.Trainer(accelerator='auto', devices=-1)
+        test_results = trainer.test(model=model, dataloaders=dataloader)
+        print(f'Original EMD:\t{original_emd}\n' \
+              f'Benchmark EMD:\t{test_results}')
+        file_name = f"emd_{args.type_noise}_{args.percentage}.txt"
+        test_results_log = os.path.join(saving_path, file_name)
+        print('Result stored in: ' + test_results_log)
+        with open(test_results_log, "w") as f:
+            f.write(str(test_results))
+            f.close()
         
-    # # ---------------------------------------------------------------------------- #
-    # #                                   BENCHMARK                                  #
-    # # ---------------------------------------------------------------------------- #
-    # trainer = pl.Trainer(
-    #     accelerator='auto',
-    #     devices=-1,
-    # )
+    elif args.metric == 'bitflip':
+        # ---------------------------------------------------------------------------- #
+        #                                   BIT FLIP                                   #
+        # ---------------------------------------------------------------------------- #
+        print(f'Flipped bits: {args.bit_flip}')
+        print('-'*80)
+        bit_flip = BitFlip(model, args.precision, ECON_layers)
+        bit_flip.flip_bits(number=args.bit_flip) 
+        trainer = pl.Trainer(accelerator='auto', devices=-1)
+        test_results = trainer.test(model=model, dataloaders=dataloader)
+        print(f'Original EMD:\t{original_emd}\n' \
+              f'Benchmark EMD:\t{test_results}')
+        file_name = f"emd_{args.bit_flip}.txt"
+        test_results_log = os.path.join(saving_path, file_name)
+        print('Result stored in: ' + test_results_log)
+        with open(test_results_log, "w") as f:
+            f.write(str(test_results))
+            f.close()
+    elif args.metric == 'CKA':
+        # ---------------------------------------------------------------------------- #
+        #                                      CKA                                     #
+        # ---------------------------------------------------------------------------- #
+        cka = CKA(model, dataloader, layers=ECON_layers, max_batches=args.num_batches)
+        cka.compute()
+        cka.save_on_file(path=saving_path)
+        # TODO: compute the distance among models
+    elif args.metric == 'neural_efficiency':
+        # ---------------------------------------------------------------------------- #
+        #                               Neural Efficiency                              #
+        # ---------------------------------------------------------------------------- #
+        # we have to pass one input per time
+        data_module.batch_size = 1
+        dataloader = data_module.test_dataloader()
+        metric = NeuralEfficiency(model, dataloader, 
+                                  performance=original_emd, 
+                                  max_batches=args.num_batches,
+                                  target_layers=ECON_layers)
+        metric.compute(beta=0.5)
+        metric.save_on_file(path=saving_path)
+    # ADD NEW METRICS HERE
+    else:
+        print("Metric not supported yet!")
         
-    # test_results = trainer.test(model=model, dataloaders=dataloader)
-    # print(f'Original EMD:\t{original_emd}\nBenchmark EMD:\t{test_results}')
-    
-    saving_path = os.path.join(args.saving_folder, f'bs{args.batch_size}_lr{args.learning_rate}' \
-                f'/ECON_{args.precision}b/{args.size}/')
-    
-    cka = CKA(model, 
-              dataloader, 
-              layers=['encoder.conv', 'encoder.enc_dense'],
-              max_batches=50000)
-    cka.compute()
-    cka.save_on_file(path=saving_path)
-    
-    
-    data_module.batch_size = 1
-    
-    metric = NeuralEfficiency(model, 
-                              data_module.test_dataloader(), 
-                              performance=original_emd, 
-                              max_batches=50000,
-                              target_layers=['encoder.conv', 'encoder.enc_dense'])
-    metric.compute(beta=0.5)
-    metric.save_on_file(path=saving_path)
-    
-    # # save the results on file
-    # file_name = args.size + f"_emd"
-    # if args.percentage > 0:
-    #     file_name += f"_{args.noise_type}_{args.percentage}"
-    # elif args.bit_flip > 0:
-    #     file_name += f"_bitflip_{args.bit_flip}"
-    # file_name += ".txt"
-    
-    # test_results_log = os.path.join(
-    #     args.saving_folder, f'bs{args.batch_size}_lr{args.learning_rate}/ECON_{args.precision}b/{args.size}', file_name
-    # )
-    
-    # print('Result stored in: ' + test_results_log)
-    # with open(test_results_log, "w") as f:
-    #     f.write(str(test_results))
-    #     f.close()
-    
     print('Test over!')
 
 
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--saving_folder", type=str)
+    parser.add_argument("--metric", type=str)
+    # model
     parser.add_argument("--size", type=str, default="baseline")
     parser.add_argument("--precision", type=int, default=8)
-    # parser.add_argument("--percentage", type=int, default=0)
     parser.add_argument("--learning_rate", type=float, default=0.0015625)
-    parser.add_argument("--noise_type", type=str, default="gaussian")
-    parser.add_argument("--bit_flip", type=int, default=0)
-
     parser = AutoEncoderDataModule.add_argparse_args(parser)
+    # noise
+    parser.add_argument("--percentage", type=int, default=0)
+    parser.add_argument("--noise_type", type=str, default="gaussian")
+    # bit flip
+    parser.add_argument("--bit_flip", type=int, default=0)
+    # metrics
+    parser.add_argument("--num_batches", type=int, default=None)
     
     args = parser.parse_args()
     

@@ -7,23 +7,11 @@ Thao Nguyen, AI Resident, Google Research
 https://blog.research.google/2021/05/do-wide-and-deep-networks-learn-same.html
 """
 from __future__ import print_function
-import os
-import sys
-import ast
+
 import torch
 import warnings
-from statistics import mean
 from metric import Metric
 from utils.feature_extractor import FeatureExtractor
-import time
-
-import pandas as pd
-
-# test
-# module_path = os.path.abspath(os.path.join('../../../workspace/models/jets/code/')) # or the path to your source code
-# sys.path.insert(0, module_path)
-# from jet_datamodule import JetDataModule
-# from model import JetTagger
 
 
 # ---------------------------------------------------------------------------- #
@@ -165,12 +153,7 @@ class CKA(Metric):
         normalization2 = torch.sqrt(hsic_accumulator2)
         mean_hsic /= normalization1[:, None]
         mean_hsic /= normalization2[None, :]
-        
-        # cka_matrix = pd.DataFrame(mean_hsic, 
-        #                           index=layers1, 
-        #                           columns=layers2)
-        
-        
+                
         self.results['cka_dist'] = 1 - torch.mean(torch.diagonal(mean_hsic)).item()
         self.results['compared_cka'] = mean_hsic
         return self.results
@@ -205,105 +188,9 @@ class CKA(Metric):
         mean_hsic = mean_hsic / normalization[:, None]
         mean_hsic = mean_hsic / normalization[None, :]
             
-        # cka_matrix = pd.DataFrame(mean_hsic, 
-        #                           index=self.layers, 
-        #                           columns=self.layers)
-        
         self.results['internal_cka'] = mean_hsic
         return self.results
             
 
-# test 
-# DATA_PATH = '/home/jovyan/checkpoint/'
-
-# def get_model_index_and_relative_accuracy(batch_size, learning_rate, precision, num_tests=5):
-#     '''
-#     Return the average EMDs achieved by the model and the index of best experiment
-#     '''
-#     performances = []
-#     max_acc = 0
-#     max_acc_index = 0
-#     for i in range (1, num_tests+1):
-#         file_path = DATA_PATH + f'bs{batch_size}_lr{learning_rate}/' \
-#                     f'JTAG_{precision}b/accuracy_{i}.txt'
-#         try:
-#             jtag_file = open(file_path)
-#             jtag_text = jtag_file.read()
-#             accuracy = ast.literal_eval(jtag_text)
-#             accuracy = accuracy[0]['test_acc']
-#             performances.append(accuracy)
-#             if accuracy >= max_acc:
-#                 max_acc = accuracy
-#                 max_acc_index = i
-#             jtag_file.close()
-#         except Exception as e:
-#             warnings.warn("Warning: " + file_path + " not found!")
-#             continue
-        
-#     if len(performances) == 0:
-#         warnings.warn(f"Attention: There is no accuracy value for the model: " \
-#                       f"bs{batch_size}_lr{learning_rate}/JTAG_{precision}b")
-#         #TODO: I may compute if the model is there
-#         return
-    
-#     return mean(performances), max_acc_index
-
-
-# def load_model(batch_size, learning_rate, precision):
-#     '''
-#     Method used to get the model and the relative EMD value
-#     '''
-#     acc, idx = get_model_index_and_relative_accuracy(batch_size, learning_rate, precision)
-#     model_path = DATA_PATH + f'bs{batch_size}_lr{learning_rate}/JTAG_{precision}b/net_{idx}_best.pkl'
-    
-#     # load the model
-#     model = JetTagger(
-#         quantize=(precision < 32),
-#         precision=[
-#             precision,
-#             precision,
-#             precision+3
-#         ],
-#         learning_rate=learning_rate,
-#     )
-    
-#     # to set the map location
-#     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    
-#     model(torch.randn((16, 16)))  # Update tensor shapes 
-#     model_param = torch.load(model_path, map_location=device)
-#     model.load_state_dict(model_param['state_dict'])
-    
-#     return model, acc
-
-
-# if __name__ == "__main__":
-#     DATASET_DIR = '../../../data/JTAG/'
-#     DATASET_FILE = 'processed_dataset.h5'
-#     # get the datamodule
-#     data_module = JetDataModule(
-#         data_dir=DATASET_DIR,
-#         data_file=os.path.join(DATASET_DIR, DATASET_FILE),
-#         batch_size=128,
-#         num_workers=12)
-    
-#     # check if we have processed the data
-#     if not os.path.exists(os.path.join(DATASET_DIR, DATASET_FILE)):
-#         print('Processing the data...')
-#         data_module.process_data(save=True)
-
-#     data_module.setup(0)
-    
-#     model, _ = load_model(16, 0.0015625, 2)
-#     model2, _ = load_model(256, 0.00625, 10)
-#     cka = CKA(model, 
-#               data_module.test_dataloader(), 
-#               layers=['model.dense_1', 'model.dense_2', 'model.dense_3', 'model.dense_4'],
-#               max_batches=10000)
-#     start = time.perf_counter()
-#     result = cka.compute()
-#     end = time.perf_counter()
-#     print('time:', end - start)
-#     print(result)
     
     

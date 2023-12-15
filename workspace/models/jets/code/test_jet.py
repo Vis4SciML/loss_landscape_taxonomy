@@ -99,7 +99,6 @@ def main(args):
     # to set the map location
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
-    print(model_path)
     model(torch.randn((16, 16)))  
     model_param = torch.load(model_path, map_location=device)
     model.load_state_dict(model_param['state_dict'])
@@ -185,6 +184,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--saving_folder", type=str)
     parser.add_argument("--metric", type=str)
+    # model
     parser.add_argument("--precision", type=int, default=8)
     parser.add_argument("--learning_rate", type=float, default=0.0015625)
     parser = JetDataModule.add_argparse_args(parser)
