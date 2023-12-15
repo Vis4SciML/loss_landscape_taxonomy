@@ -1,23 +1,16 @@
 #!/bin/sh
 
-# Constants
-SAVING_FOLDER="/home/jovyan/checkpoint/different_knobs_subset_10"
-DATA_DIR="/home/jovyan/loss_landscape_taxonomy/data/ECON/Elegun"
-DATA_FILE="$DATA_DIR/nELinks5.npy"
-
 # Default variable values
 num_workers=14
-
+metric='noise'
+num_batches=50000
 
 # # ranges of the scan 
 # batch_sizes=(16 32 64 128 256 512 1024)
 # learning_rates=(0.025 0.0125 0.00625 0.003125 0.0015625)
 batch_sizes=(1024)
 learning_rates=(1 0.05)
-bit_flip=0
-noise_type="gaussian"
 
-# precisions=(2 3 4 5 6 7 8 9 10 11)
 
 # Function to display script usage
 usage() {
@@ -25,8 +18,8 @@ usage() {
     echo "Options:"
     echo " -h, --help          Display this help message"
     echo "--num_workers        Number of workers"
-    echo "--noise_type         Type of noise [gaussian, random, salt_pepper]"
-    echo "--bit_flip           Flag to simulate the radiation environment"
+    echo "--metric             Metric of the analysis"
+    echo "--num_batches        Number of batches to test"
 }
 
 has_argument() {
@@ -45,10 +38,10 @@ handle_options() {
                 usage
                 exit 0
                 ;;
-            --bit_flip)
+            --metric)
                 if has_argument $@; then
-                    bit_flip=$(extract_argument $@)
-                    echo "Max number of epochs: $bit_flip"
+                    metric=$(extract_argument $@)
+                    echo "Max number of epochs: $metric"
                     shift
                 fi
                 ;;
@@ -59,10 +52,10 @@ handle_options() {
                     shift
                 fi
                 ;;
-            --noise_type)
+            --num_batches)
                 if has_argument $@; then
-                    noise_type=$(extract_argument $@)
-                    echo "Training accelerator: $noise_type"
+                    num_batches=$(extract_argument $@)
+                    echo "Training accelerator: $num_batches"
                     shift
                 fi
                 ;;
@@ -99,8 +92,8 @@ spec:
                         . scripts/test.sh \
                                         --batch_size $bs \
                                         --learning_rate $lr \
-                                        --bit_flip $bit_flip \
-                                        --noise_type $noise_type \
+                                        --metric $metric \
+                                        --num_batches $num_batches \
                                         --num_workers $num_workers"]
                 volumeMounts:
                   - mountPath: /loss_landscape
@@ -136,7 +129,7 @@ for bs in ${batch_sizes[*]}
 do
     for lr in ${learning_rates[*]}
     do
-        job_name=$(echo "jtag_benchmark_bs"$bs"_lr$lr" | sed 's/\./_/g')
+        job_name=$(echo "jtag_"$metric"_bs"$bs"_lr$lr" | sed 's/\./_/g')
         generate_job_yaml $job_name
         start_kubernetes_job
     done    
@@ -148,7 +141,12 @@ exit 0
 # END MAIN
 
 # NoISE
-# bash jtag_benchmarks.sh --num_workers 12 --noise_type gaussian --bit_flip 0
+# bash jtag_benchmarks.sh --num_workers 12 --metric noise --num_batches 1000000
 # BIT FLIP
-# bash jtag_benchmarks.sh --num_workers 12 --noise_type gaussian --bit_flip 1
+# bash jtag_benchmarks.sh --num_workers 12 --metric bitflip --num_batches 1000000
+# CKA
+# bash jtag_benchmarks.sh --num_workers 12 --metric CKA --num_batches 100000
+# NE
+# bash jtag_benchmarks.sh --num_workers 12 --metric neural_efficiency --num_batches 100000
+
 
