@@ -200,12 +200,6 @@ tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate"/" -czvf /loss_l
 
 exit 0
 
-# nohup bash scripts/test.sh --num_workers 8 --size large --noise_type random > noise_large.out 2>&1 &
-# nohup bash scripts/test.sh --num_workers 8 --size baseline --noise_type random > noise_baseline.out 2>&1 &
-# nohup bash scripts/test.sh --num_workers 8 --size small --noise_type random > noise_small.out 2>&1 &
-# nohup bash scripts/test.sh --num_workers 8 --size large --bit_flip 1 > bitflip_large.out 2>&1 &
-# nohup bash scripts/test.sh --num_workers 8 --size baseline --bit_flip 1 > bitflip_baseline.out 2>&1 &
-# nohup bash scripts/test.sh --num_workers 8 --size small --bit_flip 1 > bitflip_small.out 2>&1 &
 
 # . scripts/test.sh \
 #                                         --batch_size 1024 \

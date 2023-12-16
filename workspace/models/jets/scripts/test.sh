@@ -197,6 +197,6 @@ exit 0
 # . scripts/test.sh \
 #                                         --batch_size 1024 \
 #                                         --learning_rate 0.1 \
-#                                         --bit_flip 0 \
-#                                         --noise_type gaussian \
+#                                         --num_batches 10 \
+#                                         --metric noise \
 #                                         --num_workers 12

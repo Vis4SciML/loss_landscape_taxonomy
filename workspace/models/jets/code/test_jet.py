@@ -126,7 +126,7 @@ def main(args):
         test_results = trainer.test(model=model, dataloaders=dataloader)
         print(f'Original accuracy:\t{original_accuracy}\n' \
               f'Benchmark accuracy:\t{test_results}')
-        file_name = f"accuracy_{args.type_noise}_{args.percentage}.txt"
+        file_name = f"accuracy_{args.noise_type}_{args.percentage}.txt"
         test_results_log = os.path.join(saving_path, file_name)
         print('Result stored in: ' + test_results_log)
         with open(test_results_log, "w") as f:
