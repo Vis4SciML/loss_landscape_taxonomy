@@ -183,7 +183,7 @@ do
 done
 
 # archive everything and move it in the sahred folder
-tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate"/" -czvf /loss_landscape/JTAG_$metric"_bs"$batch_size"_lr$learning_rate".tar.gz ./
+tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/JTAG_$metric"_bs$batch_size"_lr$learning_rate.tar.gz ./
 
 exit 0
 
