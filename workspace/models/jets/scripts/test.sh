@@ -107,7 +107,7 @@ do
         noise)
             pids=()
             noise_type="gaussian"
-            percentages=(5 10 15 20)
+            percentages=(5)
             for i in ${percentages[*]}
             do
                 python code/test_jet.py --saving_folder $SAVING_FOLDER \
