@@ -19,8 +19,8 @@ num_batches=1
 # batch_sizes=(16 32 64 128 256 512 1024)
 # learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
 
-precisions=(2 3 4 5 6 7 8 9 10 11)
-
+# precisions=(2 3 4 5 6 7 8 9 10 11)
+precisions=(2)
 
 # Function to display script usage
 usage() {
@@ -110,6 +110,8 @@ handle_options "$@"
 mkdir -p $DATA_DIR
 for p in ${precisions[*]}
 do
+    echo precision: $p
+
     case $metric in
         noise)
             pids=()
@@ -196,7 +198,7 @@ do
 done
 
 # archive everything and move it in the sahred folder
-tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate"/" -czvf /loss_landscape/ECON_$size"_"$metric"_"bs$batch_size"_lr$learning_rate".tar.gz ./
+tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
 
 exit 0
 

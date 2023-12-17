@@ -101,6 +101,8 @@ handle_options "$@"
 mkdir -p $DATA_DIR
 for p in ${precisions[*]}
 do
+    echo precision: $p
+
     case $metric in
         noise)
             pids=()
