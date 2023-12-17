@@ -19,8 +19,8 @@ num_batches=1
 # batch_sizes=(16 32 64 128 256 512 1024)
 # learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
 
-# precisions=(2 3 4 5 6 7 8 9 10 11)
-precisions=(2)
+precisions=(2 3 4 5 6 7 8 9 10 11)
+
 
 # Function to display script usage
 usage() {
@@ -129,15 +129,15 @@ do
                             --size $size \
                             --precision $p \
                             --noise_type $noise_type \
-                            --percentage $i \
-                            >/$HOME/log_$i.txt 2>&1 &
+                            --percentage $i #\
+                            # >/$HOME/log_$i.txt 2>&1 &
                 pids+=($!)
             done
-            for pid in "${pids[@]}"; do
-                wait $pid
-                current_date_time=$(date '+%Y-%m-%d %H:%M:%S')
-                echo "$current_date_time: Process with PID $pid finished"
-            done
+            # for pid in "${pids[@]}"; do
+            #     wait $pid
+            #     current_date_time=$(date '+%Y-%m-%d %H:%M:%S')
+            #     echo "$current_date_time: Process with PID $pid finished"
+            # done
             ;;
         bitflip)
             pids=()
@@ -200,6 +200,7 @@ done
 # archive everything and move it in the sahred folder
 tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
 
+return
 exit 0
 
 
