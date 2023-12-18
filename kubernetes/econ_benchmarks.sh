@@ -7,10 +7,10 @@ num_batches=50000
 size="baseline"
 
 # # ranges of the scan 
-# batch_sizes=(16 32 64 128 256 512 1024)
-# learning_rates=(0.025 0.0125 0.00625 0.003125 0.0015625)
-batch_sizes=(1024)
-learning_rates=(1 0.05)
+batch_sizes=(128)
+learning_rates=(0.025 0.0125 0.003125 0.0015625)
+# batch_sizes=(1024)
+# learning_rates=(0.1 0.05)
 
 
 # Function to display script usage
@@ -145,6 +145,8 @@ do
     done    
 done
 
+rm econ_$metric"*"
+
 echo Jobs started
 exit 0
 
@@ -152,31 +154,31 @@ exit 0
 
 # SMALL
     # NoISE
-    # bash jtag_benchmarks.sh --size small --num_workers 12 --metric noise --num_batches 1000000
+    # bash econ_benchmarks.sh --size small --num_workers 12 --metric noise --num_batches 1000000
     # BIT FLIP
-    # bash jtag_benchmarks.sh --size small --num_workers 12 --metric bitflip --num_batches 1000000
+    # bash econ_benchmarks.sh --size small --num_workers 12 --metric bitflip --num_batches 1000000
     # CKA
-    # bash jtag_benchmarks.sh --size small --num_workers 12 --metric CKA --num_batches 100000
+    # bash econ_benchmarks.sh --size small --num_workers 12 --metric CKA --num_batches 100000
     # NE
-    # bash jtag_benchmarks.sh --size small --num_workers 12 --metric neural_efficiency --num_batches 100000
+    # bash econ_benchmarks.sh --size small --num_workers 12 --metric neural_efficiency --num_batches 100000
 
 # BASELINE
     # NoISE
-    # bash jtag_benchmarks.sh --size baseline --num_workers 12 --metric noise --num_batches 1000000
+    # bash econ_benchmarks.sh --size baseline --num_workers 12 --metric noise --num_batches 1000000
     # BIT FLIP
-    # bash jtag_benchmarks.sh --size baseline --num_workers 12 --metric bitflip --num_batches 1000000
+    # bash econ_benchmarks.sh --size baseline --num_workers 12 --metric bitflip --num_batches 1000000
     # CKA
-    # bash jtag_benchmarks.sh --size baseline --num_workers 12 --metric CKA --num_batches 100000
+    # bash econ_benchmarks.sh --size baseline --num_workers 12 --metric CKA --num_batches 100000
     # NE
-    # bash jtag_benchmarks.sh --size baseline --num_workers 12 --metric neural_efficiency --num_batches 100000
+    # bash econ_benchmarks.sh --size baseline --num_workers 12 --metric neural_efficiency --num_batches 100000
 
 # LARGE
     # NoISE
-    # bash jtag_benchmarks.sh --size large --num_workers 12 --metric noise --num_batches 1000000
+    # bash econ_benchmarks.sh --size large --num_workers 12 --metric noise --num_batches 1000000
     # BIT FLIP
-    # bash jtag_benchmarks.sh --size large --num_workers 12 --metric bitflip --num_batches 1000000
+    # bash econ_benchmarks.sh --size large --num_workers 12 --metric bitflip --num_batches 1000000
     # CKA
-    # bash jtag_benchmarks.sh --size large --num_workers 12 --metric CKA --num_batches 100000
+    # bash econ_benchmarks.sh --size large --num_workers 12 --metric CKA --num_batches 100000
     # NE
-    # bash jtag_benchmarks.sh --size large --num_workers 12 --metric neural_efficiency --num_batches 100000
+    # bash econ_benchmarks.sh --size large --num_workers 12 --metric neural_efficiency --num_batches 100000
 
