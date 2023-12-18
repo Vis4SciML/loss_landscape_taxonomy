@@ -116,7 +116,7 @@ do
         noise)
             pids=()
             noise_type="gaussian"
-            percentages=(5)
+            percentages=(5 10 15 20)
             for i in ${percentages[*]}
             do
                 python code/test_encoder.py --saving_folder $SAVING_FOLDER \
@@ -129,15 +129,15 @@ do
                             --size $size \
                             --precision $p \
                             --noise_type $noise_type \
-                            --percentage $i #\
-                            # >/$HOME/log_$i.txt 2>&1 &
+                            --percentage $i \
+                            >/$HOME/log_$i.txt 2>&1 &
                 pids+=($!)
             done
-            # for pid in "${pids[@]}"; do
-            #     wait $pid
-            #     current_date_time=$(date '+%Y-%m-%d %H:%M:%S')
-            #     echo "$current_date_time: Process with PID $pid finished"
-            # done
+            for pid in "${pids[@]}"; do
+                wait $pid
+                current_date_time=$(date '+%Y-%m-%d %H:%M:%S')
+                echo "$current_date_time: Process with PID $pid finished"
+            done
             ;;
         bitflip)
             pids=()
