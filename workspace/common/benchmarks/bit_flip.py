@@ -142,7 +142,7 @@ class BitFlip:
 #     print(flat1)
 #     # bit flip
 #     bit_flip = BitFlip(model, 8, ['model.dense_1', 'model.dense_2', 'model.dense_3', 'model.dense_4'])
-#     bit_flip.flip_bits(number=10)
+#     bit_flip.flip_bits(number=100)
 #     count = 0
 #     for batch, label in data_loader:
 #         count += 1

@@ -141,7 +141,7 @@ do
             ;;
         bitflip)
             pids=()
-            num_bits=(1 2 3 4 5)
+            num_bits=(1 5 10 15)
             for b in ${num_bits[*]}
             do
                 python code/test_encoder.py --saving_folder $SAVING_FOLDER \
