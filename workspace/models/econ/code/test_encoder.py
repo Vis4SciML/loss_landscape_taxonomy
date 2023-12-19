@@ -153,7 +153,7 @@ def main(args):
         test_results = trainer.test(model=model, dataloaders=dataloader)
         print(f'Original EMD:\t{original_emd}\n' \
               f'Benchmark EMD:\t{test_results}')
-        file_name = f"emd_{args.bit_flip}.txt"
+        file_name = f"emd_bitflip_{args.bit_flip}.txt"
         test_results_log = os.path.join(saving_path, file_name)
         print('Result stored in: ' + test_results_log)
         with open(test_results_log, "w") as f:
