@@ -334,29 +334,29 @@ def load_model(batch_size, learning_rate, precision):
     return model, accuracy
 
 
-if __name__ == "__main__":
-    # get the datamodule
-    data_module = JetDataModule(
-        data_dir=DATASET_DIR,
-        data_file=os.path.join(DATASET_DIR, DATASET_FILE),
-        batch_size=16,
-        num_workers=4)
+# if __name__ == "__main__":
+#     # get the datamodule
+#     data_module = JetDataModule(
+#         data_dir=DATASET_DIR,
+#         data_file=os.path.join(DATASET_DIR, DATASET_FILE),
+#         batch_size=16,
+#         num_workers=4)
     
-    # check if we have processed the data
-    if not os.path.exists(os.path.join(DATASET_DIR, DATASET_FILE)):
-        data_module.process_data(save=True)
+#     # check if we have processed the data
+#     if not os.path.exists(os.path.join(DATASET_DIR, DATASET_FILE)):
+#         data_module.process_data(save=True)
 
-    data_module.setup(0)
-    model, _ = load_model(1024, 0.0125, 8)
-    model.eval()
+#     data_module.setup(0)
+#     model, _ = load_model(1024, 0.0125, 8)
+#     model.eval()
     
-    data_loader = data_module.val_dataloader()
-    fit_computer = FIT(model, data_loader, 
-                       target_layers=['model.dense_1', 'model.dense_2', 'model.dense_3', 'model.dense_4'], 
-                       input_spec=(16, 16))
+#     data_loader = data_module.val_dataloader()
+#     fit_computer = FIT(model, data_loader, 
+#                        target_layers=['model.dense_1', 'model.dense_2', 'model.dense_3', 'model.dense_4'], 
+#                        input_spec=(16, 16))
     
-    result = fit_computer.EF(tol=1e-2, 
-                             min_iterations=20,
-                             max_iterations=1000)
+#     result = fit_computer.EF(tol=1e-2, 
+#                              min_iterations=20,
+#                              max_iterations=1000)
     
-    print(result)
+#     print(result)
