@@ -16,6 +16,7 @@ sys.path.insert(0, module_path)
 from model import JetTagger
 from jet_datamodule import JetDataModule
 
+
 # ---------------------------------------------------------------------------- #
 #                                 Fisher metric                                #
 # ---------------------------------------------------------------------------- #
@@ -40,7 +41,7 @@ class FIT(Metric):
         names, param_nums, params = self.layer_accumulator(model, layer_filter)
         param_sizes = [p.size() for p in params]
         self.hook_layers(model, layer_filter)
-        _ = model(torch.randn(input_spec)[None, ...].to(self.device))
+        _ = model(torch.randn(input_spec).to(self.device))
         act_sizes = []
         act_nums = []
         for name, module in model.named_modules():
@@ -82,6 +83,10 @@ class FIT(Metric):
             if name in self.target_layers:
                 for n, p in list(module.named_parameters()):
                     if n.endswith('weight'):
+                        # skip HAWQ duplicates
+                        if name in names:
+                            continue
+                        
                         names.append(name)
                         p.collect = True
                         layers.append(module)
@@ -149,6 +154,7 @@ class FIT(Metric):
         act_estimator_accumulation = []
 
         F_flag = False
+        NaN_flag = False
 
         total_batches = 0.
 
@@ -189,7 +195,11 @@ class FIT(Metric):
                 
                 G2 = []
                 for g in G:
+                    print((batch_size*g*g).shape)
                     G2.append(batch_size*g*g)
+                    
+                
+                
                                         
                 indiv_param = np.array([torch.sum(x).detach().cpu().numpy() for x in G2[:len(TFv_param)]])
                 indiv_act = np.array([torch.sum(x).detach().cpu().numpy() for x in G2[len(TFv_param):]])
@@ -210,9 +220,6 @@ class FIT(Metric):
                 TFv_param_normed = [TFv_ / float(total_batches) for TFv_ in TFv_param]
                 vFv_param = [torch.sum(x) for x in TFv_param_normed]
                 vFv_param_c = np.array([i.detach().cpu().numpy() for i in vFv_param])
-                
-                F_act_acc.append(vFv_act_c)
-                F_param_acc.append(vFv_param_c)
                 
                 if total_batches >= 2:
 
@@ -237,7 +244,9 @@ class FIT(Metric):
         
         self.results = {
             "EF_trace_w": self.EFw,
-            "EF_trace_a": self.EFa
+            "EF_trace_a": self.EFa,
+            "avg_EF": np.mean(self.EFw),
+            #"error_nan": NaN_flag
         }
         
         return self.results
@@ -334,29 +343,29 @@ def load_model(batch_size, learning_rate, precision):
     return model, accuracy
 
 
-# if __name__ == "__main__":
-#     # get the datamodule
-#     data_module = JetDataModule(
-#         data_dir=DATASET_DIR,
-#         data_file=os.path.join(DATASET_DIR, DATASET_FILE),
-#         batch_size=16,
-#         num_workers=4)
+if __name__ == "__main__":
+    # get the datamodule
+    data_module = JetDataModule(
+        data_dir=DATASET_DIR,
+        data_file=os.path.join(DATASET_DIR, DATASET_FILE),
+        batch_size=1024,
+        num_workers=4)
     
-#     # check if we have processed the data
-#     if not os.path.exists(os.path.join(DATASET_DIR, DATASET_FILE)):
-#         data_module.process_data(save=True)
+    # check if we have processed the data
+    if not os.path.exists(os.path.join(DATASET_DIR, DATASET_FILE)):
+        data_module.process_data(save=True)
 
-#     data_module.setup(0)
-#     model, _ = load_model(1024, 0.0125, 8)
-#     model.eval()
+    data_module.setup(0)
+    model, _ = load_model(1024, 0.05, 8)
+    model.eval()
     
-#     data_loader = data_module.val_dataloader()
-#     fit_computer = FIT(model, data_loader, 
-#                        target_layers=['model.dense_1', 'model.dense_2', 'model.dense_3', 'model.dense_4'], 
-#                        input_spec=(16, 16))
+    data_loader = data_module.val_dataloader()
+    fit_computer = FIT(model, data_loader, 
+                       target_layers=['model.dense_1', 'model.dense_2', 'model.dense_3', 'model.dense_4'], 
+                       input_spec=(1024, 16))
     
-#     result = fit_computer.EF(tol=1e-2, 
-#                              min_iterations=20,
-#                              max_iterations=1000)
+    result = fit_computer.EF(tol=1e-2, 
+                             min_iterations=20,
+                             max_iterations=1000)
     
-#     print(result)
+    print(result)

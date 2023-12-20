@@ -44,7 +44,7 @@ class Hessian(Metric):
                                 cuda=torch.cuda.is_available())
             break
                 
-        trace = hessian_comp.trace(maxIter=200, tol=1e-6)
+        trace = hessian_comp.trace(maxIter=100, tol=1e-6)
         
         print('trace:', mean(trace))
         
