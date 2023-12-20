@@ -176,6 +176,18 @@ do
                             --num_batches $num_batches \
                             >/$HOME/log_$b.txt 2>&1 &
             ;;
+        fisher)
+            python code/test_jet.py --saving_folder $SAVING_FOLDER \
+                            --metric fisher \
+                            --data_dir $DATA_DIR \
+                            --data_file $DATA_FILE \
+                            --num_workers $num_workers \
+                            --batch_size $batch_size \
+                            --learning_rate $learning_rate \
+                            --precision $p \
+                            --num_batches $num_batches #\
+                            #>/$HOME/log_$b.txt 2>&1 &
+            ;;
         # ADD THE NEW METRIC HERE
         *)
             echo $metric not implemented yet!
@@ -186,7 +198,7 @@ done
 
 # archive everything and move it in the sahred folder
 tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/JTAG_$metric"_bs$batch_size"_lr$learning_rate.tar.gz ./
-
+return
 exit 0
 
 # nohup bash scripts/test.sh --num_workers 8 --noise_type random > noise_large.out 2>&1 &
@@ -200,5 +212,5 @@ exit 0
 #                                         --batch_size 1024 \
 #                                         --learning_rate 0.1 \
 #                                         --num_batches 10 \
-#                                         --metric noise \
+#                                         --metric fisher \
 #                                         --num_workers 12

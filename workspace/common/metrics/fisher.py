@@ -16,11 +16,12 @@ sys.path.insert(0, module_path)
 from model import JetTagger
 from jet_datamodule import JetDataModule
 
+
 # ---------------------------------------------------------------------------- #
 #                                 Fisher metric                                #
 # ---------------------------------------------------------------------------- #
 class FIT(Metric):
-    def __init__(self, model, target_layer, input_spec = (16,16), layer_filter=None):
+    def __init__(self, model, data_loader, name="fisher", target_layers=[], input_spec = (16,16), layer_filter=None):
         ''' Class for computing FIT
         Args:
             model
@@ -28,25 +29,25 @@ class FIT(Metric):
             input_spec
             layer_filter - str - layers to ignore 
         '''
-        
+        super().__init__(model, data_loader, name)
         # select the device
         self.device = 'cpu'
         if torch.cuda.is_available():
             self.model.cuda()
             self.device = 'cuda'
             
-            
-        names, param_nums, params = self.layer_accumulator(model, target_layer, layer_filter)
+        self.target_layers = target_layers
+        self.results = {}
+        names, param_nums, params = self.layer_accumulator(model, layer_filter)
         param_sizes = [p.size() for p in params]
         self.hook_layers(model, layer_filter)
-        _ = model(torch.randn(input_spec)[None, ...].to(self.device))
+        _ = model(torch.randn(input_spec).to(self.device))
         act_sizes = []
         act_nums = []
         for name, module in model.named_modules():
-            if name in ['model.quant_act_1', 'model.quant_act_2', 'model.quant_act_3', 'model.act']:
-                print(module)
-                # act_sizes.append(module.act_in[0].size())
-                # act_nums.append(np.prod(np.array(module.act_in[0].size())[1:]))
+            if module.act_quant:
+                act_sizes.append(module.act_in[0].size())
+                act_nums.append(np.prod(np.array(module.act_in[0].size())[1:]))
                 
         self.names = names
         self.param_nums = param_nums
@@ -56,7 +57,7 @@ class FIT(Metric):
         self.act_nums = act_nums
         
     
-    def layer_accumulator(self, model, target_layer, layer_filter=None):
+    def layer_accumulator(self, model, layer_filter=None):
         ''' Accumulates the required parameter information,
         Args:
             model
@@ -79,10 +80,13 @@ class FIT(Metric):
         param_nums = []
         params = []
         for name, module in model.named_modules():
-            if name in target_layer:
-                print(name, module)
+            if name in self.target_layers:
                 for n, p in list(module.named_parameters()):
                     if n.endswith('weight'):
+                        # skip HAWQ duplicates
+                        if name in names:
+                            continue
+                        
                         names.append(name)
                         p.collect = True
                         layers.append(module)
@@ -94,8 +98,7 @@ class FIT(Metric):
             for p in list(module.parameters()):
                 if p.requires_grad:
                     p.collect = False
-        print(len(layers))
-        print(np.sum(param_nums))
+
         for i, (n, p) in enumerate(zip(names, param_nums)):
             print(i, n, p)
 
@@ -119,24 +122,19 @@ class FIT(Metric):
                 return True
 
         for name, module in model.named_modules():
-            if (isinstance(module, nn.Linear) or (isinstance(module, nn.Conv2d))) and (layer_filt(name)):
-
+            if name in self.target_layers:
                 module.register_forward_hook(hook_inp)
                 module.act_quant = True
             else:
                 module.act_quant = False
         
     
-    def EF(self, model, 
-           data_loader, 
-           criterion, 
+    def EF(self, 
            tol=1e-3, 
            min_iterations=100, 
            max_iterations=100):
         ''' Computes the EF
         Args:
-            model
-            data_loader
             tol - tolerance used for early stopping
             min_iterations - minimum number of iteration to include
             max_iterations - maximum number of iterations after which to break
@@ -149,13 +147,14 @@ class FIT(Metric):
             ranges_act_acc - activation range accumulation
         '''
         
-        model.eval()
+        self.model.eval()
         F_act_acc = []
         F_param_acc = []
         param_estimator_accumulation = []
         act_estimator_accumulation = []
 
         F_flag = False
+        NaN_flag = False
 
         total_batches = 0.
 
@@ -167,27 +166,26 @@ class FIT(Metric):
         
         while(total_batches < max_iterations and not F_flag):
             
-            for batch, label in data_loader:
-                model.zero_grad()
+            for batch, label in self.data_loader:
+                self.model.zero_grad()
                 
                 inputs, labels = batch.to(self.device), label.to(self.device)
                 batch_size = inputs.size(0)
 
-                outputs = model(inputs)
-                loss = criterion(outputs, labels)
+                outputs = self.model(inputs)
+                loss = self.model.loss(outputs, labels)
                 
                 ranges_act = []
                 actsH = []
-                for name, module in model.named_modules():
+                for name, module in self.model.named_modules():
                     if module.act_quant:
                         actsH.append(module.act_in[0])
                         ranges_act.append((torch.max(module.act_in[0]) - torch.min(module.act_in[0])).detach().cpu().numpy())
                         
-                print(ranges_act, actsH)
-
+                        
                 ranges_param = []
                 paramsH = []
-                for paramH in model.parameters():
+                for paramH in self.model.parameters():
                     if not paramH.collect:
                         continue
                     paramsH.append(paramH)
@@ -197,8 +195,12 @@ class FIT(Metric):
                 
                 G2 = []
                 for g in G:
+                    print((batch_size*g*g).shape)
                     G2.append(batch_size*g*g)
                     
+                
+                
+                                        
                 indiv_param = np.array([torch.sum(x).detach().cpu().numpy() for x in G2[:len(TFv_param)]])
                 indiv_act = np.array([torch.sum(x).detach().cpu().numpy() for x in G2[len(TFv_param):]])
                 param_estimator_accumulation.append(indiv_param)
@@ -208,7 +210,7 @@ class FIT(Metric):
                 ranges_param_acc.append(ranges_param)
                 TFv_act = [TFv_ + G2_ + 0. for TFv_, G2_ in zip(TFv_act, G2[len(TFv_param):])]
                 ranges_act_acc.append(ranges_act)
-                
+                                
                 total_batches += 1
                 
                 TFv_act_normed = [TFv_ / float(total_batches) for TFv_ in TFv_act]
@@ -219,15 +221,12 @@ class FIT(Metric):
                 vFv_param = [torch.sum(x) for x in TFv_param_normed]
                 vFv_param_c = np.array([i.detach().cpu().numpy() for i in vFv_param])
                 
-                F_act_acc.append(vFv_act_c)
-                F_param_acc.append(vFv_param_c)
-                
                 if total_batches >= 2:
- 
+
                     param_var = np.var((param_estimator_accumulation - vFv_param_c)/vFv_param_c)/total_batches
                     act_var= np.var((act_estimator_accumulation - vFv_act_c)/vFv_act_c)/total_batches
                     
-                    print(f'Iteration {total_batches}, Estimator variance: W:{param_var} / A:{act_var}')
+                    # print(f'Iteration {total_batches}, Estimator variance: W:{param_var} / A:{act_var}')
                 
                     if act_var < tol and param_var < tol and total_batches > min_iterations:
                         F_flag = True
@@ -237,15 +236,23 @@ class FIT(Metric):
         
         self.EFw = vFv_param_c
         self.EFa = vFv_act_c
+        # TODO: check possible usage
         self.FAw = F_param_acc
         self.FAa = F_act_acc
         self.Rw = ranges_param_acc
         self.Ra = ranges_act_acc
         
-        return vFv_param_c, vFv_act_c, F_param_acc, F_act_acc, ranges_param_acc, ranges_act_acc
+        self.results = {
+            "EF_trace_w": self.EFw,
+            "EF_trace_a": self.EFa,
+            "avg_EF": np.mean(self.EFw),
+            #"error_nan": NaN_flag
+        }
+        
+        return self.results
     
     # compute FIT:
-    def noise_model(self, ranges, config):
+    def noise_model(self, ranges, precision):
         ''' Uniform noise model
         Args:
             ranges - data ranges
@@ -253,21 +260,21 @@ class FIT(Metric):
         Returns:
             noise power
         '''
-        return (ranges/(2**config - 1))**2
+        return (ranges/(2**precision - 1))**2
 
 
-    def FIT(self, config):
+    def FIT(self, w_precision, act_precision):
         ''' computes FIT 
         Args:
             config - bit configuration for weights and activations interlaced: [w1,a1,w2,a2,...]
         Returns:
             FIT value
         '''
-        pert_acts = self.noise_model(np.mean(self.Ra, axis=0)[1:], config[1::2])
-        pert_params = self.noise_model(np.mean(self.Rw, axis=0), config[0::2])
+        pert_acts = self.noise_model(np.mean(self.Ra, axis=0)[1:], act_precision)
+        pert_params = self.noise_model(np.mean(self.Rw, axis=0), w_precision)
 
-        f_acts_T = pert_acts*self.EFa
-        f_params_T = pert_params*self.EFw
+        f_acts_T = pert_acts * self.EFa
+        f_params_T = pert_params * self.EFw
         pert_T = np.sum(f_acts_T) + np.sum(f_params_T)
         return pert_T
 
@@ -341,7 +348,7 @@ if __name__ == "__main__":
     data_module = JetDataModule(
         data_dir=DATASET_DIR,
         data_file=os.path.join(DATASET_DIR, DATASET_FILE),
-        batch_size=16,
+        batch_size=1024,
         num_workers=4)
     
     # check if we have processed the data
@@ -349,16 +356,16 @@ if __name__ == "__main__":
         data_module.process_data(save=True)
 
     data_module.setup(0)
-    model, _ = load_model(16, 0.05, 8)
+    model, _ = load_model(1024, 0.05, 8)
     model.eval()
     
     data_loader = data_module.val_dataloader()
-    fit_computer = FIT(model, 
-                       ['model.dense_1', 'model.dense_2', 'model.dense_3', 'model.dense_4'], 
-                       input_spec=(16, 16))
+    fit_computer = FIT(model, data_loader, 
+                       target_layers=['model.dense_1', 'model.dense_2', 'model.dense_3', 'model.dense_4'], 
+                       input_spec=(1024, 16))
     
-    # EFw, EFa, fap, faa, param_ranges, act_ranges = fit_computer.EF(model, data_loader, 
-    #                                                            model.loss, 
-    #                                                            tol=1e-2, 
-    #                                                            min_iterations=20,
-    #                                                            max_iterations=300)
+    result = fit_computer.EF(tol=1e-2, 
+                             min_iterations=20,
+                             max_iterations=1000)
+    
+    print(result)

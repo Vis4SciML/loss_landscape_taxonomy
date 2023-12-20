@@ -189,6 +189,19 @@ do
                             --num_batches $num_batches \
                             >/$HOME/log_$b.txt 2>&1 &
             ;;
+        fisher)
+            python code/test_encoder.py --saving_folder $SAVING_FOLDER \
+                            --metric fisher \
+                            --data_dir $DATA_DIR \
+                            --data_file $DATA_FILE \
+                            --num_workers $num_workers \
+                            --batch_size $batch_size \
+                            --learning_rate $learning_rate \
+                            --size $size \
+                            --precision $p \
+                            --num_batches $num_batches #\
+                            # >/$HOME/log_$b.txt 2>&1 &
+            ;;
         # ADD THE NEW METRIC HERE
         *)
             echo $metric not implemented yet!
@@ -207,6 +220,6 @@ exit 0
 #                                         --batch_size 1024 \
 #                                         --learning_rate 0.1 \
 #                                         --size baseline \
-#                                         --metric noise \
-#                                         --num_batches 10 \
+#                                         --metric fisher \
+#                                         --num_batches 100000 \
 #                                         --num_workers 12

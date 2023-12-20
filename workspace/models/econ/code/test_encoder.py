@@ -22,6 +22,7 @@ module_path = os.path.abspath(os.path.join('../../common/metrics'))
 sys.path.insert(0, module_path)
 from CKA import CKA
 from neural_efficiency import NeuralEfficiency
+from fisher import FIT
 
 ECON_layers = ['encoder.conv', 'encoder.enc_dense']
 
@@ -180,6 +181,16 @@ def main(args):
                                   target_layers=ECON_layers)
         metric.compute(beta=0.5)
         metric.save_on_file(path=saving_path)
+    elif args.metric == 'fisher':
+        # ---------------------------------------------------------------------------- #
+        #                                    Fisher                                    #
+        # ---------------------------------------------------------------------------- #
+        fisher = FIT(model, 
+                     dataloader, 
+                     target_layers=ECON_layers, 
+                     input_spec=(args.batch_size, 1, 8, 8))
+        fisher.EF(min_iterations=100, max_iterations=1000)
+        fisher.save_on_file(path=saving_path)
     # ADD NEW METRICS HERE
     else:
         print("Metric not supported yet!")

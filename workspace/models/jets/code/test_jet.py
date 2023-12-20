@@ -20,6 +20,8 @@ module_path = os.path.abspath(os.path.join('../../common/metrics'))
 sys.path.insert(0, module_path)
 from CKA import CKA
 from neural_efficiency import NeuralEfficiency
+from fisher import FIT
+
 
 JTAG_layers = ['model.dense_1', 'model.dense_2', 'model.dense_3', 'model.dense_4']
 
@@ -173,6 +175,16 @@ def main(args):
                                   target_layers=JTAG_layers)
         metric.compute(beta=2)
         metric.save_on_file(path=saving_path)
+    elif args.metric == 'fisher':
+        # ---------------------------------------------------------------------------- #
+        #                                    Fisher                                    #
+        # ---------------------------------------------------------------------------- #
+        fisher = FIT(model, 
+                     dataloader, 
+                     target_layers=JTAG_layers, 
+                     input_spec=(args.batch_size, 16))
+        fisher.EF(min_iterations=100, max_iterations=1000)
+        fisher.save_on_file(path=saving_path)
     # ADD NEW METRICS HERE
     else:
         print("Metric not supported yet!")
