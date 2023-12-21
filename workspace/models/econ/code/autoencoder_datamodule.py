@@ -279,6 +279,7 @@ class AutoEncoderDataModule(pl.LightningDataModule):
             batch_size=self.batch_size, 
             shuffle=False, 
             num_workers=self.num_workers,
+            drop_last=True
         )
     
         train_data_tensor = torch.Tensor(self.train_data)
@@ -288,5 +289,6 @@ class AutoEncoderDataModule(pl.LightningDataModule):
             batch_size=self.batch_size, 
             shuffle=True, 
             num_workers=self.num_workers,
+            drop_last=True
         )
         return train_loader, val_loader

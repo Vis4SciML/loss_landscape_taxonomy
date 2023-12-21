@@ -177,6 +177,7 @@ class JetDataModule(pl.LightningDataModule):
             batch_size=self.batch_size, 
             shuffle=False, 
             num_workers=self.num_workers,
+            drop_last=True
         )
 
     def test_dataloader(self):

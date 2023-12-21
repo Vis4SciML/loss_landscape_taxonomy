@@ -195,7 +195,6 @@ class FIT(Metric):
                 
                 G2 = []
                 for g in G:
-                    print((batch_size*g*g).shape)
                     G2.append(batch_size*g*g)
                     
                 
