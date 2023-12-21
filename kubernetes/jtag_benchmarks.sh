@@ -8,8 +8,7 @@ num_batches=50000
 # # ranges of the scan 
 batch_sizes=(16 32 64 128 256 512 1024)
 learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
-# batch_sizes=(64)
-# learning_rates=(0.003125 0.00625)
+
 
 
 # Function to display script usage
@@ -150,5 +149,7 @@ exit 0
 # bash jtag_benchmarks.sh --num_workers 12 --metric CKA --num_batches 100000
 # NE
 # bash jtag_benchmarks.sh --num_workers 12 --metric neural_efficiency --num_batches 100000
+# fisher
+# bash jtag_benchmarks.sh --num_workers 12 --metric fisher --num_batches 100000
 
 
