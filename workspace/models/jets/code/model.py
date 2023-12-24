@@ -1,7 +1,9 @@
 """
   todo: move QModel to common 
 """
-import re 
+import ast
+import os
+from statistics import mean 
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
@@ -170,17 +172,90 @@ class JetTagger(pl.LightningModule):
 # ####################################################
 # # Helper functions
 # ####################################################
-# def load_checkpoint(args, checkpoint_filename): 
-#    # quantization scheme 
-#    model_arch = args.arch.split('_')[0]
-#    bitwidth_str = re.search(f'{model_arch}_(.*)b', args.arch)
-#    bitwidth = int(bitwidth_str.group(1))
+def get_model_index_and_relative_accuracy(path, batch_size, learning_rate, precision, num_tests=5):
+    '''
+    Return the average EMDs achieved by the model and the index of best experiment
+    '''
+    performances = []
+    max_acc = 0
+    max_acc_index = 0
+    for i in range (1, num_tests+1):
+        file_path = os.path.join(
+                            path, 
+                            f'bs{batch_size}_lr{learning_rate}/' \
+                            f'JTAG_{precision}b/accuracy_{i}.txt'
+                    )
+        try:
+            jtag_file = open(file_path)
+            jtag_text = jtag_file.read()
+            accuracy = ast.literal_eval(jtag_text)
+            accuracy = accuracy[0]['test_acc']
+            performances.append(accuracy)
+            if accuracy >= max_acc:
+                max_acc = accuracy
+                max_acc_index = i
+            jtag_file.close()
+        except Exception as e:
+            # warnings.warn("Warning: " + file_path + " not found!")
+            continue
+        
+    if len(performances) == 0:
+        # warnings.warn(f"Attention: There is no accuracy value for the model: " \
+        #               f"bs{batch_size}_lr{learning_rate}/JTAG_{precision}b")
+        return
+    
+    return mean(performances), max_acc_index
+  
+  
+def load_model(path, batch_size, learning_rate, precision):
+    '''
+    Method used to get the model and the relative accuracy
+    '''
+    accuracy, idx = get_model_index_and_relative_accuracy(path, batch_size, learning_rate, precision)
+    model_path = path + f'bs{batch_size}_lr{learning_rate}/JTAG_{precision}b/net_{idx}_best.pkl'
+    
+    # load the model
+    model = JetTagger(
+        quantize=(precision < 32),
+        precision=[
+            precision,
+            precision,
+            precision+3
+        ],
+        learning_rate=learning_rate,
+    )
+    
+    # to set the map location
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+    model(torch.randn((16, 16)))  # Update tensor shapes 
+    model_param = torch.load(model_path, map_location=device)
+    model.load_state_dict(model_param['state_dict'])
+    
+    return model, accuracy
 
-#    model = JetTagger([bitwidth, bitwidth, int(bitwidth+3)])
-#    torchinfo.summary(model, (1, 16))
-   
-#    # Load checkpoint 
-#    print('Loading checkpoint...', checkpoint_filename)
-#    checkpoint = torch.load(checkpoint_filename)
-#    model.load_state_dict(checkpoint['state_dict'])  # strict=False
-#    return model
+
+def get_accuracy_with_noise(path, batch_size, learning_rate, precision, noise_type, percentage):
+    '''
+    Return the accuracy achieved by the Model with a certain level of noise
+    '''
+
+    file_path = os.path.join(
+                    path,
+                    f'bs{batch_size}_lr{learning_rate}/' \
+                    f'JTAG_{precision}b/accuracy_{noise_type}_{percentage}.txt'
+                )
+    noise_acc = -1
+    try:
+        acc_file = open(file_path)
+        acc_text = acc_file.read()
+        acc = ast.literal_eval(acc_text)
+        noise_acc = acc[0]['test_acc']
+        acc_file.close()
+    except Exception as e:
+        # warnings.warn("Warning: " + file_path + " not found!")
+        return 0
+    return noise_acc
+
+
+

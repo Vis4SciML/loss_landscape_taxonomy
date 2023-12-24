@@ -1,7 +1,8 @@
-# import ot
-# print(os.path.join(sys.path[0], "../../common/"))
-# sys.path.append(os.path.join(sys.path[0], "../../common/"))
+
+import os
+import ast
 from itertools import starmap
+from statistics import mean
 from utils_pt import unnormalize, emd 
 import torch
 import torch.nn as nn
@@ -324,3 +325,97 @@ class AutoEncoder(pl.LightningModule):
         result = {'AVG_EMD': average_emd}
         self.log_dict(result)
         return result
+
+
+# ---------------------------------------------------------------------------- #
+#                                Utility methods                               #
+# ---------------------------------------------------------------------------- #
+def load_model(path, batch_size, learning_rate, precision, size):
+    '''
+    Method used to get the model and the relative EMD value
+    '''
+    emd, idx = get_model_index_and_relative_EMD(path, batch_size, learning_rate, precision, size)
+    model_path = path + f'bs{batch_size}_lr{learning_rate}/ECON_{precision}b/{size}/net_{idx}_best.pkl'
+    
+    # load the model
+    model = AutoEncoder(
+        quantize=(precision < 32),
+        precision=[
+            precision,
+            precision,
+            precision+3
+        ],
+        learning_rate=learning_rate,
+        econ_type=size
+    )
+    
+    # to set the map location
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+    model(torch.randn((1, 1, 8, 8)))  # Update tensor shapes 
+    model_param = torch.load(model_path, map_location=device)
+    model.load_state_dict(model_param['state_dict'])
+    
+    return model, emd
+
+
+def get_emd_with_noise(path, batch_size, learning_rate, precision, size, noise_type, percentage):
+    '''
+    Return the EMD achieved by the Model with a certain level of noise
+    '''
+
+    file_path = os.path.join(
+                path,
+                f'bs{batch_size}_lr{learning_rate}/' \
+                f'ECON_{precision}b/{size}/{size}_emd_{noise_type}_{percentage}.txt'
+        ) 
+    
+    noise_emd = -1
+    try:
+        emd_file = open(file_path)
+        emd_text = emd_file.read()
+        if not emd_text.startswith('['):
+            noise_emd = float(emd_text)
+        else:
+            emd = ast.literal_eval(emd_text)
+            noise_emd = emd[0]['AVG_EMD']
+        emd_file.close()
+    except Exception as e:
+        # warnings.warn("Warning: " + file_path + " not found!")
+        return -1
+    return noise_emd
+
+
+def get_model_index_and_relative_EMD(path, batch_size, learning_rate, precision, size, num_tests=3):
+    '''
+    Return the average EMDs achieved by the model and the index of best experiment
+    '''
+    EMDs = []
+    min_emd = 1000
+    min_emd_index = 0
+    for i in range (1, num_tests+1):
+        file_path = os.path.join(
+                    path,
+                    f'bs{batch_size}_lr{learning_rate}/' \
+                    f'ECON_{precision}b/{size}/{size}_emd_{i}.txt'
+                )
+        try:
+            emd_file = open(file_path)
+            emd_text = emd_file.read()
+            emd = ast.literal_eval(emd_text)
+            emd = emd[0]['AVG_EMD']
+            EMDs.append(emd)
+            if min_emd >= emd:
+                min_emd = emd
+                min_emd_index = i
+            emd_file.close()
+        except Exception as e:
+            # warnings.warn("Warning: " + file_path + " not found!")
+            continue
+        
+    if len(EMDs) == 0:
+        # warnings.warn(f"Attention: There is no EMD value for the model: " \
+        #               f"bs{batch_size}_lr{learning_rate}/ECON_{precision}b/{size}")
+        return
+    
+    return mean(EMDs), min_emd_index

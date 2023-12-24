@@ -193,3 +193,26 @@ class JetDataModule(pl.LightningDataModule):
         train_loader = self.train_dataloader()
         val_loader = self.val_dataloader()
         return train_loader, val_loader
+    
+    
+    
+# ---------------------------------------------------------------------------- #
+#                                Utility methods                               #
+# ---------------------------------------------------------------------------- #
+def get_data_module(dataset_path, file_path, batch_size, num_workers=12):
+    '''
+    Method used to get the data modules used during the tests
+    '''
+    data_module = JetDataModule(
+        data_dir=dataset_path,
+        data_file=os.path.join(dataset_path, file_path),
+        batch_size=batch_size,
+        num_workers=num_workers)
+    
+    # check if we have processed the data
+    if not os.path.exists(os.path.join(dataset_path, file_path)):
+        print('Processing the data...')
+        data_module.process_data(save=True)
+
+    data_module.setup(0)
+    return data_module
