@@ -116,7 +116,7 @@ do
         noise)
             pids=()
             noise_type="gaussian"
-            percentages=(10 15 20)
+            percentages=(5 10 15 20)
             for i in ${percentages[*]}
             do
                 python code/test_encoder.py --saving_folder $SAVING_FOLDER \

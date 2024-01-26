@@ -367,7 +367,7 @@ def get_emd_with_noise(path, batch_size, learning_rate, precision, size, noise_t
     file_path = os.path.join(
                 path,
                 f'bs{batch_size}_lr{learning_rate}/' \
-                f'ECON_{precision}b/{size}/{size}_emd_{noise_type}_{percentage}.txt'
+                f'ECON_{precision}b/{size}/emd_{noise_type}_{percentage}.txt'
         ) 
     
     noise_emd = -1
