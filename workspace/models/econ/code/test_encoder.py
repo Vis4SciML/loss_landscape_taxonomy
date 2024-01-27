@@ -140,8 +140,7 @@ def main(args):
         print('Result stored in: ' + test_results_log)
         with open(test_results_log, "w") as f:
             f.write(str(test_results))
-            f.close()
-        
+            f.close()       
     elif args.metric == 'bitflip':
         # ---------------------------------------------------------------------------- #
         #                                   BIT FLIP                                   #

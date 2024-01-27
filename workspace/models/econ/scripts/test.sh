@@ -54,7 +54,7 @@ handle_options() {
             --metric)
                 if has_argument $@; then
                     metric=$(extract_argument $@)
-                    echo "Max number of batches: $metric"
+                    echo "Metric: $metric"
                     shift
                 fi
                 ;;
@@ -82,14 +82,14 @@ handle_options() {
             --batch_size)
                 if has_argument $@; then
                     batch_size=$(extract_argument $@)
-                    echo "Number of test per model: $batch_size"
+                    echo "Batch size: $batch_size"
                     shift
                 fi
                 ;;
             --learning_rate)
                 if has_argument $@; then
                     learning_rate=$(extract_argument $@)
-                    echo "Number of test per model: $learning_rate"
+                    echo "Learning rate: $learning_rate"
                     shift
                 fi
                 ;;
@@ -174,7 +174,7 @@ do
                             --size $size \
                             --precision $p \
                             --num_batches $num_batches \
-                            >/$HOME/log_$b.txt 2>&1 &
+                            >/$HOME/log_$metric.txt 
             ;;
         neural_efficiency)
             python code/test_encoder.py --saving_folder $SAVING_FOLDER \
@@ -187,7 +187,7 @@ do
                             --size $size \
                             --precision $p \
                             --num_batches $num_batches \
-                            >/$HOME/log_$b.txt 2>&1 &
+                            >/$HOME/log_$metric.txt 
             ;;
         fisher)
             python code/test_encoder.py --saving_folder $SAVING_FOLDER \
@@ -199,8 +199,8 @@ do
                             --learning_rate $learning_rate \
                             --size $size \
                             --precision $p \
-                            --num_batches $num_batches #\
-                            # >/$HOME/log_$b.txt 2>&1 &
+                            --num_batches $num_batches \
+                            >/$HOME/log_$b.txt
             ;;
         # ADD THE NEW METRIC HERE
         *)
@@ -209,7 +209,7 @@ do
             ;;
     esac
 done
-
+return
 # archive everything and move it in the sahred folder
 tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
 
@@ -217,9 +217,9 @@ exit 0
 
 
 # . scripts/test.sh \
-#                                         --batch_size 1024 \
-#                                         --learning_rate 0.1 \
+#                                         --batch_size 32 \
+#                                         --learning_rate 0.025 \
 #                                         --size baseline \
-#                                         --metric fisher \
+#                                         --metric CKA \
 #                                         --num_batches 100000 \
 #                                         --num_workers 12
