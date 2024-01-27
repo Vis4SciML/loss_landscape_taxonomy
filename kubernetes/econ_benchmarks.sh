@@ -139,7 +139,7 @@ for bs in ${batch_sizes[*]}
 do
     for lr in ${learning_rates[*]}
     do
-        job_name=$(echo "econ_"$metric"_"$size"_bs"$bs"_lr$lr" | sed 's/\./_/g')
+        job_name=$(echo "econ_"$metric"_"$size"_bs"$bs"_lr$lr" | sed 's/\./_/g' | tr '[:upper:]' '[:lower:]')
         generate_job_yaml $job_name
         start_kubernetes_job
     done    
