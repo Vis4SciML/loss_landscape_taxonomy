@@ -200,7 +200,7 @@ do
                             --size $size \
                             --precision $p \
                             --num_batches $num_batches \
-                            >/$HOME/log_$b.txt
+                            >/$HOME/log_$metric.txt
             ;;
         plot)
             python code/test_encoder.py --saving_folder $SAVING_FOLDER \
@@ -213,10 +213,10 @@ do
                             --size $size \
                             --precision $p \
                             --num_batches $num_batches \
-                            --steps 100 \
-                            --distance 50 \
+                            --steps 120 \
+                            --distance 100 \
                             --normalization filter \
-                            >/$HOME/log_$b.txt
+                            >/$HOME/log_$metric.txt
             ;;
         # ADD THE NEW METRIC HERE
         *)
@@ -235,6 +235,6 @@ exit 0
 #                                         --batch_size 32 \
 #                                         --learning_rate 0.025 \
 #                                         --size baseline \
-#                                         --metric CKA \
+#                                         --metric plot \
 #                                         --num_batches 100000 \
 #                                         --num_workers 12
