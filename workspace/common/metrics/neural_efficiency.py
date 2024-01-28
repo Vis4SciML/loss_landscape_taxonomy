@@ -62,24 +62,6 @@ class NeuralEfficiency(Metric):
         return outputs
         
     
-    # def neurons_per_layer(self):
-    #     '''
-    #     Get the number of neurons for each 
-    #     '''
-    #     # Get the number of neurons per layer using named_modules
-    #     nodes_per_layer = {}
-    #     for name, layer in self.model.named_parameters():
-    #         if 'weight' in name:
-    #             if len(layer.shape) == 2:
-    #                 # dense layere
-    #                 nodes_per_layer[name.replace(".weight", "")] = layer.shape[1]
-    #             elif len(layer.shape) == 3:
-    #                 pass
-                
-                
-    #     return nodes_per_layer
-    
-    
     def entropy_per_layer(self, layers):
         # do not train the network
         self.model.eval()

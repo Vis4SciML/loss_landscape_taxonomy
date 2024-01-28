@@ -23,6 +23,7 @@ sys.path.insert(0, module_path)
 from CKA import CKA
 from neural_efficiency import NeuralEfficiency
 from fisher import FIT
+from plot import Plot
 
 ECON_layers = ['encoder.conv', 'encoder.enc_dense']
 
@@ -190,6 +191,12 @@ def main(args):
                      input_spec=(args.batch_size, 1, 8, 8))
         fisher.EF(min_iterations=100, max_iterations=1000)
         fisher.save_on_file(path=saving_path)
+    elif args.metric == 'plot':
+        plot = Plot(model, dataloader)
+        plot.compute(steps=args.steps, 
+                     distance=args.distance, 
+                     normalization=args.normalization)
+        plot.save_on_file(path=saving_path)
     # ADD NEW METRICS HERE
     else:
         print("Metric not supported yet!")
@@ -213,6 +220,10 @@ if __name__ == "__main__":
     parser.add_argument("--bit_flip", type=int, default=0)
     # metrics
     parser.add_argument("--num_batches", type=int, default=None)
+    # plot
+    parser.add_argument("--steps", type=int, default=100)
+    parser.add_argument("--distance", type=int, default=20)
+    parser.add_argument("--normalization", type=str, default="filter")
     
     args = parser.parse_args()
     

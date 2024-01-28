@@ -202,6 +202,22 @@ do
                             --num_batches $num_batches \
                             >/$HOME/log_$b.txt
             ;;
+        plot)
+            python code/test_encoder.py --saving_folder $SAVING_FOLDER \
+                            --metric plot \
+                            --data_dir $DATA_DIR \
+                            --data_file $DATA_FILE \
+                            --num_workers $num_workers \
+                            --batch_size $batch_size \
+                            --learning_rate $learning_rate \
+                            --size $size \
+                            --precision $p \
+                            --num_batches $num_batches \
+                            --steps 100 \
+                            --distance 50 \
+                            --normalization filter \
+                            >/$HOME/log_$b.txt
+            ;;
         # ADD THE NEW METRIC HERE
         *)
             echo $metric not implemented yet!
