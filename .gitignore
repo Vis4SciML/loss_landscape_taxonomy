@@ -169,7 +169,7 @@ cython_debug/
 data/
 *.npy
 *yml
-*.csv
+
 
 # log files 
 # *.txt

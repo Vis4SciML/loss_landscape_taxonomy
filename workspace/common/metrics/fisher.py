@@ -99,9 +99,6 @@ class FIT(Metric):
                 if p.requires_grad:
                     p.collect = False
 
-        for i, (n, p) in enumerate(zip(names, param_nums)):
-            print(i, n, p)
-
         return names, np.array(param_nums), params
     
         
@@ -366,5 +363,3 @@ if __name__ == "__main__":
     result = fit_computer.EF(tol=1e-2, 
                              min_iterations=20,
                              max_iterations=1000)
-    
-    print(result)
