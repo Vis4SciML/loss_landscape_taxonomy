@@ -17,7 +17,7 @@ class Plot(Metric):
                  name="plot"):
         super().__init__(model, data_loader, name)
         
-    def compute(self, steps=100, distance=30, normalization='filter'):
+    def compute(self, steps=150, distance=100, normalization='filter'):
         '''
         Compute the points to plot the approximantion of the loss landscape
         '''
@@ -28,6 +28,7 @@ class Plot(Metric):
         x, y = iter(self.data_loader).__next__()
         metric = loss_landscapes.metrics.Loss(criterion, x, y)
 
+        print(f'distance:\t{distance}\nsteps:\t{steps}\n')
         loss_data = loss_landscapes.random_plane(self.model,
                                                  metric,
                                                  distance,

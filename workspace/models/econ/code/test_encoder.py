@@ -221,8 +221,8 @@ if __name__ == "__main__":
     # metrics
     parser.add_argument("--num_batches", type=int, default=None)
     # plot
-    parser.add_argument("--steps", type=int, default=100)
-    parser.add_argument("--distance", type=int, default=20)
+    parser.add_argument("--steps", type=int, default=200)
+    parser.add_argument("--distance", type=int, default=100)
     parser.add_argument("--normalization", type=str, default="filter")
     
     args = parser.parse_args()
