@@ -213,8 +213,8 @@ do
                             --size $size \
                             --precision $p \
                             --num_batches $num_batches \
-                            --steps 200 \
-                            --distance 150 \
+                            --steps 1800 \
+                            --distance 1000 \
                             --normalization filter \
                             >/$HOME/log_$metric.txt
             ;;
