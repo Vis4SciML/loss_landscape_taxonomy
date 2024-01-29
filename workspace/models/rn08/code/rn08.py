@@ -1,6 +1,10 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.data import DataLoader, random_split
+from torchvision import datasets, transforms
+from torchmetrics import Accuracy
+import pytorch_lightning as pl
 from hawq.utils import QuantAct, QuantLinear, QuantConv2d, QuantAveragePool2d, QuantBnConv2d
 
 # ---------------------------------------------------------------------------- #
@@ -33,7 +37,7 @@ class BasicBlock(nn.Module):
 
 class TinyResNet(nn.Module):
     def __init__(self, block, num_blocks, num_classes=10):
-        super(ResNet, self).__init__()
+        super(TinyResNet, self).__init__()
         self.in_planes = 16
 
         self.conv1 = nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1)
@@ -71,6 +75,7 @@ class TinyResNet(nn.Module):
 # ---------------------------------------------------------------------------- #
 #                               Quantized ResNet                               #
 # ---------------------------------------------------------------------------- #
+# TODO: check it with javi
 class QModel(nn.Module):
     def __init__(self, weight_precision, bias_precision):
         super().__init__()
@@ -113,13 +118,67 @@ class QuantizedBlock(nn.Module):
         out = F.relu(out)
         return out
 
-class RN08(nn.Module):
+class QResNet(nn.Module):
     def __init__(self, weight_precision, bias_precision):
         super().__init__()
         self.weight_precision = weight_precision
         self.bias_precision = bias_precision
         
+
+# ---------------------------------------------------------------------------- #
+#                           PyTorch lightning module                           #
+# ---------------------------------------------------------------------------- #
+class RN08(pl.LightningModule):
+    def __init__(self, quantize, precision, learning_rate, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.quantize = quantize
+        self.learning_rate = learning_rate
+
+        self.model = TinyResNet(BasicBlock, [2,2,2])
+        if self.quantize:
+            pass
         
+        self.loss = nn.CrossEntropyLoss()
+        self.accuracy = Accuracy(task='multiclass', num_classes=10)
+
+
+    def predict(self, x):
+        pass
+
+
+    # Pytorch Lightning specific methods
+    def forward(self, x):
+        return self.model(x)
+
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)  # lr=1e-3
+        return optimizer
+
+    def training_step(self, batch, batch_idx):
+        x, y = batch
+        y_hat = self.model(x)
+        loss = self.loss(y_hat, y)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        x, y, = batch 
+        y_hat = self.model(x)
+        test_loss = self.loss(y_hat, y)
+        test_acc = self.accuracy(y_hat, torch.argmax(y, axis=1))
+        self.log('test_loss', test_loss)
+        self.log('test_acc', test_acc)
         
-# def resnet_eembc():
-#     return ResNet(BasicBlock, [2, 2, 2])  # This creates a ResNet with 18 layers (2+2+2=6 blocks)
+    def test_step(self, batch, batch_idx):
+        x, y, = batch 
+        y_hat = self.model(x)
+        test_loss = self.loss(y_hat, y)
+        test_acc = self.accuracy(y_hat, torch.argmax(y, axis=1))
+        self.log('test_loss', test_loss)
+        self.log('test_acc', test_acc)
+    
+
+
+if __name__ == "__main__":
+    
