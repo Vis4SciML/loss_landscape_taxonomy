@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchinfo
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets, transforms
 from torchmetrics import Accuracy
@@ -166,9 +167,9 @@ class RN08(pl.LightningModule):
         x, y, = batch 
         y_hat = self.model(x)
         test_loss = self.loss(y_hat, y)
-        test_acc = self.accuracy(y_hat, torch.argmax(y, axis=1))
+        # test_acc = self.accuracy(y_hat, torch.argmax(y, axis=1))
         self.log('test_loss', test_loss)
-        self.log('test_acc', test_acc)
+        # self.log('test_acc', test_acc)
         
     def test_step(self, batch, batch_idx):
         x, y, = batch 
@@ -186,13 +187,14 @@ if __name__ == "__main__":
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
 
-    cifar10_train = datasets.CIFAR10(root='../../../../data/RN08', train=True, download=True, transform=transform)
-    cifar10_test = datasets.CIFAR10(root='../../../../data/RN08', train=False, download=True, transform=transform)
+    cifar10_train = datasets.CIFAR10(root='../../../data/RN08', train=True, download=True, transform=transform)
+    cifar10_test = datasets.CIFAR10(root='../../../data/RN08', train=False, download=True, transform=transform)
 
     train_loader = DataLoader(cifar10_train, batch_size=64, shuffle=True, num_workers=4)
     test_loader = DataLoader(cifar10_test, batch_size=64, shuffle=False, num_workers=4)
 
-    model = RN08()
+    model = RN08(False, 32, 0.001)
     trainer = pl.Trainer(max_epochs=5)  # Adjust max_epochs and gpus according to your setup
 
+    torchinfo.summary(model, input_size=(1, 3, 32, 32))
     trainer.fit(model, train_loader, test_loader)
