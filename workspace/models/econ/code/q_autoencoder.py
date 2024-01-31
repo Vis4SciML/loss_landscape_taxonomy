@@ -185,7 +185,6 @@ class QuantizedEncoder(nn.Module):
     
     def forward(self, x):
         x, p_sf = self.quant_input(x)
-
         x, w_sf = self.conv(x, p_sf)
         x = self.relu1(x)
         x, p_sf = self.quant_relu(x, p_sf, w_sf)
@@ -276,7 +275,8 @@ class AutoEncoder(pl.LightningModule):
 
     # Pytorch Lightning specific methods
     def forward(self, x):
-        return self.decoder(self.encoder(x))
+        # print(type(self.encoder(x.float())))
+        return self.decoder(self.encoder(x.float()))
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)  # lr=1e-3

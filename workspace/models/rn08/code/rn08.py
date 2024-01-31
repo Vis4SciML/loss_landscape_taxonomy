@@ -181,4 +181,18 @@ class RN08(pl.LightningModule):
 
 
 if __name__ == "__main__":
-    
+    transform = transforms.Compose([
+        transforms.ToTensor(), 
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+    ])
+
+    cifar10_train = datasets.CIFAR10(root='../../../../data/RN08', train=True, download=True, transform=transform)
+    cifar10_test = datasets.CIFAR10(root='../../../../data/RN08', train=False, download=True, transform=transform)
+
+    train_loader = DataLoader(cifar10_train, batch_size=64, shuffle=True, num_workers=4)
+    test_loader = DataLoader(cifar10_test, batch_size=64, shuffle=False, num_workers=4)
+
+    model = RN08()
+    trainer = pl.Trainer(max_epochs=5)  # Adjust max_epochs and gpus according to your setup
+
+    trainer.fit(model, train_loader, test_loader)

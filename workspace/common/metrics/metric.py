@@ -35,3 +35,9 @@ class Metric:
         # print('Loading complete')
         
         return True
+
+
+if __name__ == "__main__":
+    m = Metric(1, 1, name="CKA_similarity")
+    print("Pickle version:", pickle.HIGHEST_PROTOCOL)
+    data = m.load_from_file("/home/jovyan/checkpoint/bs16_lr0.0015625/ECON_11b/baseline/")
