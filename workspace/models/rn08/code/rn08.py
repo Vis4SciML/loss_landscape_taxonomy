@@ -84,10 +84,11 @@ class QModel(nn.Module):
     '''
     Class used to quantize the layers of the model
     '''
-    def __init__(self, weight_precision, bias_precision):
+    def __init__(self, weight_precision, bias_precision, per_channel):
         super().__init__()
         self.weight_precision = weight_precision
         self.bias_precision = bias_precision
+        self.per_channel = per_channel
         
         
     def init_dense(self, model, name):
@@ -97,17 +98,24 @@ class QModel(nn.Module):
         setattr(self, name, quant_layer)
         
         
-    def init_conv2d(self, model, name):
+    def init_conv2d(self, model, name, rename=None):
         layer = getattr(model, name)
-        quant_layer = QuantConv2d(self.weight_precision, self.bias_precision)
+        quant_layer = QuantConv2d(self.weight_precision, 
+                                  self.bias_precision, 
+                                  per_channel=self.per_channel)
         quant_layer.set_param(layer)
-        setattr(self, name, quant_layer)
+        if rename:
+            setattr(self, rename, quant_layer)
+        else:
+            setattr(self, name, quant_layer)
         
         
     def init_bn_conv2d(self, model, bn_name, conv_name):
         bn_layer = getattr(model, bn_name)
         conv_layer = getattr(model, conv_name)
-        quant_layer = QuantBnConv2d(self.weight_precision, self.bias_precision)
+        quant_layer = QuantBnConv2d(self.weight_precision, 
+                                    self.bias_precision,
+                                    per_channel=self.per_channel)
         quant_layer.set_param(conv_layer, bn_layer)
         setattr(self, conv_name, quant_layer)
 
@@ -117,12 +125,12 @@ class QBlock(QModel):
     Class that build the basic blocks of a ResNet
     '''
     def __init__(self, block, weight_precision=8, bias_precision=8, act_precision=11):
-        super(QBlock, self).__init__(weight_precision, bias_precision)
+        super(QBlock, self).__init__(weight_precision, bias_precision, True)
         
         # shortcut
         self.resize_identity = False
         if hasattr(block, "shortcut") and len(block.shortcut):
-            self.init_conv2d(block.shortcut, "0")
+            self.init_conv2d(block.shortcut, "0", rename="shortcut")
             self.resize_identity = True
 
         
@@ -139,7 +147,8 @@ class QBlock(QModel):
         self.init_bn_conv2d(block, bn_name="bn2", conv_name="conv2")
 
 
-    def forward(self, x, act_scale):
+    def forward(self, x):
+        x, act_scale = x    #unpack the input coming from nn.Sequential
         # shortcut
         if self.resize_identity:
             short_x, short_w_scale = self.shortcut(x, act_scale)
@@ -161,12 +170,14 @@ class QBlock(QModel):
             out = F.relu(out)
             out, act_scale = self.quant_relu3(out, act_scale, w_scale)
         
-        return out, act_scale
+        out = (out, act_scale)
+        
+        return out
 
 
 class QResNet(QModel):
     def __init__(self, model, num_blocks, weight_precision=8, bias_precision=8, act_precision=11):
-        super(QResNet, self).__init__(weight_precision, bias_precision)
+        super(QResNet, self).__init__(weight_precision, bias_precision, True)
         
         # init the precisions
         self.weight_precision = weight_precision
@@ -198,7 +209,9 @@ class QResNet(QModel):
         x = F.relu(x)
         x, act_scale = self.quant_relu(x, act_scale, w_scale)
         
-        x, act_scale = self.QBlocks(x, act_scale)
+        x = (x, act_scale)  # pack
+        x = self.QBlocks(x) 
+        x, act_scale = x    # unpack
         
         x, act_scale = self.avgpool(x, act_scale)
         x = x.view(x.size(0), -1) #flatten
