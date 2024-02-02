@@ -110,11 +110,9 @@ spec:
                     name: loss-landscape-volume
                 resources:
                     limits:
-                        nvidia.com/gpu: "1"
                         memory: "128G"
                         cpu: "32"
                     requests:
-                        nvidia.com/gpu: "1"
                         memory: "128G"
                         cpu: "32"
             restartPolicy: Never
@@ -173,6 +171,8 @@ exit 0
     # bash econ_benchmarks.sh --size baseline --num_workers 12 --metric neural_efficiency --num_batches 100000
     # fisher
     # bash econ_benchmarks.sh --size baseline --num_workers 12 --metric fisher --num_batches 100000
+    # plot
+    # bash econ_benchmarks.sh --size baseline --num_workers 12 --metric plot --num_batches 100000
 
 
 # LARGE
