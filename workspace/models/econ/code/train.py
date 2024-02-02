@@ -42,7 +42,7 @@ def main(args):
 
     tb_logger = pl_loggers.TensorBoardLogger(args.saving_folder, name=args.size)
 
-    # Stop training when model converges
+    # stop training when model converges
     early_stop_callback = EarlyStopping(
         monitor="val_loss", 
         min_delta=0.00, 
@@ -51,7 +51,7 @@ def main(args):
         mode="min"
     )
 
-    # Save top-3 checkpoints based on Val/Loss
+    # save top-3 checkpoints based on Val/Loss
     top_checkpoint_callback = ModelCheckpoint(
         save_top_k=args.top_models,
         save_last=True,

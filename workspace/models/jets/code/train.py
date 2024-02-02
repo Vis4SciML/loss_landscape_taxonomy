@@ -37,7 +37,7 @@ def main(args):
         precision=[
             args.weight_precision, 
             args.bias_precision, 
-            args.act_precision + 3
+            args.act_precision
         ],
         learning_rate=args.lr,
     )
@@ -45,7 +45,7 @@ def main(args):
 
     tb_logger = pl_loggers.TensorBoardLogger(args.saving_folder)
 
-    # Stop training when model converges
+    # stop training when model converges
     early_stop_callback = EarlyStopping(
         monitor="val_loss", 
         min_delta=0.00, 
@@ -54,7 +54,7 @@ def main(args):
         mode="min"
     )
 
-    # Save top-3 checkpoints based on Val/Loss
+    # save top-3 checkpoints based on Val/Loss
     top_checkpoint_callback = ModelCheckpoint(
         save_top_k=args.top_models,
         save_last=True,
@@ -99,12 +99,15 @@ def main(args):
     # load the model from file
     checkpoint_file = os.path.join(args.saving_folder, f'net_{args.experiment}_best.pkl')
     print('Loading checkpoint...', checkpoint_file)
+    
     checkpoint = torch.load(checkpoint_file)  
     model.load_state_dict(checkpoint['state_dict'])
     test_results = trainer.test(model, dataloaders=data_module.test_dataloader())
+    
     # save the results on file
     test_results_log = os.path.join(
-        args.saving_folder, f"accuracy_{args.experiment}.txt"
+        args.saving_folder, 
+        f"accuracy_{args.experiment}.txt"
     )
     with open(test_results_log, "w") as f:
         f.write(str(test_results))

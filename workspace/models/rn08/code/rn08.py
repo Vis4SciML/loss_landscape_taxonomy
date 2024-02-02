@@ -91,11 +91,14 @@ class QModel(nn.Module):
         self.per_channel = per_channel
         
         
-    def init_dense(self, model, name):
+    def init_dense(self, model, name, rename=None):
         layer = getattr(model, name)
         quant_layer = QuantLinear(self.weight_precision, self.bias_precision)
         quant_layer.set_param(layer)
-        setattr(self, name, quant_layer)
+        if rename:
+            setattr(self, rename, quant_layer)
+        else:
+            setattr(self, name, quant_layer)
         
         
     def init_conv2d(self, model, name, rename=None):
@@ -110,14 +113,17 @@ class QModel(nn.Module):
             setattr(self, name, quant_layer)
         
         
-    def init_bn_conv2d(self, model, bn_name, conv_name):
+    def init_bn_conv2d(self, model, bn_name, conv_name, rename=None):
         bn_layer = getattr(model, bn_name)
         conv_layer = getattr(model, conv_name)
         quant_layer = QuantBnConv2d(self.weight_precision, 
                                     self.bias_precision,
                                     per_channel=self.per_channel)
         quant_layer.set_param(conv_layer, bn_layer)
-        setattr(self, conv_name, quant_layer)
+        if rename:
+            setattr(self, rename, quant_layer)
+        else:
+            setattr(self, conv_name, quant_layer)
 
 
 class QBlock(QModel):
@@ -233,11 +239,9 @@ class RN08(pl.LightningModule):
             self.model = QResNet(self.model, [2,2,2], precision[0], precision[1], precision[2])
         
         self.loss = nn.CrossEntropyLoss()
-        self.accuracy = Accuracy(task='multiclass', num_classes=10)
-
-
-    def predict(self, x):
-        pass
+        self.train_accuracy = Accuracy(task='multiclass', num_classes=10)
+        self.val_accuracy = Accuracy(task='multiclass', num_classes=10)
+        self.test_accuracy = Accuracy(task='multiclass', num_classes=10)
 
 
     # Pytorch Lightning specific methods
@@ -254,25 +258,35 @@ class RN08(pl.LightningModule):
         x, y = batch
         y_hat = self.model(x)
         loss = self.loss(y_hat, y)
+        self.train_accuracy(y_hat, y)
+        
+        self.log('train_loss', loss)
+        self.log('train_accuracy', self.train_accuracy, prog_bar=True)
+
         return loss
 
 
     def validation_step(self, batch, batch_idx):
         x, y, = batch 
         y_hat = self.model(x)
-        test_loss = self.loss(y_hat, y)
-        # test_acc = self.accuracy(y_hat, torch.argmax(y, axis=1))
-        self.log('test_loss', test_loss)
-        # self.log('test_acc', test_acc)
+        loss = self.loss(y_hat, y)
+        # Update validation accuracy
+        self.val_accuracy(y_hat, y)
+
+        self.log('val_loss', loss)
+        self.log('val_accuracy', self.val_accuracy, prog_bar=True)
         
         
     def test_step(self, batch, batch_idx):
         x, y, = batch 
         y_hat = self.model(x)
-        test_loss = self.loss(y_hat, y)
-        test_acc = self.accuracy(y_hat, torch.argmax(y, axis=1))
-        self.log('test_loss', test_loss)
-        self.log('test_acc', test_acc)
+        loss = self.loss(y_hat, y)
+        
+        # update test accuracy
+        self.test_accuracy(y_hat, y)
+
+        self.log('test_loss', loss)
+        self.log('test_accuracy', self.test_accuracy, prog_bar=True)
 
 
 if __name__ == "__main__":
@@ -284,11 +298,11 @@ if __name__ == "__main__":
     cifar10_train = datasets.CIFAR10(root='../../../data/RN08', train=True, download=True, transform=transform)
     cifar10_test = datasets.CIFAR10(root='../../../data/RN08', train=False, download=True, transform=transform)
 
-    train_loader = DataLoader(cifar10_train, batch_size=64, shuffle=True, num_workers=4)
-    test_loader = DataLoader(cifar10_test, batch_size=64, shuffle=False, num_workers=4)
+    train_loader = DataLoader(cifar10_train, batch_size=1024, shuffle=True, num_workers=0)
+    test_loader = DataLoader(cifar10_test, batch_size=1024, shuffle=False, num_workers=0)
 
     model = RN08(True, [8, 8, 11], 0.001)
-    trainer = pl.Trainer(max_epochs=5)  # Adjust max_epochs and gpus according to your setup
+    trainer = pl.Trainer(max_epochs=1)  # Adjust max_epochs and gpus according to your setup
 
     torchinfo.summary(model, input_size=(1, 3, 32, 32))
 
