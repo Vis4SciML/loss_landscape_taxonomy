@@ -124,49 +124,49 @@ class QThreeLayer(QModel):
 # JetTagging Model 
 ####################################################
 class JetTagger(pl.LightningModule):
-  def __init__(self, quantize, precision, learning_rate, *args, **kwargs) -> None:
-    super().__init__()
+    def __init__(self, quantize, precision, learning_rate, *args, **kwargs) -> None:
+        super().__init__()
 
-    self.input_shape = (2, 16) 
-    self.quantize = quantize
-    self.learning_rate = learning_rate
-    self.loss = nn.BCELoss()
-    # self.loss = nn.CrossEntropyLoss()
-    self.accuracy = Accuracy(task="multiclass", num_classes=5)
+        self.input_shape = (2, 16) 
+        self.quantize = quantize
+        self.learning_rate = learning_rate
+        self.loss = nn.BCELoss()
+        # self.loss = nn.CrossEntropyLoss()
+        self.accuracy = Accuracy(task="multiclass", num_classes=5)
 
-    self.model = ThreeLayer()
-    if self.quantize:
-      # print('Loading quantized model with bitwidth', precision[0])
-      self.model = QThreeLayer(self.model, precision[0], precision[1], precision[2])
+        self.model = ThreeLayer()
+        if self.quantize:
+            # print('Loading quantized model with bitwidth', precision[0])
+            self.model = QThreeLayer(self.model, precision[0], precision[1], precision[2])
     
-  def forward(self, x):
-    return self.model(x)
-  
-  def training_step(self, batch, batch_idx):
-    x, y, = batch 
-    y_hat = self.model(x)
-    loss = self.loss(y_hat, y)
-    return loss
+    def forward(self, x):
+        return self.model(x)
+    
+    def training_step(self, batch, batch_idx):
+        x, y, = batch 
+        y_hat = self.model(x)
+        loss = self.loss(y_hat, y)
+        return loss
 
-  def validation_step(self, batch, batch_idx):
-    x, y, = batch 
-    y_hat = self.model(x)
-    val_loss = self.loss(y_hat, y)
-    val_acc = self.accuracy(y_hat, torch.argmax(y, axis=1))
-    self.log('val_acc', val_acc)
-    self.log('val_loss', val_loss)
+    def validation_step(self, batch, batch_idx):
+        x, y, = batch 
+        y_hat = self.model(x)
+        val_loss = self.loss(y_hat, y)
+        val_acc = self.accuracy(y_hat, torch.argmax(y, axis=1))
+        self.log('val_acc', val_acc)
+        self.log('val_loss', val_loss)
 
-  def test_step(self, batch, batch_idx):
-    x, y, = batch 
-    y_hat = self.model(x)
-    test_loss = self.loss(y_hat, y)
-    test_acc = self.accuracy(y_hat, torch.argmax(y, axis=1))
-    self.log('test_loss', test_loss)
-    self.log('test_acc', test_acc)
-  
-  def configure_optimizers(self):
-    optimizer = torch.optim.Adam(self.model.parameters(), self.learning_rate)
-    return optimizer
+    def test_step(self, batch, batch_idx):
+        x, y, = batch 
+        y_hat = self.model(x)
+        test_loss = self.loss(y_hat, y)
+        test_acc = self.accuracy(y_hat, torch.argmax(y, axis=1))
+        self.log('test_loss', test_loss)
+        self.log('test_acc', test_acc)
+    
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.model.parameters(), self.learning_rate)
+        return optimizer
 
 
 # ####################################################

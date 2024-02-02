@@ -213,8 +213,8 @@ do
                             --size $size \
                             --precision $p \
                             --num_batches $num_batches \
-                            --steps 200 \
-                            --distance 150 \
+                            --steps 300 \
+                            --distance 200 \
                             --normalization filter \
                             >/$HOME/log_$metric.txt
             ;;
@@ -234,7 +234,7 @@ exit 0
 # . scripts/test.sh \
 #                                         --batch_size 32 \
 #                                         --learning_rate 0.025 \
-#                                         --size baseline \
-#                                         --metric plot \
+#                                         --size small \
+#                                         --metric noise \
 #                                         --num_batches 100000 \
 #                                         --num_workers 12
