@@ -1,4 +1,4 @@
-name: loss
+name: loss_landscape
 channels:
   - anaconda
   - nvidia
