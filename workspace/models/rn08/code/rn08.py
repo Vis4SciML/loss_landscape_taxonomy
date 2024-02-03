@@ -136,7 +136,6 @@ class QBlock(QModel):
         # shortcut
         self.resize_identity = False
         if hasattr(block, "shortcut") and len(block.shortcut):
-            layer = getattr(block.shortcut, "0")
             self.init_bn_conv2d(block.shortcut, "1", "0", "shortcut")
             self.resize_identity = True
         
