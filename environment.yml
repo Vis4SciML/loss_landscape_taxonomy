@@ -220,6 +220,7 @@ dependencies:
       - git+https://github.com/balditommaso/HAWQ.git@setup-pip
       - paretoset==1.2.3
       - loss-landscapes==3.0.6
+      - paretoset==1.2.3
       - pyemd==1.0.0
       - pytorchcv==0.0.67
 prefix: /opt/conda/envs/loss_landscape
