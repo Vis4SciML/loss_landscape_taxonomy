@@ -142,7 +142,7 @@ run_train() {
                 --top_models $top_models \
                 --experiment $i \
                 --max_epochs $max_epochs \
-                >/$HOME/log_$i.txt 2>&1 &
+                >/$HOME/log_RN08_$i.txt 2>&1 &
 
             pids+=($!)
         fi
@@ -175,7 +175,7 @@ tar -czvf /loss_landscape/RN08_bs$batch_size"_lr$learning_rate".tar.gz $SAVING_F
 
 exit 0
 
-# . scripts/train.sh --num_workers 8 --bs 1024 --lr 0.1 --max_epochs 100 --top_models 3 --num_test 2
+# . scripts/train.sh --num_workers 0 --bs 1024 --lr 0.1 --max_epochs 100 --top_models 3 --num_test 1 --accelerator auto
 
 # python code/train.py \
 #                 --saving_folder "/loss_landscape/checkpoint/different_knobs_subset_10" \

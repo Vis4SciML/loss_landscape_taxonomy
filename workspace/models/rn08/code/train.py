@@ -103,7 +103,7 @@ def main(args):
     trainer = pl.Trainer(
         max_epochs=args.max_epochs,
         accelerator=args.accelerator,
-        devices=1,
+        devices="auto",
         logger=tb_logger,
         callbacks=[top_checkpoint_callback, early_stop_callback],
         fast_dev_run=args.fast_dev_run,
