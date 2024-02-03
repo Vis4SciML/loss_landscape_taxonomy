@@ -26,7 +26,7 @@ class BasicBlock(nn.Module):
         if stride != 1 or in_channels != out_channels:
             self.shortcut = nn.Sequential(
                 nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride),
-                # nn.BatchNorm2d(out_channels)
+                nn.BatchNorm2d(out_channels)
             )
 
     def forward(self, x):
@@ -136,9 +136,9 @@ class QBlock(QModel):
         # shortcut
         self.resize_identity = False
         if hasattr(block, "shortcut") and len(block.shortcut):
-            self.init_conv2d(block.shortcut, "0", rename="shortcut")
+            layer = getattr(block.shortcut, "0")
+            self.init_bn_conv2d(block.shortcut, "1", "0", "shortcut")
             self.resize_identity = True
-
         
         # init the precisions
         self.weight_precision = weight_precision
