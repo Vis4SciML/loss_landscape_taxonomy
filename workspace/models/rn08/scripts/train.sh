@@ -141,8 +141,8 @@ run_train() {
                 --lr $learning_rate \
                 --top_models $top_models \
                 --experiment $i \
-                --max_epochs $max_epochs \
-                >/$HOME/log_RN08_$i.txt 2>&1 &
+                --max_epochs $max_epochs #\
+                #>/$HOME/log_RN08_$i.txt 2>&1 &
 
             pids+=($!)
         fi
