@@ -168,7 +168,7 @@ cython_debug/
 # data files 
 data/
 *.npy
-*yml
+#*yml
 
 
 # log files 

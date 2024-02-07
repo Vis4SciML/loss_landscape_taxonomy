@@ -175,7 +175,7 @@ tar -czvf /loss_landscape/RN08_bs$batch_size"_lr$learning_rate".tar.gz $SAVING_F
 
 exit 0
 
-# . scripts/train.sh --num_workers 0 --bs 1024 --lr 0.1 --max_epochs 100 --top_models 3 --num_test 1 --accelerator auto
+# . scripts/train.sh --num_workers 0 --bs 16 --lr 0.003125 --max_epochs 100 --top_models 3 --num_test 1 --accelerator auto
 
 # python code/train.py \
 #                 --saving_folder "/loss_landscape/checkpoint/different_knobs_subset_10" \
@@ -186,7 +186,7 @@ exit 0
 #                 --weight_precision 2 \
 #                 --bias_precision 2 \
 #                 --act_precision 5   \
-#                 --lr 0.1 \
+#                 --lr 0.003125 \
 #                 --top_models 3 \
-#                 --experiment 2 \
+#                 --experiment 1 \
 #                 --max_epochs 1

@@ -155,7 +155,7 @@ run_train() {
                 --top_models $top_models \
                 --experiment $i \
                 --max_epochs $max_epochs \
-                >/$HOME/log_$i.txt 2>&1 &
+                >/$HOME/log_ECON_$i.txt 2>&1 &
 
             pids+=($!)
         fi
@@ -190,7 +190,7 @@ tar -czvf /loss_landscape/$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVIN
 
 exit 0
 
-# . scripts/train.sh --num_workers 8 --bs 1000 --lr 0.2 --max_epochs 1 --size small --top_models 1 --num_test 1
+# . scripts/train.sh --num_workers 8 --bs 1024 --lr 0.00009765625 --max_epochs 100 --size small --top_models 1 --num_test 1
 
 # python code/train.py \
 #                 --saving_folder "/loss_landscape/checkpoint/different_knobs_subset_10" \

@@ -1,3 +1,5 @@
+import os
+import ast
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -288,22 +290,56 @@ class RN08(pl.LightningModule):
         self.log('test_accuracy', self.test_accuracy, prog_bar=True)
 
 
+# ---------------------------------------------------------------------------- #
+#                               Utility functions                              #
+# ---------------------------------------------------------------------------- #
+def get_model_and_accuracy(path, batch_size, learning_rate, precision):
+    '''
+    Return the model and its accuracy
+    '''
+    folder_path = os.path.join(
+        path,
+        f'bs{batch_size}_lr{learning_rate}/RN08_{precision}b/'
+    )
+    
+    # get the model
+    model_file = os.path.join(folder_path, "net_1_best.pkl")
+    model = RN08(
+        quantize=(precision < 32),
+        precision=[
+            precision,
+            precision,
+            precision+3
+        ],
+        learning_rate=learning_rate,
+    )
+    
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+    model(torch.randn((1,3,32,32)))  # Update tensor shapes 
+    model_param = torch.load(model_file, map_location=device)
+    model.load_state_dict(model_param['state_dict'])
+    
+    # get the accuracy
+    accuracy_file = os.path.join(folder_path, "accuracy_1.txt")
+    try:
+        f = open(accuracy_file)
+        text = f.read()
+        acc = ast.literal_eval(text)
+        value = acc[0]['test_accuracy']
+        f.close()
+    except:
+        print(f"File not found! ({accuracy_file})")
+        return 0
+    
+    return model, value
+
+
 if __name__ == "__main__":
-    transform = transforms.Compose([
-        transforms.ToTensor(), 
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-    ])
-
-    cifar10_train = datasets.CIFAR10(root='../../../data/RN08', train=True, download=True, transform=transform)
-    cifar10_test = datasets.CIFAR10(root='../../../data/RN08', train=False, download=True, transform=transform)
-
-    train_loader = DataLoader(cifar10_train, batch_size=1024, shuffle=True, num_workers=0)
-    test_loader = DataLoader(cifar10_test, batch_size=1024, shuffle=False, num_workers=0)
-
-    model = RN08(True, [8, 8, 11], 0.001)
-    trainer = pl.Trainer(max_epochs=1)  # Adjust max_epochs and gpus according to your setup
-
-    torchinfo.summary(model, input_size=(1, 3, 32, 32))
-
-    trainer.fit(model, train_loader, test_loader)
-
+    model, acc = get_model_and_accuracy("/home/jovyan/checkpoint/",
+                                        128,
+                                        0.0015625,
+                                        8)
+    
+    print(model)
+    print(acc)
