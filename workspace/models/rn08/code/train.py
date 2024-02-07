@@ -2,7 +2,7 @@ import os
 from argparse import ArgumentParser
 from torch.utils.data import DataLoader, random_split
 from torchvision import datasets, transforms
-from pytorch_lightning import loggers as pl_loggers
+# from pytorch_lightning import loggers as pl_loggers
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 import pytorch_lightning as pl
@@ -71,7 +71,7 @@ def main(args):
     
     torchinfo.summary(model, input_size=(1, 3, 32, 32))
     
-    tb_logger = pl_loggers.TensorBoardLogger(args.saving_folder)
+    # tb_logger = pl_loggers.TensorBoardLogger(args.saving_folder)
     
     # stop training when model converges
     early_stop_callback = EarlyStopping(
@@ -103,7 +103,7 @@ def main(args):
         max_epochs=args.max_epochs,
         accelerator=args.accelerator,
         devices="auto",
-        logger=tb_logger,
+        # logger=tb_logger,
         callbacks=[top_checkpoint_callback, early_stop_callback],
         fast_dev_run=args.fast_dev_run,
     )
