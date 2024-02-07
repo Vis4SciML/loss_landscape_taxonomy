@@ -38,9 +38,8 @@ dependencies:
       - frozenlist==1.4.1
       - fsspec==2023.4.0
       - google-auth==2.27.0
-      - google-auth-oauthlib==1.0.0
+      - google-auth-oauthlib==0.4.6
       - grpcio==1.60.1
-      - git+https://github.com/balditommaso/HAWQ.git@setup-pip
       - idna==3.4
       - jinja2==3.1.2
       - lightning-utilities==0.10.1
@@ -64,7 +63,7 @@ dependencies:
       - oauthlib==3.2.2
       - packaging==23.2
       - pillow==10.2.0
-      - protobuf==4.25.2
+      - protobuf==3.20.3
       - pyasn1==0.5.1
       - pyasn1-modules==0.3.0
       - pytorch-lightning==1.9.0
@@ -74,6 +73,9 @@ dependencies:
       - requests-oauthlib==1.3.1
       - rsa==4.9
       - sympy==1.12
+      - tensorboard==2.11.1
+      - tensorboard-data-server==0.6.1
+      - tensorboard-plugin-wit==1.8.1
       - torch==2.2.0+cu118
       - torchinfo==1.8.0
       - torchmetrics==1.3.0.post0
@@ -85,4 +87,5 @@ dependencies:
       - werkzeug==3.0.1
       - yarl==1.9.4
       - zipp==3.17.0
+      - git+https://github.com/balditommaso/HAWQ.git@setup-pip
 prefix: /opt/conda/envs/gpu_loss
