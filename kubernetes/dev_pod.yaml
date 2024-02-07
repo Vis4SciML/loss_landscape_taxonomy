@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: dev-pod
+  name: dev-pod-gpu
 spec:
   containers:
   - name: gpu-container
@@ -11,7 +11,6 @@ spec:
             cd loss_landscape_taxonomy;
             conda env create -f environment.yml;
             source activate loss_landscape;
-            . scripts/get_econ_data.sh;
             cd /;
             jupyter lab --NotebookApp.token=627a7b3b;"]
     volumeMounts:

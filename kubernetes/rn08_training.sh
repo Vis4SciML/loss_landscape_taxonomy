@@ -8,11 +8,11 @@ num_test=5
 accelerator="auto"
 
 # # ranges of the scan 
-# batch_sizes=(16 32 64 128 256 512 1024)
-# learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
+batch_sizes=(16 32 64 128 256 512 1024)
+learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
 
-batch_sizes=(1024)
-learning_rates=(0.0015625)
+# batch_sizes=(1024)
+# learning_rates=(0.0015625)
 # precisions=(2 3 4 5 6 7 8 9 10 11)
 
 
@@ -102,8 +102,8 @@ spec:
                 command: ["/bin/bash","-c"]
                 args: ["git clone https://github.com/balditommaso/loss_landscape_taxonomy.git;
                         cd /home/jovyan/loss_landscape_taxonomy;
-                        conda env create -f environment.yml;
-                        source activate loss_landscape;
+                        conda env create -f gpu_env.yml;
+                        source activate gpu_loss;
                         cd /home/jovyan/loss_landscape_taxonomy/workspace/models/rn08/;
                         . scripts/train.sh \
                                         --bs $bs \
@@ -158,5 +158,5 @@ exit 0
 
 # END MAIN
 
-# bash rn08_training.sh --num_workers 0 --max_epochs 100 --top_models 3 --num_test 2
+# bash rn08_training.sh --num_workers 0 --max_epochs 100 --top_models 3 --num_test 1
 
