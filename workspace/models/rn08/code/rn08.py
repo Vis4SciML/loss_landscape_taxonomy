@@ -330,16 +330,83 @@ def get_model_and_accuracy(path, batch_size, learning_rate, precision):
         f.close()
     except:
         print(f"File not found! ({accuracy_file})")
-        return 0
+        return None, -1
     
     return model, value
 
+def get_dataloader(path, batch_size):
+    
+    transform = transforms.Compose([
+        transforms.ToTensor(), 
+        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+    ])
+    test_dataset = datasets.CIFAR10(root=path, 
+                                    train=False, 
+                                    download=True, 
+                                    transform=transform)
+    
+    test_loader = DataLoader(test_dataset, 
+                            batch_size=batch_size, 
+                            shuffle=False, 
+                            num_workers=0,
+                            drop_last=True)
+    
+    return test_loader
+
+def get_cifar10_loaders(path, batch_size):
+    
+    train_ds = datasets.CIFAR10(
+            root=path,
+            download=True,
+            train=True,
+            transform=transforms.Compose([
+                transforms.RandomCrop(32, padding=4),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize((0.4914, 0.4822, 0.4465),
+                                     (0.2023, 0.1994, 0.2010)),
+                ])
+            )
+    test_ds = datasets.CIFAR10(
+            root=path,
+            train=False,
+            transform=transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.4914, 0.4822, 0.4465),
+                                     (0.2023, 0.1994, 0.2010)),
+                ])
+            )
+    
+    total_size = len(test_ds)
+    val_size = int(0.5 * total_size)
+    test_size = total_size - val_size
+    
+    test_ds, validation_ds = random_split(test_ds, [test_size, val_size])
+    
+    
+    train_loader = DataLoader(train_ds, 
+                              batch_size=batch_size, 
+                              shuffle=True, 
+                              num_workers=0,
+                              drop_last=True)
+    validation_loader = DataLoader(validation_ds, 
+                             batch_size=batch_size, 
+                             shuffle=False, 
+                             num_workers=0,
+                             drop_last=True)
+    test_loader = DataLoader(test_ds, 
+                             batch_size=batch_size, 
+                             shuffle=False, 
+                             num_workers=0,
+                             drop_last=True)
+    
+    return train_loader, validation_loader, test_loader
 
 if __name__ == "__main__":
-    model, acc = get_model_and_accuracy("/home/jovyan/checkpoint/",
-                                        128,
-                                        0.0015625,
-                                        8)
-    
-    print(model)
-    print(acc)
+    train_loader, test_loader = get_cifar10_loaders('../../../data/RN08', 512)
+    model = RN08(True, [8, 8, 11], 0.001)
+    trainer = pl.Trainer(max_epochs=1)  # Adjust max_epochs and gpus according to your setup
+
+    torchinfo.summary(model, input_size=(1, 3, 32, 32))
+
+    trainer.fit(model, train_loader, test_loader)

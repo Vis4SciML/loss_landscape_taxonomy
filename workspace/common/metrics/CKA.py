@@ -9,6 +9,8 @@ https://blog.research.google/2021/05/do-wide-and-deep-networks-learn-same.html
 from __future__ import print_function
 
 import torch
+from torch.utils.data.dataset import Subset
+from torch.utils.data import DataLoader
 import warnings
 from metric import Metric
 from utils.feature_extractor import FeatureExtractor
@@ -169,19 +171,37 @@ class CKA(Metric):
         model = FeatureExtractor(self.model, self.layers)
         model.eval()
 
-        # iterate over the dataset
-        count = 0
-        for batch in self.data_loader:
-            count += 1
-            # remove the label from the tuple
-            if isinstance(batch, list):
-                batch = batch[0]
-                
-            # compare the layers one against the other
-            activations = model.forward(batch)
-            hsic_accumulator = CKA.update_state(hsic_accumulator, activations)
-            if count == self.max_batches:
-                break
+        dataset = self.data_loader.dataset
+        dataset_length = len(dataset)
+
+        num_iterations = 10
+        batch_size = 64
+
+        for _ in range(num_iterations):
+            # shuffle the indices of the dataset
+            indices = torch.randperm(dataset_length).tolist()
+            iteration_indices = []
+
+            # divide the shuffled indices into batches of size 'batch_size'
+            for start_idx in range(0, dataset_length, batch_size):
+                end_idx = min(start_idx + batch_size, dataset_length)
+                batch_indices = indices[start_idx:end_idx]
+                iteration_indices.extend(batch_indices)
+
+            # Create a Subset with the sampled indices
+            subset = Subset(dataset, iteration_indices)
+
+            # Create a DataLoader for the Subset
+            subset_dataloader = DataLoader(subset, batch_size=batch_size, shuffle=False)
+
+            # Iterate over the DataLoader to compute your measure
+            for batch in subset_dataloader:
+                # remove the label from the tuple
+                if isinstance(batch, list):
+                    batch = batch[0]
+                # compare the layers one against the other
+                activations = model.forward(batch)
+                hsic_accumulator = CKA.update_state(hsic_accumulator, activations)
                 
         mean_hsic = hsic_accumulator
         normalization = torch.sqrt(torch.diagonal(hsic_accumulator))
@@ -192,5 +212,37 @@ class CKA(Metric):
         return self.results
             
 
+# test
+import os
+import sys
+module_path = os.path.abspath(os.path.join('../../../workspace/models/rn08/code/')) # or the path to your source code
+sys.path.insert(0, module_path)
+import rn08
+DATA_PATH = "/home/jovyan/checkpoint/"
+DATASET_PATH = "../../../data/RN08"
     
+if __name__ == "__main__":
+    model, acc = rn08.get_model_and_accuracy(DATA_PATH, 64, 0.0015625, 11)
+    dataloader = rn08.get_dataloader(DATASET_PATH, 64)
+    print(f'accuracy: {acc}')
+    layers = [
+        'model.conv1', 
+        'model.QBlocks.0.conv1', 
+        'model.QBlocks.0.conv2', 
+        'model.QBlocks.1.conv1', 
+        'model.QBlocks.1.conv2',  
+        'model.QBlocks.2.conv1', 
+        'model.QBlocks.2.conv2',
+        'model.QBlocks.2.shortcut',
+        'model.QBlocks.3.conv1', 
+        'model.QBlocks.3.conv2', 
+        'model.QBlocks.4.conv1', 
+        'model.QBlocks.4.conv2',
+        'model.QBlocks.4.shortcut',
+        'model.QBlocks.5.conv1', 
+        'model.QBlocks.5.conv2', 
+        'model.linear'
+    ]
     
+    cka = CKA(model, dataloader, layers=layers, max_batches=10)
+    print(cka.compute())

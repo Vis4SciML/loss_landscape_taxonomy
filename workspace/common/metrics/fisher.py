@@ -44,7 +44,7 @@ class FIT(Metric):
         _ = model(torch.randn(input_spec).to(self.device))
         act_sizes = []
         act_nums = []
-        for name, module in model.named_modules():
+        for name, module in model.named_modules():    
             if module.act_quant:
                 act_sizes.append(module.act_in[0].size())
                 act_nums.append(np.prod(np.array(module.act_in[0].size())[1:]))
@@ -201,7 +201,8 @@ class FIT(Metric):
                 indiv_act = np.array([torch.sum(x).detach().cpu().numpy() for x in G2[len(TFv_param):]])
                 param_estimator_accumulation.append(indiv_param)
                 act_estimator_accumulation.append(indiv_act)
-                    
+                
+                print(TFv_param[0].shape, G2[0].shape)
                 TFv_param = [TFv_ + G2_ + 0. for TFv_, G2_ in zip(TFv_param, G2[:len(TFv_param)])]
                 ranges_param_acc.append(ranges_param)
                 TFv_act = [TFv_ + G2_ + 0. for TFv_, G2_ in zip(TFv_act, G2[len(TFv_param):])]
@@ -275,91 +276,45 @@ class FIT(Metric):
         return pert_T
 
 DATA_PATH = '/home/jovyan/checkpoint/'
-DATASET_DIR = '../../../data/JTAG/'
-DATASET_FILE = 'processed_dataset.h5'
+DATASET_DIR = '../../../data/RN08'
 
-def get_model_index_and_relative_accuracy(batch_size, learning_rate, precision, num_tests=5):
-    '''
-    Return the average EMDs achieved by the model and the index of best experiment
-    '''
-    performances = []
-    max_acc = 0
-    max_acc_index = 0
-    for i in range (1, num_tests+1):
-        file_path = DATA_PATH + f'bs{batch_size}_lr{learning_rate}/' \
-                    f'JTAG_{precision}b/accuracy_{i}.txt'
-        try:
-            jtag_file = open(file_path)
-            jtag_text = jtag_file.read()
-            accuracy = ast.literal_eval(jtag_text)
-            accuracy = accuracy[0]['test_acc']
-            performances.append(accuracy)
-            if accuracy >= max_acc:
-                max_acc = accuracy
-                max_acc_index = i
-            jtag_file.close()
-        except Exception as e:
-            # warnings.warn("Warning: " + file_path + " not found!")
-            continue
-        
-    if len(performances) == 0:
-        # warnings.warn(f"Attention: There is no accuracy value for the model: " \
-        #               f"bs{batch_size}_lr{learning_rate}/JTAG_{precision}b")
-        #TODO: I may compute if the model is there
-        return
-    
-    return mean(performances), max_acc_index
-
-
-def load_model(batch_size, learning_rate, precision):
-    '''
-    Method used to get the model and the relative accuracy
-    '''
-    accuracy, idx = get_model_index_and_relative_accuracy(batch_size, learning_rate, precision)
-    model_path = DATA_PATH + f'bs{batch_size}_lr{learning_rate}/JTAG_{precision}b/net_{idx}_best.pkl'
-    
-    # load the model
-    model = JetTagger(
-        quantize=(precision < 32),
-        precision=[
-            precision,
-            precision,
-            precision+3
-        ],
-        learning_rate=learning_rate,
-    )
-    
-    # to set the map location
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    
-    model(torch.randn((16, 16)))  # Update tensor shapes 
-    model_param = torch.load(model_path, map_location=device)
-    model.load_state_dict(model_param['state_dict'])
-    
-    return model, accuracy
-
+# test
+import os
+import sys
+module_path = os.path.abspath(os.path.join('../../../workspace/models/rn08/code/')) # or the path to your source code
+sys.path.insert(0, module_path)
+import rn08
+DATA_PATH = "/home/jovyan/checkpoint/"
+DATASET_PATH = "../../../data/RN08"
 
 if __name__ == "__main__":
     # get the datamodule
-    data_module = JetDataModule(
-        data_dir=DATASET_DIR,
-        data_file=os.path.join(DATASET_DIR, DATASET_FILE),
-        batch_size=1024,
-        num_workers=4)
-    
-    # check if we have processed the data
-    if not os.path.exists(os.path.join(DATASET_DIR, DATASET_FILE)):
-        data_module.process_data(save=True)
-
-    data_module.setup(0)
-    model, _ = load_model(1024, 0.05, 8)
-    model.eval()
-    
-    data_loader = data_module.val_dataloader()
-    fit_computer = FIT(model, data_loader, 
-                       target_layers=['model.dense_1', 'model.dense_2', 'model.dense_3', 'model.dense_4'], 
-                       input_spec=(1024, 16))
+    model, acc = rn08.get_model_and_accuracy(DATA_PATH, 64, 0.0015625, 8)
+    dataloader = rn08.get_dataloader(DATASET_PATH, 1)
+    layers = [
+        'model.conv1', 
+        'model.QBlocks.0.conv1', 
+        'model.QBlocks.0.conv2', 
+        'model.QBlocks.1.conv1', 
+        'model.QBlocks.1.conv2',  
+        'model.QBlocks.2.conv1', 
+        'model.QBlocks.2.conv2',
+        'model.QBlocks.2.shortcut',
+        'model.QBlocks.3.conv1', 
+        'model.QBlocks.3.conv2', 
+        'model.QBlocks.4.conv1', 
+        'model.QBlocks.4.conv2',
+        'model.QBlocks.4.shortcut',
+        'model.QBlocks.5.conv1', 
+        'model.QBlocks.5.conv2', 
+        'model.linear'
+    ]
+    fit_computer = FIT(model, dataloader, 
+                       target_layers=layers, 
+                       input_spec=(3, 32, 32))
     
     result = fit_computer.EF(tol=1e-2, 
                              min_iterations=20,
                              max_iterations=1000)
+    
+    print(result)

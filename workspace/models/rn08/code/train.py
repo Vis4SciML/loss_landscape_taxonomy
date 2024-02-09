@@ -7,59 +7,20 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 import pytorch_lightning as pl
 import torch
-from rn08 import RN08
+import rn08 as model
 import torchinfo
 
 def main(args):
     # ---------------------------------------------------------------------------- #
     #                           Download and process data                          #
     # ---------------------------------------------------------------------------- #
-    # processing of the data
-    transform = transforms.Compose([
-        transforms.ToTensor(), 
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-    ])
-    
-    cifar10_dataset = datasets.CIFAR10(root=args.data_dir, 
-                                     train=True, 
-                                     download=True, 
-                                     transform=transform)
-    # define the sizes for training, validation, and test sets
-    total_size = len(cifar10_dataset)
-    train_size = int(0.8 * total_size)
-    val_size = total_size - train_size
-    
-    # split the dataset into training, validation, and test sets
-    train_dataset, val_dataset = random_split(cifar10_dataset, [train_size, val_size])
-    
-    train_loader = DataLoader(train_dataset, 
-                              batch_size=args.batch_size, 
-                              shuffle=True, 
-                              num_workers=args.num_workers,
-                              drop_last=True)
-    
-    val_loader = DataLoader(val_dataset, 
-                            batch_size=args.batch_size, 
-                            shuffle=False, 
-                            num_workers=args.num_workers,
-                            drop_last=True)
-    
-    test_dataset = datasets.CIFAR10(root=args.data_dir, 
-                                    train=False, 
-                                    download=True, 
-                                    transform=transform)
-    
-    test_loader = DataLoader(test_dataset, 
-                             batch_size=args.batch_size, 
-                             shuffle=False, 
-                             num_workers=args.num_workers,
-                             drop_last=True)
-    
+    train_loader, val_loader, test_loader = model.get_cifar10_loaders(args.data_dir, 
+                                                                     args.batch_size)
     # ---------------------------------------------------------------------------- #
     #                                Lightning model                               #
     # ---------------------------------------------------------------------------- #
     print(f'Loading with quantize: {(args.weight_precision < 32)}')
-    model = RN08(
+    model = model.RN08(
         quantize=(args.weight_precision < 32),
         precision=[
             args.weight_precision, 

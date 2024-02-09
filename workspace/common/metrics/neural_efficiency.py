@@ -168,3 +168,41 @@ class NeuralEfficiency(Metric):
         }
         
         return self.results
+    
+    
+
+# test
+import os
+import sys
+module_path = os.path.abspath(os.path.join('../../../workspace/models/rn08/code/')) # or the path to your source code
+sys.path.insert(0, module_path)
+import rn08
+
+DATA_PATH = "/home/jovyan/checkpoint/"
+DATASET_PATH = "../../../data/RN08"
+    
+if __name__ == "__main__":
+    model, acc = rn08.get_model_and_accuracy(DATA_PATH, 64, 0.0015625, 11)
+    dataloader = rn08.get_dataloader(DATASET_PATH, 1)
+    print(f'accuracy: {acc}')
+    layers = [
+        'model.conv1', 
+        'model.QBlocks.0.conv1', 
+        'model.QBlocks.0.conv2', 
+        'model.QBlocks.1.conv1', 
+        'model.QBlocks.1.conv2',  
+        'model.QBlocks.2.conv1', 
+        'model.QBlocks.2.conv2',
+        'model.QBlocks.2.shortcut',
+        'model.QBlocks.3.conv1', 
+        'model.QBlocks.3.conv2', 
+        'model.QBlocks.4.conv1', 
+        'model.QBlocks.4.conv2',
+        'model.QBlocks.4.shortcut',
+        'model.QBlocks.5.conv1', 
+        'model.QBlocks.5.conv2', 
+        'model.linear'
+    ]
+    
+    ne = NeuralEfficiency(model, dataloader, target_layers=layers, max_batches=10000, performance=acc)
+    print(ne.compute())
