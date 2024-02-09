@@ -128,16 +128,12 @@ class NeuralEfficiency(Metric):
         '''
         Compute the neural efficiency metrics.
         '''
-        print("Computing the Neural efficiency...")
-        
-
         # compute the entropy for each layer
         entropies = self.entropy_per_layer(self.target_layers)
         
         # compute neuron efficiency for each layer
         layers_efficiency = {}
         for name, layer in entropies.items():
-            print(layer['num_neurons'])
             layers_efficiency[name] = layer['entropy'] / layer['num_neurons']
             
         # print('layers neural efficiency:\n', layers_efficiency)

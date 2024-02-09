@@ -354,7 +354,10 @@ def get_dataloader(path, batch_size):
     return test_loader
 
 def get_cifar10_loaders(path, batch_size):
-    
+    '''
+    Utility function to retrieve the train, validation and test
+    dataloaders.
+    '''
     train_ds = datasets.CIFAR10(
             root=path,
             download=True,
@@ -363,8 +366,8 @@ def get_cifar10_loaders(path, batch_size):
                 transforms.RandomCrop(32, padding=4),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
-                transforms.Normalize((0.4914, 0.4822, 0.4465),
-                                     (0.2023, 0.1994, 0.2010)),
+                transforms.Normalize((0.5, 0.5, 0.5),
+                                     (0.5, 0.5, 0.5)),
                 ])
             )
     test_ds = datasets.CIFAR10(
@@ -372,8 +375,8 @@ def get_cifar10_loaders(path, batch_size):
             train=False,
             transform=transforms.Compose([
                 transforms.ToTensor(),
-                transforms.Normalize((0.4914, 0.4822, 0.4465),
-                                     (0.2023, 0.1994, 0.2010)),
+                transforms.Normalize((0.5, 0.5, 0.5),
+                                     (0.5, 0.5, 0.5)),
                 ])
             )
     
@@ -403,10 +406,14 @@ def get_cifar10_loaders(path, batch_size):
     return train_loader, validation_loader, test_loader
 
 if __name__ == "__main__":
-    train_loader, test_loader = get_cifar10_loaders('../../../data/RN08', 512)
-    model = RN08(True, [8, 8, 11], 0.001)
-    trainer = pl.Trainer(max_epochs=1)  # Adjust max_epochs and gpus according to your setup
+    train_loader, test_loader, _ = get_cifar10_loaders('../../../data/RN08', 1)
+    for batch in train_loader:
+        #image, label = batch
+        print(batch)
+        break
+    # model = RN08(True, [8, 8, 11], 0.001)
+    # trainer = pl.Trainer(max_epochs=1)  # Adjust max_epochs and gpus according to your setup
 
-    torchinfo.summary(model, input_size=(1, 3, 32, 32))
+    # torchinfo.summary(model, input_size=(1, 3, 32, 32))
 
-    trainer.fit(model, train_loader, test_loader)
+    # trainer.fit(model, train_loader, test_loader)
