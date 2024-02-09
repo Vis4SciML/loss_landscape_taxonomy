@@ -7,20 +7,20 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 import pytorch_lightning as pl
 import torch
-import rn08 as model
+import rn08
 import torchinfo
 
 def main(args):
     # ---------------------------------------------------------------------------- #
     #                           Download and process data                          #
     # ---------------------------------------------------------------------------- #
-    train_loader, val_loader, test_loader = model.get_cifar10_loaders(args.data_dir, 
+    train_loader, val_loader, test_loader = rn08.get_cifar10_loaders(args.data_dir, 
                                                                      args.batch_size)
     # ---------------------------------------------------------------------------- #
     #                                Lightning model                               #
     # ---------------------------------------------------------------------------- #
     print(f'Loading with quantize: {(args.weight_precision < 32)}')
-    model = model.RN08(
+    model = rn08.RN08(
         quantize=(args.weight_precision < 32),
         precision=[
             args.weight_precision, 
