@@ -61,13 +61,13 @@ class NoisyDataset(Dataset):
     
 # test 
 if __name__ == "__main__":
-    train_dataloader, _, _ = rn08.get_cifar10_loaders("../../../data/RN08", 1)
+    train_dataloader, val_dataloader, _ = rn08.get_cifar10_loaders("../../../data/RN08", 1)
     
     print("test tuple")
-    noisy_dataset = NoisyDataset(train_dataloader, 5, 'gaussian')
+    noisy_dataset = NoisyDataset(val_dataloader, 5, 'gaussian')
     noisy_dataloader = DataLoader(noisy_dataset, 1, False)
     print("Without noise")
-    for batch, target in train_dataloader:
+    for batch, target in val_dataloader:
         print('batch:', batch.shape)
         print('target:', target.shape)
         break
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     # dataloader = DataLoader(noisy_dataset, batch_size=16, shuffle=True, num_workers=4)
     
     print("Without noise")
-    for batch in train_dataloader:
+    for batch in val_dataloader:
         print('batch:', batch)
         break
     

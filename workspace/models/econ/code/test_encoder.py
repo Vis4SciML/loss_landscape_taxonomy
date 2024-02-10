@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl 
 import numpy as np
 import multiprocessing
-from q_autoencoder import AutoEncoder
+import q_autoencoder as econ
 from autoencoder_datamodule import AutoEncoderDataModule
 
 module_path = os.path.abspath(os.path.join('../../common/benchmarks/')) 
@@ -26,39 +26,9 @@ from fisher import FIT
 from plot import Plot
 
 ECON_layers = ['encoder.conv', 'encoder.enc_dense']
-
-
-def get_model_index_and_relative_EMD(path, batch_size, learning_rate, precision, size, num_tests=3):
-    '''
-    Return the average EMDs achieved by the model and the index of best experiment
-    '''
-    EMDs = []
-    min_emd = 1000
-    min_emd_index = 0
-    for i in range (1, num_tests+1):
-        file_path = path + f'bs{batch_size}_lr{learning_rate}/' \
-                    f'ECON_{precision}b/{size}/{size}_emd_{i}.txt'
-        try:
-            emd_file = open(file_path)
-            emd_text = emd_file.read()
-            emd = ast.literal_eval(emd_text)
-            emd = emd[0]['AVG_EMD']
-            EMDs.append(emd)
-            if min_emd >= emd:
-                min_emd = emd
-                min_emd_index = i
-            emd_file.close()
-        except Exception as e:
-            warnings.warn("Warning: " + file_path + " not found!")
-            continue
-        
-    if len(EMDs) == 0:
-        warnings.warn(f"Attention: There is no EMD value for the model: " \
-                      f"bs{batch_size}_lr{learning_rate}/ECON_{precision}b/{size}")
-        #TODO: I may compute if the model is there
-        return
-    
-    return mean(EMDs), min_emd_index
+PRECISIONS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+BATCH_SIZES = [16, 32, 64, 128, 256, 512, 1024]
+LEARNING_RATES = [0.1, 0.05, 0.025, 0.0125, 0.00625, 0.003125, 0.0015625]
 
 
 def main(args):
@@ -85,30 +55,11 @@ def main(args):
     # ---------------------------------------------------------------------------- #
     #                                     MODEL                                    #
     # ---------------------------------------------------------------------------- #
-    original_emd, idx = get_model_index_and_relative_EMD(args.saving_folder, 
-                                                         args.batch_size, 
-                                                         args.learning_rate, 
-                                                         args.precision, 
-                                                         args.size)
-    model_path = saving_path + f'net_{idx}_best.pkl'
-
-    model = AutoEncoder(
-        quantize=(args.precision < 32),
-        precision=[
-            args.precision,
-            args.precision,
-            args.precision+3
-        ],
-        learning_rate=args.learning_rate,
-        econ_type=args.size
-    )
-    
-    # to set the map location
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    
-    model(torch.randn((1, 1, 8, 8)))  # Update tensor shapes 
-    model_param = torch.load(model_path, map_location=device)
-    model.load_state_dict(model_param['state_dict'])
+    model, original_emd = econ.load_model(args.saving_folder, 
+                                          args.batch_size, 
+                                          args.learning_rate, 
+                                          args.precision, 
+                                          args.size)
     
     # eval the model
     _, val_sum = data_module.get_val_max_and_sum()
@@ -165,9 +116,21 @@ def main(args):
         #                                      CKA                                     #
         # ---------------------------------------------------------------------------- #
         cka = CKA(model, dataloader, layers=ECON_layers, max_batches=args.num_batches)
-        cka.compute()
+        cka_list = []
+        for p in PRECISIONS:
+            for bs in BATCH_SIZES:
+                for lr in LEARNING_RATES:
+                    if bs != args.batch_size and lr != args.learning_rate and p != args.precision:
+                        target_model, _ = econ.load_model(args.saving_folder, 
+                                                          bs, 
+                                                          lr, 
+                                                          p, 
+                                                          args.size)
+                        s = cka.compare_output(target_model, 10)
+                        cka_list.append(s)
+        cka.results['CKA_similarity'] = mean(cka_list)
         cka.save_on_file(path=saving_path)
-        # TODO: compute the distance among models
+        print(mean(cka_list))
     elif args.metric == 'neural_efficiency':
         # ---------------------------------------------------------------------------- #
         #                               Neural Efficiency                              #
@@ -191,6 +154,9 @@ def main(args):
                      input_spec=(args.batch_size, 1, 8, 8))
         fisher.EF(min_iterations=100, max_iterations=1000)
         fisher.save_on_file(path=saving_path)
+        # ---------------------------------------------------------------------------- #
+        #                                     Plot                                     #
+        # ---------------------------------------------------------------------------- #
     elif args.metric == 'plot':
         plot = Plot(model, dataloader)
         plot.compute(steps=args.steps, 

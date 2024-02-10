@@ -7,14 +7,20 @@ Thao Nguyen, AI Resident, Google Research
 https://blog.research.google/2021/05/do-wide-and-deep-networks-learn-same.html
 """
 from __future__ import print_function
-
+import os 
+import sys
 import torch
+import math
+from statistics import mean
 from torch.utils.data.dataset import Subset
 from torch.utils.data import DataLoader
 import warnings
 from metric import Metric
 from utils.feature_extractor import FeatureExtractor
 
+module_path = os.path.abspath(os.path.join('../../../common/benchmarks/')) 
+sys.path.insert(0, module_path)
+from noisy_dataset import NoisyDataset
 
 # ---------------------------------------------------------------------------- #
 #                                CKA similarity                                #
@@ -28,6 +34,10 @@ class CKA(Metric):
         self.max_batches = max_batches
         self.results = {}   # there will be different values
         self.device = 'cpu'
+        # CKA is measured on perturbed training set comprised of mixup samples
+        noisy_dataset = NoisyDataset(data_loader, 2, 'gaussian')
+        self.data_loader = DataLoader(noisy_dataset, batch_size=1, shuffle=True)
+        
         if torch.cuda.is_available():
             self.model.cuda()
             self.device = 'cuda'
@@ -50,13 +60,22 @@ class CKA(Metric):
         '''
         X = X.reshape(X.shape[0], -1)
         gram_X = X @ X.T
-        n = gram_X.shape[0]
-        gram_X.fill_diagonal_(0)
-        means = torch.sum(gram_X, axis=0) / (n - 2)
-        means -= torch.sum(means) / 2 * (n - 1)
+        
+        if not torch.allclose(gram_X, gram_X.t()):
+            raise ValueError("Gram matrix should be symmetric!")
+        
+        means = torch.mean(gram_X, 0)
+        means -= torch.mean(means) / 2
         gram_X -= means[:, None]
         gram_X -= means[None, :]
-        gram_X.fill_diagonal_(0)
+        
+        # n = gram_X.shape[0]
+        # gram_X.fill_diagonal_(0)
+        # means = torch.sum(gram_X, axis=0) / (n - 2)
+        # means -= torch.sum(means) / 2 * (n - 1)
+        # gram_X -= means[:, None]
+        # gram_X -= means[None, :]
+        # gram_X.fill_diagonal_(0)
         return gram_X.reshape((-1,))
     
     
@@ -160,6 +179,48 @@ class CKA(Metric):
         self.results['compared_cka'] = mean_hsic
         return self.results
     
+    def compare_output(self, model, num_outputs=10, num_runs=5):
+        '''
+        Compare the CKA similarity between the outputs of two models
+        '''
+        
+        cka_similarity = []
+        for _ in range(num_runs):
+            # output of models
+            F1 = []
+            F2 = []
+            for i, batch in enumerate(self.data_loader, 1):
+                # stop condition
+                if i > num_outputs:
+                    break
+                # remove the label from the tuple
+                if isinstance(batch, list):
+                    batch = batch[0]
+                
+                F1.append(self.model(batch))
+                F2.append(model(batch))
+            
+            F1 = torch.cat(F1)
+            F2 = torch.cat(F2)
+            
+            gram_x = CKA.gram_matrix(F1)
+            gram_y = CKA.gram_matrix(F2)
+            
+            scaled_hsic = torch.ravel(gram_x) @ torch.ravel(gram_y)
+            normalization_x = torch.linalg.norm(gram_x)
+            normalization_y = torch.linalg.norm(gram_y)
+            s = scaled_hsic / (normalization_x * normalization_y)
+            if torch.isnan(s):
+                cka_similarity.append(0.0)
+            else:
+                cka_similarity.append(s.item())
+        avg_s = mean(cka_similarity)
+        if avg_s > 1:
+            avg_s = 1
+        elif math.isnan(avg_s) or avg_s < 0:
+            avg_s = 0
+            
+        return avg_s
     
     def compute(self):
         '''
@@ -171,37 +232,19 @@ class CKA(Metric):
         model = FeatureExtractor(self.model, self.layers)
         model.eval()
 
-        dataset = self.data_loader.dataset
-        dataset_length = len(dataset)
-
-        num_iterations = 10
-        batch_size = 64
-
-        for _ in range(num_iterations):
-            # shuffle the indices of the dataset
-            indices = torch.randperm(dataset_length).tolist()
-            iteration_indices = []
-
-            # divide the shuffled indices into batches of size 'batch_size'
-            for start_idx in range(0, dataset_length, batch_size):
-                end_idx = min(start_idx + batch_size, dataset_length)
-                batch_indices = indices[start_idx:end_idx]
-                iteration_indices.extend(batch_indices)
-
-            # Create a Subset with the sampled indices
-            subset = Subset(dataset, iteration_indices)
-
-            # Create a DataLoader for the Subset
-            subset_dataloader = DataLoader(subset, batch_size=batch_size, shuffle=False)
-
-            # Iterate over the DataLoader to compute your measure
-            for batch in subset_dataloader:
-                # remove the label from the tuple
-                if isinstance(batch, list):
-                    batch = batch[0]
-                # compare the layers one against the other
-                activations = model.forward(batch)
-                hsic_accumulator = CKA.update_state(hsic_accumulator, activations)
+        # iterate over the dataset
+        count = 0
+        for batch in self.data_loader:
+            count += 1
+            # remove the label from the tuple
+            if isinstance(batch, list):
+                batch = batch[0]
+                
+            # compare the layers one against the other
+            activations = model.forward(batch)
+            hsic_accumulator = CKA.update_state(hsic_accumulator, activations)
+            if count == self.max_batches:
+                break
                 
         mean_hsic = hsic_accumulator
         normalization = torch.sqrt(torch.diagonal(hsic_accumulator))
@@ -222,8 +265,8 @@ DATA_PATH = "/home/jovyan/checkpoint/"
 DATASET_PATH = "../../../data/RN08"
     
 if __name__ == "__main__":
-    model, acc = rn08.get_model_and_accuracy(DATA_PATH, 64, 0.0015625, 11)
-    dataloader = rn08.get_dataloader(DATASET_PATH, 64)
+    model, acc = rn08.get_model_and_accuracy(DATA_PATH, 1024, 0.1, 11)
+    dataloader = rn08.get_dataloader(DATASET_PATH, 1)
     print(f'accuracy: {acc}')
     layers = [
         'model.conv1', 
@@ -244,5 +287,10 @@ if __name__ == "__main__":
         'model.linear'
     ]
     
-    cka = CKA(model, dataloader, layers=layers, max_batches=10)
-    print(cka.compute())
+    cka = CKA(model, dataloader, layers=layers, max_batches=50)
+    # print(cka.compute())
+    batch_sizes = [16, 32, 64, 128, 256, 512, 1024]
+    for bs in batch_sizes:
+        model2, acc = rn08.get_model_and_accuracy(DATA_PATH, bs, 0.1, 11)
+        print(f'accuracy {bs}: {acc}')
+        print(cka.compare_output(model2, 10))
