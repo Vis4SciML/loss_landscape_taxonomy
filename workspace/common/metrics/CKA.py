@@ -215,9 +215,8 @@ class CKA(Metric):
             else:
                 cka_similarity.append(s.item())
         avg_s = mean(cka_similarity)
-        if avg_s > 1:
-            avg_s = 1
-        elif math.isnan(avg_s) or avg_s < 0:
+
+        if math.isnan(avg_s) or avg_s < 0 or math.isinf(avg_s):
             avg_s = 0
             
         return avg_s
@@ -256,41 +255,41 @@ class CKA(Metric):
             
 
 # test
-import os
-import sys
-module_path = os.path.abspath(os.path.join('../../../workspace/models/rn08/code/')) # or the path to your source code
-sys.path.insert(0, module_path)
-import rn08
-DATA_PATH = "/home/jovyan/checkpoint/"
-DATASET_PATH = "../../../data/RN08"
+# import os
+# import sys
+# module_path = os.path.abspath(os.path.join('../../../workspace/models/rn08/code/')) # or the path to your source code
+# sys.path.insert(0, module_path)
+# import rn08
+# DATA_PATH = "/home/jovyan/checkpoint/"
+# DATASET_PATH = "../../../data/RN08"
     
-if __name__ == "__main__":
-    model, acc = rn08.get_model_and_accuracy(DATA_PATH, 1024, 0.1, 11)
-    dataloader = rn08.get_dataloader(DATASET_PATH, 1)
-    print(f'accuracy: {acc}')
-    layers = [
-        'model.conv1', 
-        'model.QBlocks.0.conv1', 
-        'model.QBlocks.0.conv2', 
-        'model.QBlocks.1.conv1', 
-        'model.QBlocks.1.conv2',  
-        'model.QBlocks.2.conv1', 
-        'model.QBlocks.2.conv2',
-        'model.QBlocks.2.shortcut',
-        'model.QBlocks.3.conv1', 
-        'model.QBlocks.3.conv2', 
-        'model.QBlocks.4.conv1', 
-        'model.QBlocks.4.conv2',
-        'model.QBlocks.4.shortcut',
-        'model.QBlocks.5.conv1', 
-        'model.QBlocks.5.conv2', 
-        'model.linear'
-    ]
+# if __name__ == "__main__":
+#     model, acc = rn08.get_model_and_accuracy(DATA_PATH, 1024, 0.1, 11)
+#     dataloader = rn08.get_dataloader(DATASET_PATH, 1)
+#     print(f'accuracy: {acc}')
+#     layers = [
+#         'model.conv1', 
+#         'model.QBlocks.0.conv1', 
+#         'model.QBlocks.0.conv2', 
+#         'model.QBlocks.1.conv1', 
+#         'model.QBlocks.1.conv2',  
+#         'model.QBlocks.2.conv1', 
+#         'model.QBlocks.2.conv2',
+#         'model.QBlocks.2.shortcut',
+#         'model.QBlocks.3.conv1', 
+#         'model.QBlocks.3.conv2', 
+#         'model.QBlocks.4.conv1', 
+#         'model.QBlocks.4.conv2',
+#         'model.QBlocks.4.shortcut',
+#         'model.QBlocks.5.conv1', 
+#         'model.QBlocks.5.conv2', 
+#         'model.linear'
+#     ]
     
-    cka = CKA(model, dataloader, layers=layers, max_batches=50)
-    # print(cka.compute())
-    batch_sizes = [16, 32, 64, 128, 256, 512, 1024]
-    for bs in batch_sizes:
-        model2, acc = rn08.get_model_and_accuracy(DATA_PATH, bs, 0.1, 11)
-        print(f'accuracy {bs}: {acc}')
-        print(cka.compare_output(model2, 10))
+#     cka = CKA(model, dataloader, layers=layers, max_batches=50)
+#     # print(cka.compute())
+#     batch_sizes = [16, 32, 64, 128, 256, 512, 1024]
+#     for bs in batch_sizes:
+#         model2, acc = rn08.get_model_and_accuracy(DATA_PATH, bs, 0.1, 11)
+#         print(f'accuracy {bs}: {acc}')
+#         print(cka.compare_output(model2, 10))

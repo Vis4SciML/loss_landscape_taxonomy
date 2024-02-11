@@ -293,6 +293,27 @@ class RN08(pl.LightningModule):
 # ---------------------------------------------------------------------------- #
 #                               Utility functions                              #
 # ---------------------------------------------------------------------------- #
+def get_accuracy(path, batch_size, learning_rate, precision):
+    folder_path = os.path.join(
+        path,
+        f'bs{batch_size}_lr{learning_rate}/RN08_{precision}b/'
+    )
+    
+    # get the accuracy
+    accuracy_file = os.path.join(folder_path, "accuracy_1.txt")
+    try:
+        f = open(accuracy_file)
+        text = f.read()
+        acc = ast.literal_eval(text)
+        value = acc[0]['test_accuracy']
+        f.close()
+    except:
+        print(f"File not found! ({accuracy_file})")
+        return -1
+    
+    return value
+
+
 def get_model_and_accuracy(path, batch_size, learning_rate, precision):
     '''
     Return the model and its accuracy
@@ -317,20 +338,14 @@ def get_model_and_accuracy(path, batch_size, learning_rate, precision):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     model(torch.randn((1,3,32,32)))  # Update tensor shapes 
-    model_param = torch.load(model_file, map_location=device)
-    model.load_state_dict(model_param['state_dict'])
-    
-    # get the accuracy
-    accuracy_file = os.path.join(folder_path, "accuracy_1.txt")
     try:
-        f = open(accuracy_file)
-        text = f.read()
-        acc = ast.literal_eval(text)
-        value = acc[0]['test_accuracy']
-        f.close()
+        model_param = torch.load(model_file, map_location=device)
+        model.load_state_dict(model_param['state_dict'])
     except:
-        print(f"File not found! ({accuracy_file})")
+        print(f"File not found! ({model_file})")
         return None, -1
+    # get the accuracy
+    value = get_accuracy(path, batch_size, learning_rate, precision)
     
     return model, value
 
