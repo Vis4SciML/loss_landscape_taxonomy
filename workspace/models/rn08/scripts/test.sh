@@ -11,6 +11,9 @@ learning_rate=0.1
 metric="noise"
 num_batches=16
 
+# default values
+noise_type="pixelate" 
+
 precisions=(2 3 4 5 6 7 8 9 10 11)
 
 
