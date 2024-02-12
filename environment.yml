@@ -218,6 +218,7 @@ dependencies:
   - pip:
       - git+https://github.com/jicampos/PyHessian.git
       - git+https://github.com/balditommaso/HAWQ.git@setup-pip
+      - git+https://github.com/balditommaso/robustbench.git
       - paretoset==1.2.3
       - loss-landscapes==3.0.6
       - paretoset==1.2.3

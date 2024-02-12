@@ -96,7 +96,7 @@ handle_options() {
             *)
                 echo "Invalid option: $1" >&2
                 usage
-                exit 1
+                return
                 ;;
         esac
         shift
@@ -221,7 +221,7 @@ do
         # ADD THE NEW METRIC HERE
         *)
             echo $metric not implemented yet!
-            exit
+            return
             ;;
     esac
 done
@@ -236,6 +236,6 @@ exit 0
 #                                         --batch_size 32 \
 #                                         --learning_rate 0.025 \
 #                                         --size small \
-#                                         --metric CKA \
-#                                         --num_batches 100000 \
+#                                         --metric fisher \
+#                                         --num_batches 10 \
 #                                         --num_workers 12

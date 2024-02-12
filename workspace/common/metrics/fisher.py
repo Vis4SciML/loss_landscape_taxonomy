@@ -8,6 +8,7 @@ import warnings
 import torch
 import torch.nn as nn
 import numpy as np
+import scipy
 from metric import Metric
 from utils.feature_extractor import FeatureExtractor
 
@@ -67,37 +68,31 @@ class FIT(Metric):
             param_nums - accumulated parameter numbers
             params - accumulated parameter values
         '''
-        
-        def layer_filter(nm):
-            if layer_filter is not None:
-                return layer_filter not in name
-            else:
-                return True
-            
-            
-        layers = []
         names = []
         param_nums = []
         params = []
+        
         for name, module in model.named_modules():
             if name in self.target_layers:
-                for n, p in list(module.named_parameters()):
+                for n, p in module.named_parameters():
                     if n.endswith('weight'):
-                        # skip HAWQ duplicates
+                        
                         if name in names:
                             continue
-                        
                         names.append(name)
-                        p.collect = True
-                        layers.append(module)
                         param_nums.append(p.numel())
                         params.append(p)
+                        p.collect = True  # Assuming you want to set collect flag for gradient computation
                     else:
                         p.collect = False
-                continue
-            for p in list(module.parameters()):
-                if p.requires_grad:
+            else:
+                for p in module.parameters():
                     p.collect = False
+
+
+        for i, (n, p) in enumerate(zip(names, params)):
+            p.collect = True
+
 
         return names, np.array(param_nums), params
     
@@ -154,7 +149,7 @@ class FIT(Metric):
         NaN_flag = False
 
         total_batches = 0.
-
+        
         TFv_act = [torch.zeros(ps).to(self.device) for ps in self.act_sizes[1:]]  # accumulate result
         TFv_param = [torch.zeros(ps).to(self.device) for ps in self.param_sizes]  # accumulate result
 
@@ -179,7 +174,6 @@ class FIT(Metric):
                         actsH.append(module.act_in[0])
                         ranges_act.append((torch.max(module.act_in[0]) - torch.min(module.act_in[0])).detach().cpu().numpy())
                         
-                        
                 ranges_param = []
                 paramsH = []
                 for paramH in self.model.parameters():
@@ -190,19 +184,16 @@ class FIT(Metric):
                     
                 G = torch.autograd.grad(loss, [*paramsH, *actsH[1:]])
                 
+                                
                 G2 = []
                 for g in G:
                     G2.append(batch_size*g*g)
-                    
-                
-                
-                                        
+                                                        
                 indiv_param = np.array([torch.sum(x).detach().cpu().numpy() for x in G2[:len(TFv_param)]])
                 indiv_act = np.array([torch.sum(x).detach().cpu().numpy() for x in G2[len(TFv_param):]])
                 param_estimator_accumulation.append(indiv_param)
                 act_estimator_accumulation.append(indiv_act)
                 
-                print(TFv_param[0].shape, G2[0].shape)
                 TFv_param = [TFv_ + G2_ + 0. for TFv_, G2_ in zip(TFv_param, G2[:len(TFv_param)])]
                 ranges_param_acc.append(ranges_param)
                 TFv_act = [TFv_ + G2_ + 0. for TFv_, G2_ in zip(TFv_act, G2[len(TFv_param):])]
@@ -242,7 +233,7 @@ class FIT(Metric):
         self.results = {
             "EF_trace_w": self.EFw,
             "EF_trace_a": self.EFa,
-            "avg_EF": np.mean(self.EFw),
+            "avg_EF": scipy.stats.mstats.gmean(self.EFw),
             #"error_nan": NaN_flag
         }
         
@@ -279,42 +270,42 @@ DATA_PATH = '/home/jovyan/checkpoint/'
 DATASET_DIR = '../../../data/RN08'
 
 # test
-import os
-import sys
-module_path = os.path.abspath(os.path.join('../../../workspace/models/rn08/code/')) # or the path to your source code
-sys.path.insert(0, module_path)
-import rn08
-DATA_PATH = "/home/jovyan/checkpoint/"
-DATASET_PATH = "../../../data/RN08"
+# import os
+# import sys
+# module_path = os.path.abspath(os.path.join('../../../workspace/models/rn08/code/')) # or the path to your source code
+# sys.path.insert(0, module_path)
+# import rn08
+# DATA_PATH = "/home/jovyan/checkpoint/"
+# DATASET_PATH = "../../../data/RN08"
 
-if __name__ == "__main__":
-    # get the datamodule
-    model, acc = rn08.get_model_and_accuracy(DATA_PATH, 64, 0.0015625, 8)
-    dataloader = rn08.get_dataloader(DATASET_PATH, 1)
-    layers = [
-        'model.conv1', 
-        'model.QBlocks.0.conv1', 
-        'model.QBlocks.0.conv2', 
-        'model.QBlocks.1.conv1', 
-        'model.QBlocks.1.conv2',  
-        'model.QBlocks.2.conv1', 
-        'model.QBlocks.2.conv2',
-        'model.QBlocks.2.shortcut',
-        'model.QBlocks.3.conv1', 
-        'model.QBlocks.3.conv2', 
-        'model.QBlocks.4.conv1', 
-        'model.QBlocks.4.conv2',
-        'model.QBlocks.4.shortcut',
-        'model.QBlocks.5.conv1', 
-        'model.QBlocks.5.conv2', 
-        'model.linear'
-    ]
-    fit_computer = FIT(model, dataloader, 
-                       target_layers=layers, 
-                       input_spec=(3, 32, 32))
+# if __name__ == "__main__":
+#     # get the datamodule
+#     model, acc = rn08.get_model_and_accuracy(DATA_PATH, 1024, 0.0015625, 8)
+#     dataloader = rn08.get_dataloader(DATASET_PATH, 1024)
+#     layers = [
+#         'model.conv1', 
+#         'model.QBlocks.0.conv1', 
+#         'model.QBlocks.0.conv2', 
+#         'model.QBlocks.1.conv1', 
+#         'model.QBlocks.1.conv2',  
+#         'model.QBlocks.2.conv1', 
+#         'model.QBlocks.2.conv2',
+#         'model.QBlocks.2.shortcut',
+#         'model.QBlocks.3.conv1', 
+#         'model.QBlocks.3.conv2', 
+#         'model.QBlocks.4.conv1', 
+#         'model.QBlocks.4.conv2',
+#         'model.QBlocks.4.shortcut',
+#         'model.QBlocks.5.conv1', 
+#         'model.QBlocks.5.conv2', 
+#         'model.linear'
+#     ]
+#     fit_computer = FIT(model, dataloader, 
+#                        target_layers=layers, 
+#                        input_spec=(1024 ,3, 32, 32))
     
-    result = fit_computer.EF(tol=1e-2, 
-                             min_iterations=20,
-                             max_iterations=1000)
+#     result = fit_computer.EF(tol=1e-2, 
+#                              min_iterations=20,
+#                              max_iterations=1000)
     
-    print(result)
+#     print(result)
