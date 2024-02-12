@@ -154,10 +154,11 @@ def main(args):
                      input_spec=(args.batch_size, 1, 8, 8))
         fisher.EF(min_iterations=100, max_iterations=1000)
         fisher.save_on_file(path=saving_path)
+        
+    elif args.metric == 'plot':
         # ---------------------------------------------------------------------------- #
         #                                     Plot                                     #
         # ---------------------------------------------------------------------------- #
-    elif args.metric == 'plot':
         plot = Plot(model, dataloader)
         plot.compute(steps=args.steps, 
                      distance=args.distance, 

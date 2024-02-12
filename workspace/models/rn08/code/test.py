@@ -3,8 +3,8 @@ import ast
 import os
 import sys
 from statistics import mean
-import warnings
-import torch
+from robustbench.data import load_cifar10c
+from robustbench.utils import clean_accuracy
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 import pytorch_lightning as pl 
@@ -16,10 +16,30 @@ sys.path.insert(0, module_path)
 from CKA import CKA
 from neural_efficiency import NeuralEfficiency
 from fisher import FIT
+from plot import Plot
 
 
-JTAG_layers = ['model.dense_1', 'model.dense_2', 'model.dense_3', 'model.dense_4']
-
+RN08_layers = layers = [
+        'model.conv1', 
+        'model.QBlocks.0.conv1', 
+        'model.QBlocks.0.conv2', 
+        'model.QBlocks.1.conv1', 
+        'model.QBlocks.1.conv2',  
+        'model.QBlocks.2.conv1', 
+        'model.QBlocks.2.conv2',
+        'model.QBlocks.2.shortcut',
+        'model.QBlocks.3.conv1', 
+        'model.QBlocks.3.conv2', 
+        'model.QBlocks.4.conv1', 
+        'model.QBlocks.4.conv2',
+        'model.QBlocks.4.shortcut',
+        'model.QBlocks.5.conv1', 
+        'model.QBlocks.5.conv2', 
+        'model.linear'
+    ]
+PRECISIONS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+BATCH_SIZES = [16, 32, 64, 128, 256, 512, 1024]
+LEARNING_RATES = [0.1, 0.05, 0.025, 0.0125, 0.00625, 0.003125, 0.0015625]
 
 def main(args):
     
@@ -34,29 +54,15 @@ def main(args):
     # ---------------------------------------------------------------------------- #
     #                                  DATA MODULE                                 #
     # ---------------------------------------------------------------------------- #
-    transform = transforms.Compose([
-        transforms.ToTensor(), 
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-    ])
-    #load the datamodule
-    test_dataset = datasets.CIFAR10(root=args.data_dir, 
-                                    train=False, 
-                                    download=True, 
-                                    transform=transform)
-    
-    test_loader = DataLoader(test_dataset, 
-                             batch_size=args.batch_size, 
-                             shuffle=False, 
-                             num_workers=args.num_workers,
-                             drop_last=True)
+    _, _, dataloader = rn08.get_cifar10_loaders(args.data_dir, args.batch_size)
         
     # ---------------------------------------------------------------------------- #
     #                                     MODEL                                    #
     # ---------------------------------------------------------------------------- #
     model, accuracy = rn08.get_model_and_accuracy(args.saving_folder, 
-                                                         args.batch_size, 
-                                                         args.learning_rate, 
-                                                         args.precision)
+                                                  args.batch_size, 
+                                                  args.learning_rate, 
+                                                  args.precision)
     
     print('-'*80)
     print(f"Metric:\t{args.metric}")
@@ -65,64 +71,52 @@ def main(args):
         #                                     NOISE                                    #
         # ---------------------------------------------------------------------------- #
         print(f'Noise type:\t{args.noise_type}')
-        print(f'Noise percentage:\t{args.percentage}%')
         print('-'*80)
-        noisy_dataset = NoisyDataset(dataloader, 
-                                     args.percentage, 
-                                     args.noise_type)
-        dataloader = DataLoader(noisy_dataset, 
-                                args.batch_size, 
-                                shuffle=False,
-                                num_workers=args.num_workers)
-        trainer = pl.Trainer(accelerator='auto', devices='auto')
-        test_results = trainer.test(model=model, dataloaders=dataloader)
-        print(f'Original accuracy:\t{original_accuracy}\n' \
-              f'Benchmark accuracy:\t{test_results}')
-        file_name = f"accuracy_{args.noise_type}_{args.percentage}.txt"
+        corruptions = [f'{args.noise_type}']
+        x_test, y_test = load_cifar10c(n_examples=5000, corruptions=corruptions, severity=5)
+        noisy_acc = clean_accuracy(model, x_test, y_test)
+        print(f'Standard accuracy: {accuracy}\nCIFAR-10-C accuracy: {noisy_acc:.1%}')
+        
+        file_name = f"accuracy_{args.noise_type}.txt"
         test_results_log = os.path.join(saving_path, file_name)
         print('Result stored in: ' + test_results_log)
         with open(test_results_log, "w") as f:
-            f.write(str(test_results))
+            f.write(str(noisy_acc))
             f.close()
         
-    elif args.metric == 'bitflip':
-        # ---------------------------------------------------------------------------- #
-        #                                   BIT FLIP                                   #
-        # ---------------------------------------------------------------------------- #
-        print(f'Flipped bits: {args.bit_flip}')
-        print('-'*80)
-        bit_flip = BitFlip(model, args.precision, JTAG_layers)
-        bit_flip.flip_bits(number=args.bit_flip) 
-        trainer = pl.Trainer(accelerator='auto', devices='auto')
-        test_results = trainer.test(model=model, dataloaders=dataloader)
-        print(f'Original accuracy:\t{original_accuracy}\n' \
-              f'Benchmark accuracy:\t{test_results}')
-        file_name = f"accuracy_bitflip_{args.bit_flip}.txt"
-        test_results_log = os.path.join(saving_path, file_name)
-        print('Result stored in: ' + test_results_log)
-        with open(test_results_log, "w") as f:
-            f.write(str(test_results))
-            f.close()
-            
     elif args.metric == 'CKA':
         # ---------------------------------------------------------------------------- #
         #                                      CKA                                     #
         # ---------------------------------------------------------------------------- #
-        cka = CKA(model, dataloader, layers=JTAG_layers, max_batches=args.num_batches)
-        cka.compute()
+        cka = CKA(model, dataloader, layers=RN08_layers, max_batches=args.num_batches)
+        cka_list = []
+        # compute the average over all the couples
+        for p in PRECISIONS:
+            for bs in BATCH_SIZES:
+                for lr in LEARNING_RATES:
+                    if bs != args.batch_size and lr != args.learning_rate and p != args.precision:
+                        target_model, _ = rn08.get_model_and_accuracy(args.saving_folder, 
+                                                                      bs, 
+                                                                      lr, 
+                                                                      p)
+                        s = cka.compare_output(target_model, 10)
+                        cka_list.append(s)
+                        
+        # store the result
+        cka.results['CKA_similarity'] = mean(cka_list)
         cka.save_on_file(path=saving_path)
-        # TODO: compute the distance among models
+        print(mean(cka_list))
     elif args.metric == 'neural_efficiency':
         # ---------------------------------------------------------------------------- #
         #                               Neural Efficiency                              #
         # ---------------------------------------------------------------------------- #
         # we have to pass one input per time
-        data_module.batch_size = 1
-        dataloader = data_module.test_dataloader()
-        metric = NeuralEfficiency(model, dataloader, 
-                                  performance=original_accuracy, 
+        _, _, dataloader = rn08.get_cifar10_loaders(args.data_dir, 1)
+        metric = NeuralEfficiency(model, 
+                                  dataloader, 
+                                  performance=accuracy, 
                                   max_batches=args.num_batches,
-                                  target_layers=JTAG_layers)
+                                  target_layers=RN08_layers)
         metric.compute(beta=2)
         metric.save_on_file(path=saving_path)
     elif args.metric == 'fisher':
@@ -131,10 +125,20 @@ def main(args):
         # ---------------------------------------------------------------------------- #
         fisher = FIT(model, 
                      dataloader, 
-                     target_layers=JTAG_layers, 
-                     input_spec=(args.batch_size, 16))
+                     target_layers=RN08_layers,
+                     input_spec=(args.batch_size ,3, 32, 32))
         fisher.EF(min_iterations=100, max_iterations=1000)
         fisher.save_on_file(path=saving_path)
+        
+    elif args.metric == 'plot':
+        # ---------------------------------------------------------------------------- #
+        #                                     Plot                                     #
+        # ---------------------------------------------------------------------------- #
+        plot = Plot(model, dataloader)
+        plot.compute(steps=args.steps, 
+                     distance=args.distance, 
+                     normalization=args.normalization)
+        plot.save_on_file(path=saving_path)
     # ADD NEW METRICS HERE
     else:
         print("Metric not supported yet!")
@@ -145,16 +149,15 @@ def main(args):
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--saving_folder", type=str)
+    parser.add_argument("--data_dir", type=str, default="../../data/RN08")
+    parser.add_argument("--num_workers", type=int, default=0)
     parser.add_argument("--metric", type=str)
     # model
     parser.add_argument("--precision", type=int, default=8)
     parser.add_argument("--learning_rate", type=float, default=0.0015625)
-    parser = JetDataModule.add_argparse_args(parser)
+    parser.add_argument("--batch_size", type=int, default=1024)
     # noise
-    parser.add_argument("--percentage", type=int, default=0)
-    parser.add_argument("--noise_type", type=str, default="gaussian")
-    # bit flip
-    parser.add_argument("--bit_flip", type=int, default=0)
+    parser.add_argument("--noise_type", type=str, default="pixelate")
     # metrics
     parser.add_argument("--num_batches", type=int, default=None)
 
