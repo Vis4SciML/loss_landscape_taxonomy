@@ -104,7 +104,6 @@ do
             python code/test.py --saving_folder $SAVING_FOLDER \
                         --metric noise \
                         --data_dir $DATA_DIR \
-                        --data_file $DATA_FILE \
                         --num_workers $num_workers \
                         --batch_size $batch_size \
                         --learning_rate $learning_rate \
