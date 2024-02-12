@@ -98,7 +98,7 @@ do
 
     case $metric in
         noise)
-            python code/test_encoder.py --saving_folder $SAVING_FOLDER \
+            python code/test.py --saving_folder $SAVING_FOLDER \
                         --metric noise \
                         --data_dir $DATA_DIR \
                         --data_file $DATA_FILE \
@@ -110,7 +110,7 @@ do
                         >/$HOME/log_$i.txt 2>&1 &
             ;;
         CKA)
-            python code/test_encoder.py --saving_folder $SAVING_FOLDER \
+            python code/test.py --saving_folder $SAVING_FOLDER \
                             --metric CKA \
                             --data_dir $DATA_DIR \
                             --num_workers $num_workers \
@@ -121,7 +121,7 @@ do
                             >/$HOME/log_$metric.txt 
             ;;
         neural_efficiency)
-            python code/test_encoder.py --saving_folder $SAVING_FOLDER \
+            python code/test.py --saving_folder $SAVING_FOLDER \
                             --metric neural_efficiency \
                             --data_dir $DATA_DIR \
                             --num_workers $num_workers \
@@ -132,7 +132,7 @@ do
                             >/$HOME/log_$metric.txt 
             ;;
         fisher)
-            python code/test_encoder.py --saving_folder $SAVING_FOLDER \
+            python code/test.py --saving_folder $SAVING_FOLDER \
                             --metric fisher \
                             --data_dir $DATA_DIR \
                             --num_workers $num_workers \
@@ -143,7 +143,7 @@ do
                             >/$HOME/log_$metric.txt
             ;;
         plot)
-            python code/test_encoder.py --saving_folder $SAVING_FOLDER \
+            python code/test.py --saving_folder $SAVING_FOLDER \
                             --metric plot \
                             --data_dir $DATA_DIR \
                             --num_workers $num_workers \
