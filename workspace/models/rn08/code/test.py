@@ -11,6 +11,10 @@ import pytorch_lightning as pl
 
 import rn08
 
+module_path = os.path.abspath(os.path.join('../../common/benchmarks/')) 
+sys.path.insert(0, module_path)
+from noisy_dataset import NoisyDataset
+
 module_path = os.path.abspath(os.path.join('../../common/metrics')) 
 sys.path.insert(0, module_path)
 from CKA import CKA
@@ -73,7 +77,7 @@ def main(args):
         print(f'Noise type:\t{args.noise_type}')
         print('-'*80)
         corruptions = [f'{args.noise_type}']
-        x_test, y_test = load_cifar10c(n_examples=5000, corruptions=corruptions, severity=5)
+        x_test, y_test = load_cifar10c(n_examples=args.num_batches, corruptions=corruptions, severity=5)
         noisy_acc = clean_accuracy(model, x_test, y_test)
         print(f'Standard accuracy: {accuracy}\nCIFAR-10-C accuracy: {noisy_acc:.1%}')
         
@@ -88,6 +92,10 @@ def main(args):
         # ---------------------------------------------------------------------------- #
         #                                      CKA                                     #
         # ---------------------------------------------------------------------------- #
+        # CKA is measured on perturbed training set comprised of mixup samples
+        noisy_dataset = NoisyDataset(dataloader, 2, 'gaussian')
+        dataloader = DataLoader(noisy_dataset, batch_size=1, shuffle=True)
+        
         cka = CKA(model, dataloader, layers=RN08_layers, max_batches=args.num_batches)
         cka_list = []
         # compute the average over all the couples

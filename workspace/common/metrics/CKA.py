@@ -18,10 +18,6 @@ import warnings
 from metric import Metric
 from utils.feature_extractor import FeatureExtractor
 
-module_path = os.path.abspath(os.path.join('../../../common/benchmarks/')) 
-sys.path.insert(0, module_path)
-from noisy_dataset import NoisyDataset
-
 # ---------------------------------------------------------------------------- #
 #                                CKA similarity                                #
 # ---------------------------------------------------------------------------- #
@@ -34,9 +30,6 @@ class CKA(Metric):
         self.max_batches = max_batches
         self.results = {}   # there will be different values
         self.device = 'cpu'
-        # CKA is measured on perturbed training set comprised of mixup samples
-        noisy_dataset = NoisyDataset(data_loader, 2, 'gaussian')
-        self.data_loader = DataLoader(noisy_dataset, batch_size=1, shuffle=True)
         
         if torch.cuda.is_available():
             self.model.cuda()

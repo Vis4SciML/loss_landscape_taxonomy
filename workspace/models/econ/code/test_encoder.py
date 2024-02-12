@@ -115,6 +115,10 @@ def main(args):
         # ---------------------------------------------------------------------------- #
         #                                      CKA                                     #
         # ---------------------------------------------------------------------------- #
+        # CKA is measured on perturbed training set comprised of mixup samples
+        noisy_dataset = NoisyDataset(dataloader, 2, 'gaussian')
+        dataloader = DataLoader(noisy_dataset, batch_size=1, shuffle=True)
+        
         cka = CKA(model, dataloader, layers=ECON_layers, max_batches=args.num_batches)
         cka_list = []
         for p in PRECISIONS:
