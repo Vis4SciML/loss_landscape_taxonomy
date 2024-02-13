@@ -167,7 +167,7 @@ if __name__ == "__main__":
     # noise
     parser.add_argument("--noise_type", type=str, default="pixelate")
     # metrics
-    parser.add_argument("--num_batches", type=int, default=None)
+    parser.add_argument("--num_batches", type=int, default=1000)
     # plot
     parser.add_argument("--steps", type=int, default=200)
     parser.add_argument("--distance", type=int, default=100)

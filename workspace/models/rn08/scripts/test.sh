@@ -108,8 +108,9 @@ do
                         --batch_size $batch_size \
                         --learning_rate $learning_rate \
                         --precision $p \
-                        --noise_type $noise_type #\
-                        #>/$HOME/log_$i.txt 2>&1 &
+                        --num_batches $num_batches \
+                        --noise_type $noise_type \
+                        >/$HOME/log_$i.txt 2>&1 &
             ;;
         CKA)
             python code/test.py --saving_folder $SAVING_FOLDER \
@@ -175,6 +176,6 @@ exit 0
 # . scripts/test.sh \
 #                                         --batch_size 32 \
 #                                         --learning_rate 0.025 \
-#                                         --metric fisher \
+#                                         --metric CKA \
 #                                         --num_batches 10 \
-#                                         --num_workers 12
+#                                         --num_workers 0
