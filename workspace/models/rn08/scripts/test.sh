@@ -109,8 +109,8 @@ do
                         --learning_rate $learning_rate \
                         --precision $p \
                         --num_batches $num_batches \
-                        --noise_type $noise_type \
-                        >/$HOME/log_$i.txt 2>&1 &
+                        --noise_type $noise_type #\
+                        #>/$HOME/log_$i.txt 2>&1 &
             ;;
         CKA)
             python code/test.py --saving_folder $SAVING_FOLDER \
