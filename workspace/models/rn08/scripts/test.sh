@@ -120,8 +120,8 @@ do
                             --batch_size $batch_size \
                             --learning_rate $learning_rate \
                             --precision $p \
-                            --num_batches $num_batches \
-                            >/$HOME/log_$metric.txt 
+                            --num_batches $num_batches #\
+                            #>/$HOME/log_$metric.txt 
             ;;
         neural_efficiency)
             python code/test.py --saving_folder $SAVING_FOLDER \
@@ -154,10 +154,10 @@ do
                             --learning_rate $learning_rate \
                             --precision $p \
                             --num_batches $num_batches \
-                            --steps 300 \
-                            --distance 200 \
-                            --normalization filter \
-                            >/$HOME/log_$metric.txt
+                            --steps 150 \
+                            --distance 100 \
+                            --normalization filter #\
+                            #>/$HOME/log_$metric.txt
             ;;
         # ADD THE NEW METRIC HERE
         *)
