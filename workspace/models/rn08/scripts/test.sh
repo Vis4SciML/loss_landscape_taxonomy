@@ -166,7 +166,6 @@ do
             ;;
     esac
 done
-
 # archive everything and move it in the sahred folder
 tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/RN08_$metric"_bs"$batch_size"_lr"$learning_rate.tar.gz ./
 
@@ -175,7 +174,7 @@ exit 0
 
 # . scripts/test.sh \
 #                                         --batch_size 32 \
-#                                         --learning_rate 0.025 \
-#                                         --metric CKA \
-#                                         --num_batches 10 \
+#                                         --learning_rate 0.003125 \
+#                                         --metric noise \
+#                                         --num_batches 2000 \
 #                                         --num_workers 0
