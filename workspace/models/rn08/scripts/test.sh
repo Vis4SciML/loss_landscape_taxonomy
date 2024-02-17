@@ -131,8 +131,8 @@ do
                             --batch_size $batch_size \
                             --learning_rate $learning_rate \
                             --precision $p \
-                            --num_batches $num_batches \
-                            >/$HOME/log_$metric.txt 
+                            --num_batches $num_batches #\
+                            #>/$HOME/log_$metric.txt 
             ;;
         fisher)
             python code/test.py --saving_folder $SAVING_FOLDER \
@@ -142,8 +142,8 @@ do
                             --batch_size $batch_size \
                             --learning_rate $learning_rate \
                             --precision $p \
-                            --num_batches $num_batches \
-                            >/$HOME/log_$metric.txt
+                            --num_batches $num_batches #\
+                            #>/$HOME/log_$metric.txt
             ;;
         plot)
             python code/test.py --saving_folder $SAVING_FOLDER \
@@ -154,8 +154,8 @@ do
                             --learning_rate $learning_rate \
                             --precision $p \
                             --num_batches $num_batches \
-                            --steps 150 \
-                            --distance 100 \
+                            --steps 100 \
+                            --distance 80 \
                             --normalization filter #\
                             #>/$HOME/log_$metric.txt
             ;;
@@ -175,6 +175,6 @@ exit 0
 # . scripts/test.sh \
 #                                         --batch_size 32 \
 #                                         --learning_rate 0.003125 \
-#                                         --metric noise \
-#                                         --num_batches 2000 \
+#                                         --metric plot \
+#                                         --num_batches 10000 \
 #                                         --num_workers 0

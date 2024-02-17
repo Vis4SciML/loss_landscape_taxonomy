@@ -108,8 +108,12 @@ def main(args):
                                                                       lr, 
                                                                       p)
                         s = cka.compare_output(target_model, 10)
+                        print(s)
                         cka_list.append(s)
                         
+                        # print status
+                        if len(cka_list) % 10 == 0:
+                            print(f"Analysis status:\t{len(cka_list)}/{len(PRECISIONS) * len(BATCH_SIZES) * len(LEARNING_RATES)}")
         # store the result
         cka.results['CKA_similarity'] = mean(cka_list)
         cka.save_on_file(path=saving_path)

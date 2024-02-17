@@ -236,7 +236,7 @@ dependencies:
       - timm==0.9.12
       - torchdiffeq==0.2.3
       - urllib3==1.26.18
-      - git+https://github.com/jicampos/PyHessian.git
+      - git+https://github.com/jicampos/PyHessian.git@hawq
       - git+https://github.com/balditommaso/HAWQ.git@setup-pip
       - git+https://github.com/balditommaso/robustbench.git
 prefix: /opt/conda/envs/loss_landscape

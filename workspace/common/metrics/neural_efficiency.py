@@ -73,6 +73,11 @@ class NeuralEfficiency(Metric):
         counter = 0
         for batch in self.data_loader:
             counter += 1
+            
+            # print status 
+            if counter % 10 == 0:
+                print(f"Analysis status: {counter}/{min(len(self.data_loader), self.max_batches)}")
+                
             # check if there are also the label
             if isinstance(batch, list):
                 batch = batch[0]
