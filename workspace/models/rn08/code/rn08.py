@@ -422,11 +422,10 @@ def get_cifar10_loaders(path, batch_size):
 
 if __name__ == "__main__":
     train_loader, test_loader, _ = get_cifar10_loaders('../../../data/RN08', 1)
-    for batch in train_loader:
-        #image, label = batch
-        print(batch)
-        break
-    # model = RN08(True, [8, 8, 11], 0.001)
+    model = RN08(False, [8, 8, 11], 0.001)
+    print(model)
+    #torchinfo.summary(model, input_size=(1, 3, 32, 32))
+
     # trainer = pl.Trainer(max_epochs=1)  # Adjust max_epochs and gpus according to your setup
 
     # torchinfo.summary(model, input_size=(1, 3, 32, 32))
