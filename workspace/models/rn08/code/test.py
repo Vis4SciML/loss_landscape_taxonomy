@@ -102,18 +102,18 @@ def main(args):
         for p in PRECISIONS:
             for bs in BATCH_SIZES:
                 for lr in LEARNING_RATES:
-                    if bs != args.batch_size and lr != args.learning_rate and p != args.precision:
-                        target_model, _ = rn08.get_model_and_accuracy(args.saving_folder, 
-                                                                      bs, 
-                                                                      lr, 
-                                                                      p)
-                        s = cka.compare_output(target_model, 10)
-                        print(s)
-                        cka_list.append(s)
-                        
-                        # print status
-                        if len(cka_list) % 10 == 0:
-                            print(f"Analysis status:\t{len(cka_list)}/{len(PRECISIONS) * len(BATCH_SIZES) * len(LEARNING_RATES)}")
+                    if bs == args.batch_size and lr == args.learning_rate and p == args.precision:
+                        continue
+                    target_model, _ = rn08.get_model_and_accuracy(args.saving_folder, 
+                                                                  bs, 
+                                                                  lr, 
+                                                                  p)
+                    s = cka.compare_output(target_model, 10)
+                    cka_list.append(s)
+                    
+                    # print status
+                    if len(cka_list) % 10 == 0:
+                        print(f"Analysis status:\t{len(cka_list)}/{len(PRECISIONS) * len(BATCH_SIZES) * len(LEARNING_RATES)}")
         # store the result
         cka.results['CKA_similarity'] = mean(cka_list)
         cka.save_on_file(path=saving_path)

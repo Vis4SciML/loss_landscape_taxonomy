@@ -309,6 +309,7 @@ def get_accuracy(path, batch_size, learning_rate, precision):
         f.close()
     except:
         print(f"File not found! ({accuracy_file})")
+        f.close()
         return -1
     
     return value

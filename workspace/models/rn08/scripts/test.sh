@@ -175,6 +175,6 @@ exit 0
 # . scripts/test.sh \
 #                                         --batch_size 32 \
 #                                         --learning_rate 0.003125 \
-#                                         --metric cka \
+#                                         --metric CKA \
 #                                         --num_batches 10 \
 #                                         --num_workers 0
