@@ -190,7 +190,7 @@ tar -czvf /loss_landscape/$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVIN
 
 exit 0
 
-# . scripts/train.sh --num_workers 8 --bs 1024 --lr 0.00009765625 --max_epochs 100 --size small --top_models 1 --num_test 1
+# . scripts/train.sh --num_workers 8 --bs 1024 --lr 0.0001 --max_epochs 100 --size small --top_models 1 --num_test 1
 
 # python code/train.py \
 #                 --saving_folder "/loss_landscape/checkpoint/different_knobs_subset_10" \
