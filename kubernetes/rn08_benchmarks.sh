@@ -1,20 +1,16 @@
 #!/bin/sh
 
 # Default variable values
-num_workers=8
-max_epochs=50
-top_models=3
-num_test=5
-accelerator="auto"
+num_workers=0
+metric='noise'
+num_batches=50000
 
 # # ranges of the scan 
-batch_sizes=(16 32 64 128 256 512 1024)
-learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
+# batch_sizes=(16 32 64 128 256 512 1024)
+# learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
 
-# batch_sizes=(1024)
-# learning_rates=(0.0015625)
-# precisions=(2 3 4 5 6 7 8 9 10 11)
-
+batch_sizes=(64)
+learning_rates=(0.00625)
 
 # Function to display script usage
 usage() {
@@ -22,10 +18,8 @@ usage() {
     echo "Options:"
     echo " -h, --help          Display this help message"
     echo "--num_workers        Number of workers"
-    echo "--max_epochs         Max number of epochs"
-    echo "--top_models         Number of top models to store"
-    echo "--num_test           Number of time we repeat the computation"
-    echo "--accelerator        Accelerator to use during training [auto, cpu, gpu, tpu]"
+    echo "--metric             Metric of the analysis"
+    echo "--num_batches        Number of batches to test"
 }
 
 has_argument() {
@@ -44,10 +38,10 @@ handle_options() {
                 usage
                 exit 0
                 ;;
-            --max_epochs)
+            --metric)
                 if has_argument $@; then
-                    max_epochs=$(extract_argument $@)
-                    echo "Max number of epochs: $max_epochs"
+                    metric=$(extract_argument $@)
+                    echo "Max number of epochs: $metric"
                     shift
                 fi
                 ;;
@@ -58,24 +52,10 @@ handle_options() {
                     shift
                 fi
                 ;;
-            --accelerator)
+            --num_batches)
                 if has_argument $@; then
-                    accelerator=$(extract_argument $@)
-                    echo "Training accelerator: $accelerator"
-                    shift
-                fi
-                ;;
-            --top_models)
-                if has_argument $@; then
-                    top_models=$(extract_argument $@)
-                    echo "Model to be stores: $top_models"
-                    shift
-                fi
-                ;;
-            --num_test)
-                if has_argument $@; then
-                    num_test=$(extract_argument $@)
-                    echo "Number of test per model: $num_test"
+                    num_batches=$(extract_argument $@)
+                    echo "Training accelerator: $num_batches"
                     shift
                 fi
                 ;;
@@ -95,38 +75,36 @@ metadata:
 spec:
     template:
         spec:
-            restartPolicy: Never
+            restartPolicy: OnFailure
             containers:
               - name: gpu-container
                 image: gitlab-registry.nrp-nautilus.io/prp/jupyter-stack/scipy
                 command: ["/bin/bash","-c"]
-                args: ["git clone https://github.com/balditommaso/loss_landscape_taxonomy.git;
-                        pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu118;
-                        pip3 install tensorboard==2.11.1 torchmetrics torchinfo pytorchcv pytorch_lightning==1.9.0;
-                        pip3 install git+https://github.com/balditommaso/HAWQ.git@setup-pip;
+                args: ["cp /loss_landscape/checkpoint.tar.gz /home/jovyan/;
+                        cd /home/jovyan/;
+                        tar -xf checkpoint.tar.gz;
+                        git clone https://github.com/balditommaso/loss_landscape_taxonomy.git;
                         cd /home/jovyan/loss_landscape_taxonomy;
+                        conda env create -f environment.yml;
+                        source activate loss_landscape;
                         cd /home/jovyan/loss_landscape_taxonomy/workspace/models/rn08/;
-                        . scripts/train.sh \
-                                        --bs $bs \
-                                        --lr $lr \
-                                        --max_epochs $max_epochs \
-                                        --top_models $top_models \
-                                        --num_test $num_test \
-                                        --num_workers $num_workers \
-                                        --accelerator $accelerator;"]
+                        . scripts/test.sh \
+                                        --batch_size $bs \
+                                        --learning_rate $lr \
+                                        --metric $metric \
+                                        --num_batches $num_batches \
+                                        --num_workers $num_workers"]
                 volumeMounts:
                   - mountPath: /loss_landscape
                     name: loss-landscape-volume
                 resources:
                     limits:
-                        nvidia.com/gpu: "1"
                         memory: "128G"
                         cpu: "32"
                     requests:
-                        nvidia.com/gpu: "1"
                         memory: "128G"
                         cpu: "32"
-            restartPolicy: Never
+            restartPolicy: OnFailure
             volumes:
                   - name: loss-landscape-volume
                     persistentVolumeClaim:
@@ -148,16 +126,29 @@ for bs in ${batch_sizes[*]}
 do
     for lr in ${learning_rates[*]}
     do
-        job_name=$(echo "rn08_bs"$bs"_lr$lr" | sed 's/\./_/g')
+        job_name=$(echo "rn08_"$metric"_bs"$bs"_lr$lr" | sed 's/\./_/g' | tr '[:upper:]' '[:lower:]')
         generate_job_yaml $job_name
         start_kubernetes_job
     done    
 done
+
+rm jtag_$metric"*"
 
 echo Jobs started
 exit 0
 
 # END MAIN
 
-# bash rn08_training.sh --num_workers 0 --max_epochs 100 --top_models 3 --num_test 3
+# NoISE
+# bash rn08_benchmarks.sh --num_workers 0 --metric noise --num_batches 1000
+# CKA
+# bash rn08_benchmarks.sh --num_workers 0 --metric CKA --num_batches 10
+# NE
+# bash rn08_benchmarks.sh --num_workers 0 --metric neural_efficiency --num_batches 10000
+# fisher
+# bash rn08_benchmarks.sh --num_workers 0 --metric fisher --num_batches 10000
+# Plot
+# bash rn08_benchmarks.sh --num_workers 0 --metric plot --num_batches 100000
+
+
 
