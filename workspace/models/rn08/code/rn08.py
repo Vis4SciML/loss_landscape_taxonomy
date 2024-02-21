@@ -309,6 +309,7 @@ def get_accuracy(path, batch_size, learning_rate, precision):
         f.close()
     except:
         print(f"File not found! ({accuracy_file})")
+        f.close()
         return -1
     
     return value
@@ -334,10 +335,9 @@ def get_model_and_accuracy(path, batch_size, learning_rate, precision):
         ],
         learning_rate=learning_rate,
     )
-    
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    
-    model(torch.randn((1,3,32,32)))  # Update tensor shapes 
+    model = model.to(device)
+    model(torch.randn((1,3,32,32)).to(device))  # Update tensor shapes 
     try:
         model_param = torch.load(model_file, map_location=device)
         model.load_state_dict(model_param['state_dict'])
@@ -368,7 +368,7 @@ def get_dataloader(path, batch_size):
     
     return test_loader
 
-def get_cifar10_loaders(path, batch_size):
+def get_cifar10_loaders(path, batch_size, noise=False):
     '''
     Utility function to retrieve the train, validation and test
     dataloaders.
@@ -395,6 +395,11 @@ def get_cifar10_loaders(path, batch_size):
                 ])
             )
     
+    # perturbation to the labels 
+    if noise:
+        print("Adding noise to the training data...")
+        train_ds.targets = randomize_labels(torch.tensor(train_ds.targets), portion=0.2)
+    
     total_size = len(test_ds)
     val_size = int(0.5 * total_size)
     test_size = total_size - val_size
@@ -419,6 +424,43 @@ def get_cifar10_loaders(path, batch_size):
                              drop_last=True)
     
     return train_loader, validation_loader, test_loader
+
+
+def randomize_labels(target, portion=0.2):
+    '''
+    Stress test randomizing labels
+    '''
+    num_samples = target.size(0)
+    num_to_randomize = int(num_samples * portion)
+    indices_to_randomize = torch.randperm(num_samples)[:num_to_randomize]
+    randomized_labels = torch.randint_like(target[indices_to_randomize], 0, 10)
+    target[indices_to_randomize] = randomized_labels
+    return target
+
+
+def get_accuracy_with_noise(path, batch_size, learning_rate, precision, noise_type):
+    '''
+    Return the accuracy of the model computed with noisy dataset
+    '''
+    
+    file_path = os.path.join(
+                path,
+                f'bs{batch_size}_lr{learning_rate}/' \
+                f'RN08_{precision}b/accuracy_{noise_type}.txt'
+        )
+    
+    acc = -1
+    try:
+        acc_file = open(file_path)
+        acc_text = acc_file.read()
+        acc = float(acc_text)
+        acc_file.close()
+    except Exception as e:
+        print(f"{file_path} not found!")
+        return -1
+    
+    return acc 
+
 
 if __name__ == "__main__":
     train_loader, test_loader, _ = get_cifar10_loaders('../../../data/RN08', 1)

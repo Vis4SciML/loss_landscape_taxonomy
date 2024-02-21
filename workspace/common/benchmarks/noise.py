@@ -9,6 +9,11 @@ class Noise:
     
     @staticmethod
     def add_random_perturbation(data, percentage, perturbation_range=0.1):
+        if isinstance(data, torch.Tensor):
+            data = data.clone()
+        else:
+            data = data.copy()
+        
         perturbation = np.random.uniform(-perturbation_range, perturbation_range, data.shape)
         noisy_data = data + (percentage / 100) * perturbation
         return noisy_data
@@ -16,6 +21,11 @@ class Noise:
     
     @staticmethod
     def add_gaussian_noise(data, percentage=5, mean=0, std=1):
+        if isinstance(data, torch.Tensor):
+            data = data.clone()
+        else:
+            data = data.copy()
+        
         noise = np.random.normal(mean, std, data.shape)
         noisy_data = data + (percentage / 100) * noise
         return noisy_data
@@ -23,19 +33,30 @@ class Noise:
     
     @staticmethod
     def add_salt_and_pepper_noise(data, percentage=5):
-        noisy_data = data.clone()
+        if isinstance(data, torch.Tensor):
+            data = data.clone().cpu().numpy()
+        elif isinstance(data, np.ndarray):
+            data = data.copy()
+        else:
+            raise ValueError("Unsupported data type. Only PyTorch tensors and NumPy ndarrays are supported.")
         
-        # salt noise
-        salt_mask = np.random.rand(*data.shape) < (percentage / 200)
-        noisy_data[[salt_mask]] = 1.0
+        # Calculate the number of pixels to corrupt
+        num_pixels = data.size * (percentage / 100)
         
-        # pepper noise
-        pepper_mask = np.random.rand(*data.shape) < (percentage / 200)
-        noisy_data[[pepper_mask]] = 0.0
+        # Add salt noise
+        salt_coords = [np.random.randint(0, i, int(num_pixels)) for i in data.shape]
+        data[tuple(salt_coords)] = 1.0
         
-        return noisy_data
+        # Add pepper noise
+        pepper_coords = [np.random.randint(0, i, int(num_pixels)) for i in data.shape]
+        data[tuple(pepper_coords)] = 0.0
+        
+        if isinstance(data, np.ndarray):
+            return data
+        elif isinstance(data, torch.Tensor):
+            return torch.from_numpy(data).to(device=data.device)
     
-    
+
 
 # test 
 if __name__ == "__main__":

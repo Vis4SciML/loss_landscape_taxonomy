@@ -32,6 +32,7 @@ usage() {
     echo "--top_models         Number of top models to store"
     echo "--num_test           Number of time we repeat the computation"
     echo "--accelerator        Accelerator to use during training [auto, cpu, gpu, tpu]"
+    echo "--augmentation       Flag to activate data augmentation with noise dataset"
 }
 
 has_argument() {
@@ -103,6 +104,13 @@ handle_options() {
                     shift
                 fi
                 ;;
+            --augmentation)
+                if has_argument $@; then
+                    augmentation=$(extract_argument $@)
+                    echo "Flag to activate data augmentation: $augmentation"
+                    shift
+                fi
+                ;;
             *)
                 echo "Invalid option: $1" >&2
                 usage
@@ -114,7 +122,11 @@ handle_options() {
 }
 
 run_train() {
-    saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/RN08_"$precision"b/
+    if [ "$augmentation" -eq 1 ]; then
+        saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/RN08_AUG_"$precision"b/
+    else
+        saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/RN08_"$precision"b/
+    fi
     pids=()
     for i in $(eval echo "{1..$num_test}")
     do
@@ -142,7 +154,8 @@ run_train() {
                 --top_models $top_models \
                 --experiment $i \
                 --max_epochs $max_epochs \
-                >/$HOME/log_RN08_$i.txt 2>&1 &
+                --augmentation $augmentation #\
+                #>/$HOME/log_RN08_$i.txt 2>&1 &
 
             pids+=($!)
         fi
@@ -169,13 +182,13 @@ do
     # trainig with various batch sizes
     run_train
 done
-
+return
 # archive everything and move it in the sahred folder
 tar -czvf /loss_landscape/RN08_bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
 
 exit 0
 
-# . scripts/train.sh --num_workers 0 --bs 16 --lr 0.003125 --max_epochs 100 --top_models 3 --num_test 1 --accelerator auto
+# . scripts/train.sh --num_workers 0 --bs 16 --lr 0.003125 --max_epochs 100 --top_models 3 --num_test 1 --accelerator auto --augmentation 1
 
 # python code/train.py \
 #                 --saving_folder "/loss_landscape/checkpoint/different_knobs_subset_10" \

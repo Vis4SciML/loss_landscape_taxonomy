@@ -124,14 +124,16 @@ def main(args):
         for p in PRECISIONS:
             for bs in BATCH_SIZES:
                 for lr in LEARNING_RATES:
-                    if bs != args.batch_size and lr != args.learning_rate and p != args.precision:
-                        target_model, _ = econ.load_model(args.saving_folder, 
-                                                          bs, 
-                                                          lr, 
-                                                          p, 
-                                                          args.size)
-                        s = cka.compare_output(target_model, 10)
-                        cka_list.append(s)
+                    if bs == args.batch_size and lr == args.learning_rate and p == args.precision:
+                        continue
+                    
+                    target_model, _ = econ.load_model(args.saving_folder, 
+                                                      bs, 
+                                                      lr, 
+                                                      p, 
+                                                      args.size)
+                    s = cka.compare_output(target_model, 10)
+                    cka_list.append(s)
         cka.results['CKA_similarity'] = mean(cka_list)
         cka.save_on_file(path=saving_path)
         print(mean(cka_list))

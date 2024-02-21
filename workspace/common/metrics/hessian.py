@@ -9,7 +9,7 @@ import os
 import sys
 import ast
 from statistics import mean
-
+import scipy
 import torch
 import torch.nn as nn
 
@@ -38,14 +38,24 @@ class Hessian(Metric):
         # compute the hessian component
             hessian_comp = hessian(self.model,
                                 criterion=self.model.loss,
-                                data=batch,
-                                #dataloader=self.data_loader,
+                                #data=batch,
+                                dataloader=self.data_loader,
                                 cuda=torch.cuda.is_available())
             break
                 
         trace = hessian_comp.trace(maxIter=100, tol=1e-6)
         
-        print('trace:', mean(trace))
+        eigenvalues, _ = hessian_comp.eigenvalues(maxIter=100, tol=1e-6, top_n=5)
+        
+        
+        print('trace:', sum(trace))
+        print('eigenvalue:', eigenvalues[0])
+        #print('eigenvector:', eigenvector)
+        
+        self.results = {
+            "trace": trace,
+            "eigenvalues": eigenvalues,
+        }
         
         return self.results
     
@@ -58,9 +68,12 @@ DATASET_DIR = '../../../data/RN08'
 
 if __name__ == "__main__":
     # get the datamodule
-    model, _ = rn08.get_model_and_accuracy(DATA_PATH, 128, 0.00625, 8)
-    dataloader = rn08.get_dataloader(DATASET_DIR, 128)
-    metric = Hessian(model, dataloader)
-    
+    model1, _ = rn08.get_model_and_accuracy(DATA_PATH, 16, 0.00625, 8)
+    model2, _ = rn08.get_model_and_accuracy(DATA_PATH, 1024, 0.1, 8)
+    dataloader1 = rn08.get_dataloader(DATASET_DIR, 16)
+    dataloader2 = rn08.get_dataloader(DATASET_DIR, 1024)
+    metric = Hessian(model1, dataloader1)
+    metric.compute()
+    metric = Hessian(model2, dataloader2)
     metric.compute()
     

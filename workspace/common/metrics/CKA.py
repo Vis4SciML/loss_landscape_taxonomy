@@ -172,7 +172,7 @@ class CKA(Metric):
         self.results['compared_cka'] = mean_hsic
         return self.results
     
-    def compare_output(self, model, num_outputs=5, num_runs=5):
+    def compare_output(self, model, num_outputs=10, num_runs=1):
         '''
         Compare the CKA similarity between the outputs of two models
         '''

@@ -185,7 +185,6 @@ DATASET_PATH = "../../../data/RN08"
 if __name__ == "__main__":
     model, acc = rn08.get_model_and_accuracy(DATA_PATH, 64, 0.0015625, 11)
     dataloader = rn08.get_dataloader(DATASET_PATH, 1)
-    print(f'accuracy: {acc}')
     layers = [
         'model.conv1', 
         'model.QBlocks.0.conv1', 
