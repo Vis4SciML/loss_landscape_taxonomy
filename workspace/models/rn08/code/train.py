@@ -15,7 +15,8 @@ def main(args):
     #                           Download and process data                          #
     # ---------------------------------------------------------------------------- #
     train_loader, val_loader, test_loader = rn08.get_cifar10_loaders(args.data_dir, 
-                                                                     args.batch_size)
+                                                                     args.batch_size,
+                                                                     noise=args.augmentation)
     # ---------------------------------------------------------------------------- #
     #                                Lightning model                               #
     # ---------------------------------------------------------------------------- #
@@ -123,6 +124,7 @@ if __name__ == "__main__":
         default="auto"
     )
     parser.add_argument("--num_workers", type=int, default=8)
+    parser.add_argument("--augmentation", type=int, default=0)
     
 
     # NOTE: do not activate during real training, just for debugging

@@ -21,7 +21,6 @@ learning_rate=0.0015625
 # batch_sizes=(16 32 64 128 256 512 1024)
 # learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
 precisions=(2 3 4 5 6 7 8 9 10 11)
-
 # Function to display script usage
 usage() {
     echo "Usage: $0 [OPTIONS]"
@@ -36,6 +35,8 @@ usage() {
     echo "--num_test           Number of time we repeat the computation"
     echo "--accelerator        Accelerator to use during training [auto, cpu, gpu, tpu]"
     echo "--no_train            Flag which specify if the model need to be train"
+    echo "--augmentation        Flag to indicate to add noisy dataset into the training"
+
 }
 
 has_argument() {
@@ -103,14 +104,21 @@ handle_options() {
             --bs)
                 if has_argument $@; then
                     batch_size=$(extract_argument $@)
-                    echo "Number of test per model: $batch_size"
+                    echo "batch size: $batch_size"
                     shift
                 fi
                 ;;
             --lr)
                 if has_argument $@; then
                     learning_rate=$(extract_argument $@)
-                    echo "Number of test per model: $learning_rate"
+                    echo "learning rate: $learning_rate"
+                    shift
+                fi
+                ;;
+            --augmentation)
+                if has_argument $@; then
+                    augmentation=$(extract_argument $@)
+                    echo "Add noise dataset to the training: $augmentation"
                     shift
                 fi
                 ;;
@@ -125,7 +133,11 @@ handle_options() {
 }
 
 run_train() {
-    saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/ECON_"$precision"b/
+    if [ "$augmentation" -eq 1 ]; then
+        saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/ECON_AUG_"$precision"b/
+    else
+        saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/ECON_"$precision"b/
+    fi
     pids=()
     for i in $(eval echo "{1..$num_test}")
     do
@@ -155,6 +167,7 @@ run_train() {
                 --top_models $top_models \
                 --experiment $i \
                 --max_epochs $max_epochs \
+                --augmentation $augmentation \
                 >/$HOME/log_ECON_$i.txt 2>&1 &
 
             pids+=($!)
@@ -190,7 +203,7 @@ tar -czvf /loss_landscape/$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVIN
 
 exit 0
 
-# . scripts/train.sh --num_workers 8 --bs 1024 --lr 0.0001 --max_epochs 100 --size small --top_models 1 --num_test 1
+# . scripts/train.sh --num_workers 8 --bs 1024 --lr 0.0001 --max_epochs 100 --size small --top_models 1 --num_test 1 --augmentation 1
 
 # python code/train.py \
 #                 --saving_folder "/loss_landscape/checkpoint/different_knobs_subset_10" \

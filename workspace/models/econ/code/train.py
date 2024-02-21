@@ -93,7 +93,11 @@ def main(args):
     # 4 EVALUTE MODEL
     # ------------------------
     # load the model from file
-    checkpoint_file = os.path.join(args.saving_folder, args.size, f'net_{args.experiment}_best.pkl')
+    checkpoint_file = os.path.join(
+        args.saving_folder, 
+        args.size, 
+        f'net_{args.experiment}_best.pkl'
+    )        
     print('Loading checkpoint...', checkpoint_file)
     checkpoint = torch.load(checkpoint_file)  
     model.load_state_dict(checkpoint['state_dict'])
