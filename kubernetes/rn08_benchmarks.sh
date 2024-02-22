@@ -6,11 +6,11 @@ metric='noise'
 num_batches=50000
 
 # # ranges of the scan 
-# batch_sizes=(16 32 64 128 256 512 1024)
-# learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
+batch_sizes=(16 32 64 128 256 512 1024)
+learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
 
-batch_sizes=(16)
-learning_rates=(0.0125)
+# batch_sizes=(16)
+# learning_rates=(0.0125)
 
 # Function to display script usage
 usage() {
@@ -100,10 +100,10 @@ spec:
                 resources:
                     limits:
                         memory: "4G"
-                        cpu: "2"
+                        cpu: "1"
                     requests:
-                        memory: "4G"
-                        cpu: "2"
+                        memory: "2G"
+                        cpu: "1"
             restartPolicy: OnFailure
             volumes:
                   - name: loss-landscape-volume
@@ -149,6 +149,8 @@ exit 0
 # bash rn08_benchmarks.sh --num_workers 0 --metric fisher --num_batches 10000
 # Plot
 # bash rn08_benchmarks.sh --num_workers 0 --metric plot --num_batches 100000
+# Hessian
+# bash rn08_benchmarks.sh --num_workers 0 --metric hessian --num_batches 10000
 
 
 

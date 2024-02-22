@@ -108,7 +108,7 @@ def main(args):
                                                               bs, 
                                                               lr, 
                                                               args.precision)
-                s = cka.compare_output(target_model, 10)
+                s = cka.compare_output(target_model, 10, 3)
                 cka_list.append(s)
                 
                 # print status

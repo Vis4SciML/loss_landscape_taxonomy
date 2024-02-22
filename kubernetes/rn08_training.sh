@@ -131,12 +131,12 @@ spec:
                 resources:
                     limits:
                         nvidia.com/gpu: "1"
-                        memory: "8G"
+                        memory: "6G"
                         cpu: "4"
                     requests:
                         nvidia.com/gpu: "1"
-                        memory: "8G"
-                        cpu: "4"
+                        memory: "4G"
+                        cpu: "2"
             restartPolicy: Never
             volumes:
                   - name: loss-landscape-volume

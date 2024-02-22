@@ -133,7 +133,7 @@ def main(args):
                                                       lr, 
                                                       p, 
                                                       args.size)
-                    s = cka.compare_output(target_model, 10)
+                    s = cka.compare_output(target_model, 10, 3)
                     cka_list.append(s)
         cka.results['CKA_similarity'] = mean(cka_list)
         cka.save_on_file(path=saving_path)
