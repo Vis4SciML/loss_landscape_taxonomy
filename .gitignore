@@ -166,7 +166,7 @@ cython_debug/
 # bash_scripts/
 
 # data files 
-
+data/
 *.npy
 #*yml
 
