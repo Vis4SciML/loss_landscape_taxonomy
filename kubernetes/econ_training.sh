@@ -121,7 +121,7 @@ spec:
                         pip3 install tensorboard==2.11.1 torchmetrics torchinfo pytorchcv pytorch_lightning==1.9.0 pyemd pandas pot;
                         pip3 install git+https://github.com/balditommaso/HAWQ.git@setup-pip;
                         . /home/jovyan/loss_landscape_taxonomy/workspace/models/econ/scripts/get_econ_data.sh;
-                        cp -r /loss_landscape/ECON /home/jovyan/loss_landscape_taxonomy/data/
+                        cp -r /loss_landscape/ECON /home/jovyan/loss_landscape_taxonomy/data/;
                         cd /home/jovyan/loss_landscape_taxonomy/workspace/models/econ/;
                         . scripts/train.sh \
                                         --bs $bs \
