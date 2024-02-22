@@ -154,8 +154,8 @@ run_train() {
                 --top_models $top_models \
                 --experiment $i \
                 --max_epochs $max_epochs \
-                --augmentation $augmentation #\
-                #>/$HOME/log_RN08_$i.txt 2>&1 &
+                --augmentation $augmentation \
+                >/$HOME/log_RN08_$i.txt 2>&1 &
 
             pids+=($!)
         fi
