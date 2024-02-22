@@ -13,6 +13,7 @@ size="baseline"
 top_models=3
 num_test=3
 accelerator="auto"
+augmentation=0
 
 # # ranges of the scan 
 # batch_sizes=(16 32 64 128 256 512 1024)
@@ -33,6 +34,7 @@ usage() {
     echo "--top_models         Number of top models to store"
     echo "--num_test           Number of time we repeat the computation"
     echo "--accelerator        Accelerator to use during training [auto, cpu, gpu, tpu]"
+    echo "--augmentation       Flag to add noise dataset to the dataset"
 }
 
 has_argument() {
@@ -93,6 +95,13 @@ handle_options() {
                     shift
                 fi
                 ;;
+            --augmentation)
+                if has_argument $@; then
+                    augmentation=$(extract_argument $@)
+                    echo "Flag augmentation: $augmentation"
+                    shift
+                fi
+                ;;
         esac
         shift
     done
@@ -131,6 +140,7 @@ spec:
                                         --top_models $top_models \
                                         --num_test $num_test \
                                         --num_workers $num_workers \
+                                        --augmentation $augmentation \
                                         --accelerator $accelerator;"]
                 volumeMounts:
                   - mountPath: /loss_landscape
@@ -180,6 +190,6 @@ exit 0
 # SMALL
 # bash econ_training.sh --num_workers 8 --max_epochs 25 --size small --top_models 3 --num_test 3
 # BASELINE
-# bash econ_training.sh --num_workers 8 --max_epochs 25 --size baseline --top_models 3 --num_test 3
+# bash econ_training.sh --num_workers 8 --max_epochs 25 --size baseline --top_models 3 --num_test 3 --augmentation 0
 # LARGE
 # bash econ_training.sh --num_workers 8 --max_epochs 25 --size large --top_models 3 --num_test 3
