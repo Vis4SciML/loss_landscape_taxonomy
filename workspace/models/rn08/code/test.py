@@ -21,6 +21,7 @@ from CKA import CKA
 from neural_efficiency import NeuralEfficiency
 from fisher import FIT
 from plot import Plot
+from hessian import Hessian
 
 
 RN08_layers = layers = [
@@ -99,21 +100,20 @@ def main(args):
         cka = CKA(model, dataloader, layers=RN08_layers, max_batches=args.num_batches)
         cka_list = []
         # compute the average over all the couples
-        for p in PRECISIONS:
-            for bs in BATCH_SIZES:
-                for lr in LEARNING_RATES:
-                    if bs == args.batch_size and lr == args.learning_rate and p == args.precision:
-                        continue
-                    target_model, _ = rn08.get_model_and_accuracy(args.saving_folder, 
-                                                                  bs, 
-                                                                  lr, 
-                                                                  p)
-                    s = cka.compare_output(target_model, 10)
-                    cka_list.append(s)
-                    
-                    # print status
-                    if len(cka_list) % 10 == 0:
-                        print(f"Analysis status:\t{len(cka_list)}/{len(PRECISIONS) * len(BATCH_SIZES) * len(LEARNING_RATES)}")
+        for bs in BATCH_SIZES:
+            for lr in LEARNING_RATES:
+                if bs == args.batch_size and lr == args.learning_rate:
+                    continue
+                target_model, _ = rn08.get_model_and_accuracy(args.saving_folder, 
+                                                              bs, 
+                                                              lr, 
+                                                              args.precision)
+                s = cka.compare_output(target_model, 10)
+                cka_list.append(s)
+                
+                # print status
+                if len(cka_list) % 10 == 0:
+                    print(f"Analysis status:\t{len(cka_list)}/{len(BATCH_SIZES) * len(LEARNING_RATES)}")
         # store the result
         cka.results['CKA_similarity'] = mean(cka_list)
         cka.save_on_file(path=saving_path)
@@ -151,6 +151,16 @@ def main(args):
                      distance=args.distance, 
                      normalization=args.normalization)
         plot.save_on_file(path=saving_path)
+        
+    elif args.metric == 'hessian':
+        # ---------------------------------------------------------------------------- #
+        #                                    Hessian                                   #
+        # ---------------------------------------------------------------------------- #
+        _, _, dataloader = rn08.get_cifar10_loaders(args.data_dir, 256)
+        hessian = Hessian(model, dataloader)
+        hessian.compute()
+        hessian.save_on_file(path=saving_path)
+        
     # ADD NEW METRICS HERE
     else:
         print("Metric not supported yet!")

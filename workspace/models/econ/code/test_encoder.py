@@ -24,6 +24,7 @@ from CKA import CKA
 from neural_efficiency import NeuralEfficiency
 from fisher import FIT
 from plot import Plot
+from hessian import Hessian
 
 ECON_layers = ['encoder.conv', 'encoder.enc_dense']
 PRECISIONS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
@@ -170,6 +171,15 @@ def main(args):
                      distance=args.distance, 
                      normalization=args.normalization)
         plot.save_on_file(path=saving_path)
+    elif args.metric == 'hessian':
+        # ---------------------------------------------------------------------------- #
+        #                                    Hessian                                   #
+        # ---------------------------------------------------------------------------- #
+        data_module.batch_size = 256
+        dataloader = data_module.test_dataloader()
+        hessian = Hessian(model, dataloader)
+        hessian.compute()
+        hessian.save_on_file(path=saving_path)
     # ADD NEW METRICS HERE
     else:
         print("Metric not supported yet!")

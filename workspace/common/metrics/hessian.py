@@ -34,15 +34,13 @@ class Hessian(Metric):
         print("Computing the hessian metrics...")
         
         hessian_comp = None
-        for batch in self.data_loader:
-        # compute the hessian component
-            hessian_comp = hessian(self.model,
-                                criterion=self.model.loss,
-                                #data=batch,
-                                dataloader=self.data_loader,
-                                cuda=torch.cuda.is_available())
-            break
-                
+
+        hessian_comp = hessian(self.model,
+                            criterion=self.model.loss,
+                            #data=batch,
+                            dataloader=self.data_loader,
+                            cuda=torch.cuda.is_available())
+            
         trace = hessian_comp.trace(maxIter=100, tol=1e-6)
         
         eigenvalues, _ = hessian_comp.eigenvalues(maxIter=100, tol=1e-6, top_n=5)

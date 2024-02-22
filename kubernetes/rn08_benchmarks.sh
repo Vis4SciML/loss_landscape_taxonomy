@@ -9,8 +9,8 @@ num_batches=50000
 # batch_sizes=(16 32 64 128 256 512 1024)
 # learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
 
-batch_sizes=(64)
-learning_rates=(0.00625)
+batch_sizes=(16)
+learning_rates=(0.0125)
 
 # Function to display script usage
 usage() {
@@ -99,11 +99,11 @@ spec:
                     name: loss-landscape-volume
                 resources:
                     limits:
-                        memory: "128G"
-                        cpu: "32"
+                        memory: "4G"
+                        cpu: "2"
                     requests:
-                        memory: "128G"
-                        cpu: "32"
+                        memory: "4G"
+                        cpu: "2"
             restartPolicy: OnFailure
             volumes:
                   - name: loss-landscape-volume

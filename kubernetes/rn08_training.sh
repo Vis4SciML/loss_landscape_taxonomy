@@ -6,13 +6,14 @@ max_epochs=50
 top_models=3
 num_test=5
 accelerator="auto"
+augmentation=0
 
 # # ranges of the scan 
-batch_sizes=(16 32 64 128 256 512 1024)
-learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
+# batch_sizes=(16 32 64 128 256 512 1024)
+batch_sizes=(16)
+# learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
 
-# batch_sizes=(1024)
-# learning_rates=(0.0015625)
+learning_rates=(0.025 0.0125 0.00625 0.003125 0.0015625)
 # precisions=(2 3 4 5 6 7 8 9 10 11)
 
 
@@ -26,7 +27,9 @@ usage() {
     echo "--top_models         Number of top models to store"
     echo "--num_test           Number of time we repeat the computation"
     echo "--accelerator        Accelerator to use during training [auto, cpu, gpu, tpu]"
+    echo "--augmentation       Flag to add noisy data in the training"
 }
+
 
 has_argument() {
     [[ ("$1" == *=* && -n ${1#*=}) || ( ! -z "$2" && "$2" != -*)  ]];
@@ -79,6 +82,13 @@ handle_options() {
                     shift
                 fi
                 ;;
+            --augmentation)
+                if has_argument $@; then
+                    augmentation=$(extract_argument $@)
+                    echo "Number of test per model: $augmentation"
+                    shift
+                fi
+                ;;
         esac
         shift
     done
@@ -113,6 +123,7 @@ spec:
                                         --top_models $top_models \
                                         --num_test $num_test \
                                         --num_workers $num_workers \
+                                        --augmentation $augmentation \
                                         --accelerator $accelerator;"]
                 volumeMounts:
                   - mountPath: /loss_landscape
@@ -120,12 +131,12 @@ spec:
                 resources:
                     limits:
                         nvidia.com/gpu: "1"
-                        memory: "128G"
-                        cpu: "32"
+                        memory: "8G"
+                        cpu: "4"
                     requests:
                         nvidia.com/gpu: "1"
-                        memory: "128G"
-                        cpu: "32"
+                        memory: "8G"
+                        cpu: "4"
             restartPolicy: Never
             volumes:
                   - name: loss-landscape-volume
@@ -159,5 +170,5 @@ exit 0
 
 # END MAIN
 
-# bash rn08_training.sh --num_workers 0 --max_epochs 100 --top_models 3 --num_test 3
+# bash rn08_training.sh --num_workers 0 --max_epochs 100 --top_models 3 --num_test 3 --augmentation 0
 
