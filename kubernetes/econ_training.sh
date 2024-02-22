@@ -15,10 +15,11 @@ num_test=3
 accelerator="auto"
 
 # # ranges of the scan 
-batch_sizes=(16 32 64 128 256 512 1024)
+# batch_sizes=(16 32 64 128 256 512 1024)
+batch_sizes=(16)
 
 # learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
-learning_rates=(0.0001 0.00001 0.000001 0.0000001)
+learning_rates=(0.0001 0.000001)
 # precisions=(2 3 4 5 6 7 8 9 10 11)
 
 # Function to display script usage
@@ -120,6 +121,7 @@ spec:
                         pip3 install tensorboard==2.11.1 torchmetrics torchinfo pytorchcv pytorch_lightning==1.9.0 pyemd pandas pot;
                         pip3 install git+https://github.com/balditommaso/HAWQ.git@setup-pip;
                         . /home/jovyan/loss_landscape_taxonomy/workspace/models/econ/scripts/get_econ_data.sh;
+                        cp -r /loss_landscape/ECON /home/jovyan/loss_landscape_taxonomy/data/
                         cd /home/jovyan/loss_landscape_taxonomy/workspace/models/econ/;
                         . scripts/train.sh \
                                         --bs $bs \
@@ -136,12 +138,12 @@ spec:
                 resources:
                     limits:
                         nvidia.com/gpu: "1"
-                        memory: "128G"
-                        cpu: "32"
+                        memory: "8G"
+                        cpu: "2"
                     requests:
                         nvidia.com/gpu: "1"
-                        memory: "128G"
-                        cpu: "32"
+                        memory: "8G"
+                        cpu: "2"
             restartPolicy: Never
             volumes:
                   - name: loss-landscape-volume

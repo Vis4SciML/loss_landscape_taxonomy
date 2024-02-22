@@ -18,9 +18,9 @@ spec:
       name: loss-landscape-volume
     resources:
       limits:
-        nvidia.com/gpu: "1"
-        memory: "64G"
-        cpu: "32"
+        # nvidia.com/gpu: "1"
+        memory: "8G"
+        cpu: "4"
   restartPolicy: OnFailure
   volumes:
     - name: loss-landscape-volume
