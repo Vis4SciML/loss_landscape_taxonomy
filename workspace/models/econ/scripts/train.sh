@@ -16,6 +16,7 @@ num_test=3
 accelerator="auto"
 batch_size=8
 learning_rate=0.0015625
+augmentation=0
 
 # ranges of the scan 
 # batch_sizes=(16 32 64 128 256 512 1024)
