@@ -122,19 +122,21 @@ def main(args):
         
         cka = CKA(model, dataloader, layers=ECON_layers, max_batches=args.num_batches)
         cka_list = []
-        for p in PRECISIONS:
-            for bs in BATCH_SIZES:
-                for lr in LEARNING_RATES:
-                    if bs == args.batch_size and lr == args.learning_rate and p == args.precision:
-                        continue
-                    
+        for bs in BATCH_SIZES:
+            for lr in LEARNING_RATES:
+                if bs == args.batch_size and lr == args.learning_rate:
+                    continue
+                try:
                     target_model, _ = econ.load_model(args.saving_folder, 
-                                                      bs, 
-                                                      lr, 
-                                                      p, 
-                                                      args.size)
-                    s = cka.compare_output(target_model, 10, 3)
+                                                    bs, 
+                                                    lr, 
+                                                    args.precision, 
+                                                    args.size)
+                    s = cka.compare_output(target_model, 10, 1)
                     cka_list.append(s)
+                except:
+                    warnings.warn(f"Problems computing CKA similarity with ECON_bs{bs}_lr{lr}")
+        
         cka.results['CKA_similarity'] = mean(cka_list)
         cka.save_on_file(path=saving_path)
         print(mean(cka_list))

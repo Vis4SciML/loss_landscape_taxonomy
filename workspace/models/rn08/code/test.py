@@ -8,6 +8,7 @@ from robustbench.utils import clean_accuracy
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 import pytorch_lightning as pl 
+import warnings
 
 import rn08
 
@@ -104,12 +105,15 @@ def main(args):
             for lr in LEARNING_RATES:
                 if bs == args.batch_size and lr == args.learning_rate:
                     continue
-                target_model, _ = rn08.get_model_and_accuracy(args.saving_folder, 
-                                                              bs, 
-                                                              lr, 
-                                                              args.precision)
-                s = cka.compare_output(target_model, 10, 3)
-                cka_list.append(s)
+                try:
+                    target_model, _ = rn08.get_model_and_accuracy(args.saving_folder, 
+                                                                bs, 
+                                                                lr, 
+                                                                args.precision)
+                    s = cka.compare_output(target_model, 10, 1)
+                    cka_list.append(s)
+                except:
+                    warnings.warn(f"Problems computing CKA similarity with RN08_bs{bs}_lr{lr}")
                 
                 # print status
                 if len(cka_list) % 10 == 0:
