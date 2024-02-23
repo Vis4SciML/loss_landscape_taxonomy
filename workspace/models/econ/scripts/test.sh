@@ -218,6 +218,19 @@ do
                             --normalization filter \
                             >/$HOME/log_$metric.txt
             ;;
+        hessian)
+            python code/test_encoder.py --saving_folder $SAVING_FOLDER \
+                            --metric hessian \
+                            --data_dir $DATA_DIR \
+                            --data_file $DATA_FILE \
+                            --num_workers $num_workers \
+                            --batch_size $batch_size \
+                            --learning_rate $learning_rate \
+                            --size $size \
+                            --precision $p \
+                            --num_batches $num_batches 
+                            #>/$HOME/log_$metric.txt
+            ;;
         # ADD THE NEW METRIC HERE
         *)
             echo $metric not implemented yet!
