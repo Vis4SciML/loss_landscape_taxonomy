@@ -1,6 +1,7 @@
 
 import os
 import ast
+import warnings
 from itertools import starmap
 from statistics import mean
 from utils_pt import unnormalize, emd 
@@ -414,8 +415,8 @@ def get_model_index_and_relative_EMD(path, batch_size, learning_rate, precision,
             continue
         
     if len(EMDs) == 0:
-        # warnings.warn(f"Attention: There is no EMD value for the model: " \
-        #               f"bs{batch_size}_lr{learning_rate}/ECON_{precision}b/{size}")
+        warnings.warn(f"Attention: There is no EMD value for the model: " \
+                      f"bs{batch_size}_lr{learning_rate}/ECON_{precision}b/{size}")
         return
     
     return mean(EMDs), min_emd_index

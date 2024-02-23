@@ -12,12 +12,6 @@ import scipy
 from metric import Metric
 from utils.feature_extractor import FeatureExtractor
 
-module_path = os.path.abspath(os.path.join('../../../workspace/models/jets/code/')) # or the path to your source code
-sys.path.insert(0, module_path)
-from model import JetTagger
-from jet_datamodule import JetDataModule
-
-
 # ---------------------------------------------------------------------------- #
 #                                 Fisher metric                                #
 # ---------------------------------------------------------------------------- #
