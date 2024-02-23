@@ -1,8 +1,8 @@
 #!/bin/bash
 
 
-SAVING_FOLDER="/home/jovyan/checkpoint/"    # /loss_landscape -> shared volume
-#SAVING_FOLDER="/data/tbaldi/work/checkpoint/"
+#SAVING_FOLDER="/home/jovyan/checkpoint/"    # /loss_landscape -> shared volume
+SAVING_FOLDER="/data/tbaldi/work/checkpoint/"
 DATA_DIR="../../../data/RN08"
 
 # Default variable values

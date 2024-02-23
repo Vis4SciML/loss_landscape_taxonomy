@@ -9,12 +9,19 @@ do
     for lr in ${learning_rates[*]}
     do
         echo "********************************"
-        ./scripts/test.sh \
-                                        --batch_size $bs \
-                                        --learning_rate $lr \
-                                        --metric noise \
-                                        --num_batches 2000 \
+        # /data/tbaldi/work/checkpoint/bs16_lr0.05/RN08_2b/accuracy_pixelate.txt
+        file_path="/data/tbaldi/work/checkpoint/"$bs"_lr"$lr"/RN08_"$p"b/accuracy_pixelate.txt"
+        # Check if the file exists
+        if [ -f "$file_path" ]; then
+            echo "File exists: $file_path"
+        else
+            ./scripts/test.sh \
+                                        --batch_size 512 \
+                                        --learning_rate 0.00625 \
+                                        --metric CKA \
+                                        --num_batches 10 \
                                         --num_workers 0
+        fi
     done
 done
 
