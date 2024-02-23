@@ -110,11 +110,11 @@ spec:
                     name: loss-landscape-volume
                 resources:
                     limits:
-                        memory: "128G"
-                        cpu: "32"
+                        memory: "3G"
+                        cpu: "2"
                     requests:
-                        memory: "128G"
-                        cpu: "32"
+                        memory: "3G"
+                        cpu: "2"
             restartPolicy: Never
             volumes:
                   - name: loss-landscape-volume
@@ -162,17 +162,19 @@ exit 0
 
 # BASELINE
     # NoISE
-    # bash econ_benchmarks.sh --size baseline --num_workers 12 --metric noise --num_batches 1000000
+    # bash econ_benchmarks.sh --size baseline --num_workers 2 --metric noise --num_batches 1000000
     # BIT FLIP
-    # bash econ_benchmarks.sh --size baseline --num_workers 12 --metric bitflip --num_batches 1000000
+    # bash econ_benchmarks.sh --size baseline --num_workers 2 --metric bitflip --num_batches 1000000
     # CKA
-    # bash econ_benchmarks.sh --size baseline --num_workers 12 --metric CKA --num_batches 100000
+    # bash econ_benchmarks.sh --size baseline --num_workers 2 --metric CKA --num_batches 100000
     # NE
-    # bash econ_benchmarks.sh --size baseline --num_workers 12 --metric neural_efficiency --num_batches 100000
+    # bash econ_benchmarks.sh --size baseline --num_workers 2 --metric neural_efficiency --num_batches 100000
     # fisher
-    # bash econ_benchmarks.sh --size baseline --num_workers 12 --metric fisher --num_batches 100000
+    # bash econ_benchmarks.sh --size baseline --num_workers 2 --metric fisher --num_batches 100000
     # plot
-    # bash econ_benchmarks.sh --size baseline --num_workers 12 --metric plot --num_batches 100000
+    # bash econ_benchmarks.sh --size baseline --num_workers 2 --metric plot --num_batches 100000
+    # hessian
+    # bash econ_benchmarks.sh --size baseline --num_workers 2 --metric hessian --num_batches 10000
 
 
 # LARGE

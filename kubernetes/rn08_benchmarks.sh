@@ -6,10 +6,10 @@ metric='noise'
 num_batches=50000
 
 # # ranges of the scan 
-batch_sizes=(16 32 64 128 256 512 1024)
+#batch_sizes=(16 32 64 128 256 512 1024)
 learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
 
-# batch_sizes=(16)
+batch_sizes=(16)
 # learning_rates=(0.0125)
 
 # Function to display script usage
@@ -75,7 +75,7 @@ metadata:
 spec:
     template:
         spec:
-            restartPolicy: OnFailure
+            restartPolicy: Never
             containers:
               - name: gpu-container
                 image: gitlab-registry.nrp-nautilus.io/prp/jupyter-stack/scipy
@@ -87,6 +87,7 @@ spec:
                         cd /home/jovyan/loss_landscape_taxonomy;
                         conda env create -f environment.yml;
                         source activate loss_landscape;
+                        cp -r /loss_landscape/RN08 /home/jovyan/loss_landscape_taxonomy/data/;
                         cd /home/jovyan/loss_landscape_taxonomy/workspace/models/rn08/;
                         . scripts/test.sh \
                                         --batch_size $bs \
@@ -100,11 +101,11 @@ spec:
                 resources:
                     limits:
                         memory: "4G"
-                        cpu: "1"
+                        cpu: "3"
                     requests:
-                        memory: "2G"
-                        cpu: "1"
-            restartPolicy: OnFailure
+                        memory: "4G"
+                        cpu: "2"
+            restartPolicy: Never
             volumes:
                   - name: loss-landscape-volume
                     persistentVolumeClaim:
@@ -150,7 +151,7 @@ exit 0
 # Plot
 # bash rn08_benchmarks.sh --num_workers 0 --metric plot --num_batches 100000
 # Hessian
-# bash rn08_benchmarks.sh --num_workers 0 --metric hessian --num_batches 10000
+# bash rn08_benchmarks.sh --num_workers 0 --metric hessian --num_batches 1000
 
 
 

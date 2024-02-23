@@ -114,7 +114,7 @@ spec:
                         pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu118;
                         pip3 install tensorboard==2.11.1 torchmetrics torchinfo pytorchcv pytorch_lightning==1.9.0;
                         pip3 install git+https://github.com/balditommaso/HAWQ.git@setup-pip;
-                        cd /home/jovyan/loss_landscape_taxonomy;
+                        cp -r /loss_landscape/RN08 /home/jovyan/loss_landscape_taxonomy/data/;
                         cd /home/jovyan/loss_landscape_taxonomy/workspace/models/rn08/;
                         . scripts/train.sh \
                                         --bs $bs \
@@ -131,11 +131,11 @@ spec:
                 resources:
                     limits:
                         nvidia.com/gpu: "1"
-                        memory: "6G"
+                        memory: "4G"
                         cpu: "4"
                     requests:
                         nvidia.com/gpu: "1"
-                        memory: "4G"
+                        memory: "2G"
                         cpu: "2"
             restartPolicy: Never
             volumes:
