@@ -12,8 +12,8 @@ do
         ./scripts/test.sh \
                                         --batch_size $bs \
                                         --learning_rate $lr \
-                                        --metric CKA \
-                                        --num_batches 1000 \
+                                        --metric noise \
+                                        --num_batches 2000 \
                                         --num_workers 0
     done
 done

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 
-#SAVING_FOLDER="/home/jovyan/checkpoint/"    # /loss_landscape -> shared volume
-SAVING_FOLDER="/data/tbaldi/work/checkpoint/"
+SAVING_FOLDER="/home/jovyan/checkpoint/"    # /loss_landscape -> shared volume
+#SAVING_FOLDER="/data/tbaldi/work/checkpoint/"
 DATA_DIR="../../../data/RN08"
 
 # Default variable values
@@ -187,6 +187,6 @@ exit 0
 # . scripts/test.sh \
 #                                         --batch_size 16 \
 #                                         --learning_rate 0.0125 \
-#                                         --metric fisher \
-#                                         --num_batches 1000 \
+#                                         --metric hessian \
+#                                         --num_batches 10000 \
 #                                         --num_workers 0
