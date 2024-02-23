@@ -1,5 +1,9 @@
 import torch
+from torchvision import transforms
 
+import numpy as np
+import os
+import sys
 
 # test
 module_path = os.path.abspath(os.path.join('../../../workspace/models/rn08/code/')) # or the path to your source code
@@ -71,3 +75,65 @@ class FSGM:
         print(f"Epsilon: {epsilon}\tTest Accuracy = {final_acc}")
         
         return final_acc, adv_example
+    
+    
+DATA_PATH = "/data/tbaldi/work/checkpoint"
+DATA_FILE = "../../../data/RN08"
+
+def denorm(batch, mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)):
+    """
+    Convert a batch of tensors to their original scale.
+
+    Args:
+        batch (torch.Tensor): Batch of normalized tensors.
+        mean (tuple): Mean used for normalization.
+        std (tuple): Standard deviation used for normalization.
+
+    Returns:
+        torch.Tensor: Batch of tensors without normalization applied to them.
+    """
+    mean_tensor = torch.tensor(mean).view(1, -1, 1, 1)
+    std_tensor = torch.tensor(std).view(1, -1, 1, 1)
+
+    return batch * std_tensor + mean_tensor
+
+if __name__ == "__main__":
+    
+    model, acc = rn08.get_model_and_accuracy(DATA_PATH, 128, 0.00625, 8)
+    _, _, datalaoder = rn08.get_cifar10_loaders(DATA_FILE, 1)
+    
+    mean = (0.5, 0.5, 0.5)
+    std = (0.5, 0.5, 0.5)
+    
+    
+    normalize = transforms.Normalize(mean=mean, std=std)
+
+    
+    denormalize = transforms.Normalize(
+                    mean=(-mean[0] / std[0], -mean[1] / std[1], -mean[2] / std[2]),
+                    std=(1 / std[0], 1 / std[1], 1 / std[2])
+                )
+
+
+    
+    for image, _ in datalaoder:
+        print(image.shape)
+        denorm_image = denorm(image)
+        norm_image = normalize(denorm_image)
+        
+        image_np = image.numpy()
+        denorm_image_np = denorm_image.numpy()
+        norm_image_np = norm_image.numpy()
+        # Print the tensor shapes
+        print("Original Image Shape:", image_np.shape)
+        print("Denormalized Image Shape:", denorm_image_np.shape)
+        print("Normalized Image Shape:", norm_image_np.shape)
+
+        # Print the range of pixel values for each image
+        print("\nOriginal Image Pixel Range:", np.min(image_np), np.max(image_np))
+        print("Denormalized Image Pixel Range:", np.min(denorm_image_np), np.max(denorm_image_np))
+        print("Normalized Image Pixel Range:", np.min(norm_image_np), np.max(norm_image_np))
+        break
+    
+    
+    

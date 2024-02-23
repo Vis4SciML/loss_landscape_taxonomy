@@ -110,7 +110,7 @@ def main(args):
                                                                 bs, 
                                                                 lr, 
                                                                 args.precision)
-                    s = cka.compare_output(target_model, 10, 1)
+                    s = cka.compare_output(target_model, 10, 2)
                     cka_list.append(s)
                 except:
                     warnings.warn(f"Problems computing CKA similarity with RN08_bs{bs}_lr{lr}")
