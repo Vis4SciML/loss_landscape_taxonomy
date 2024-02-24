@@ -352,8 +352,8 @@ def load_model(path, batch_size, learning_rate, precision, size):
     
     # to set the map location
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    
-    model(torch.randn((1, 1, 8, 8)))  # Update tensor shapes 
+    model.to(device)
+    model(torch.randn((1, 1, 8, 8)).to(device))  # Update tensor shapes 
     model_param = torch.load(model_path, map_location=device)
     model.load_state_dict(model_param['state_dict'])
     
