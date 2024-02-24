@@ -3,6 +3,7 @@
 # Constants
 ADD_PRECISION=3
 SAVING_FOLDER="/home/jovyan/checkpoint/different_knobs_subset_10"    # /loss_landscape -> shared volume
+# SAVING_FOLDER="/data/tbaldi/work/checkpoint/different_knobs_subset_10"
 DATA_DIR="../../../data/ECON/Elegun"
 DATA_FILE="$DATA_DIR/nELinks5.npy"
 
@@ -204,7 +205,7 @@ tar -czvf /loss_landscape/ECON_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $
 
 exit 0
 
-# . scripts/train.sh --num_workers 8 --bs 1024 --lr 0.0001 --max_epochs 100 --size small --top_models 1 --num_test 1 --augmentation 1
+# . scripts/train.sh --num_workers 8 --bs 1024 --lr 0.0001 --max_epochs 100 --size small --top_models 1 --num_test 1 --augmentation 0
 
 # python code/train.py \
 #                 --saving_folder "/loss_landscape/checkpoint/different_knobs_subset_10" \

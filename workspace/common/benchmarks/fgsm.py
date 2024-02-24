@@ -32,14 +32,38 @@ class FSGM:
         
         return noisy_input
     
-    def test(self, epsilon):
+    def test_autoencoder(self, epsilon, cut=0.2):
+        correct = 0
+        adv_example = []
+        
+        for input, target in self.dataset:
+            input, target = input.to(self.device), target.to(self.device)
+            input.requires_grad_()
+            output = self.model(input)
+            
+            loss = self.model(output, target)
+            
+            # we want to perturb only well compressed data
+            if loss.item() > cut:
+                print(loss.item())
+                continue
+            
+            # get the gradient
+            self.model.zero_grad()
+            loss.backward()
+            input_grad = input.gard.data
+            
+            
+            
+    
+    def test_classifier(self, epsilon):
         correct = 0
         adv_example = []
         
         for input, target in self.dataset:
             input, target = input.to(self.device), target.to(self.device)
             
-            input.require_grad = True
+            input.requires_grad_()
             
             output = self.model(input)
             init_pred =output.max(1, keepdim=True)[1]
@@ -49,20 +73,16 @@ class FSGM:
                 continue
             
             loss = self.model.loss(output, target)
-            
             self.model.zero_grad()
+            
             loss.backward()
-
             input_grad = input.grad.data
-            
+                        
             input_denorm = self.denormalize(input)
-            
             perturbed_input = FSGM.fsgm_attack(input_denorm, epsilon, input_grad)
             
             perturbed_input_norm = self.normalize(perturbed_input)
-            
             output = self.model(perturbed_input_norm)
-            
             final_pred = output.max(1, keepdim=True)[1]
             
             if final_pred.item() == target.item():
@@ -102,6 +122,8 @@ if __name__ == "__main__":
     model, acc = rn08.get_model_and_accuracy(DATA_PATH, 128, 0.00625, 8)
     _, _, datalaoder = rn08.get_cifar10_loaders(DATA_FILE, 1)
     
+    print(f"Model accuracy:\t{acc}")
+    
     mean = (0.5, 0.5, 0.5)
     std = (0.5, 0.5, 0.5)
     
@@ -113,27 +135,32 @@ if __name__ == "__main__":
                     mean=(-mean[0] / std[0], -mean[1] / std[1], -mean[2] / std[2]),
                     std=(1 / std[0], 1 / std[1], 1 / std[2])
                 )
-
+    
+    # datalaoder.dataset = datalaoder.dataset[:100]
+    
+    fsgm = FSGM(model, datalaoder, normalize, denorm)
+    
+    fsgm.test(epsilon=0.1)
 
     
-    for image, _ in datalaoder:
-        print(image.shape)
-        denorm_image = denorm(image)
-        norm_image = normalize(denorm_image)
+    # for image, _ in datalaoder:
+    #     print(image.shape)
+    #     denorm_image = denorm(image)
+    #     norm_image = normalize(denorm_image)
         
-        image_np = image.numpy()
-        denorm_image_np = denorm_image.numpy()
-        norm_image_np = norm_image.numpy()
-        # Print the tensor shapes
-        print("Original Image Shape:", image_np.shape)
-        print("Denormalized Image Shape:", denorm_image_np.shape)
-        print("Normalized Image Shape:", norm_image_np.shape)
+    #     image_np = image.numpy()
+    #     denorm_image_np = denorm_image.numpy()
+    #     norm_image_np = norm_image.numpy()
+    #     # Print the tensor shapes
+    #     print("Original Image Shape:", image_np.shape)
+    #     print("Denormalized Image Shape:", denorm_image_np.shape)
+    #     print("Normalized Image Shape:", norm_image_np.shape)
 
-        # Print the range of pixel values for each image
-        print("\nOriginal Image Pixel Range:", np.min(image_np), np.max(image_np))
-        print("Denormalized Image Pixel Range:", np.min(denorm_image_np), np.max(denorm_image_np))
-        print("Normalized Image Pixel Range:", np.min(norm_image_np), np.max(norm_image_np))
-        break
+    #     # Print the range of pixel values for each image
+    #     print("\nOriginal Image Pixel Range:", np.min(image_np), np.max(image_np))
+    #     print("Denormalized Image Pixel Range:", np.min(denorm_image_np), np.max(denorm_image_np))
+    #     print("Normalized Image Pixel Range:", np.min(norm_image_np), np.max(norm_image_np))
+    #     break
     
     
     

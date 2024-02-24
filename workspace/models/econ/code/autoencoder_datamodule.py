@@ -194,7 +194,7 @@ class AutoEncoderDataModule(pl.LightningDataModule):
         files = os.listdir(self.data_dir)
         data = pd.concat(
             [
-                pd.read_csv(os.path.join(self.data_dir, file))
+                pd.read_csv(os.path.join(self.data_dir, file), encoding='utf-8', engine='python')
                 for file in [files[0]]
             ]
         )

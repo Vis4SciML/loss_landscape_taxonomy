@@ -16,8 +16,8 @@ do
             echo "File exists: $file_path"
         else
             ./scripts/test.sh \
-                                        --batch_size 512 \
-                                        --learning_rate 0.00625 \
+                                        --batch_size $bs \
+                                        --learning_rate $lr \
                                         --metric CKA \
                                         --num_batches 10 \
                                         --num_workers 0
