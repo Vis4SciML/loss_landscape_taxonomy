@@ -219,17 +219,29 @@ do
                             >/$HOME/log_$metric.txt
             ;;
         hessian)
-            python code/test_encoder.py --saving_folder $SAVING_FOLDER \
-                            --metric hessian \
-                            --data_dir $DATA_DIR \
-                            --data_file $DATA_FILE \
-                            --num_workers $num_workers \
-                            --batch_size $batch_size \
-                            --learning_rate $learning_rate \
-                            --size $size \
-                            --precision $p \
-                            --num_batches $num_batches 
-                            #>/$HOME/log_$metric.txt
+            pids=()
+            trial=(1 2 3)
+            for i in ${trial[*]}
+            do
+                python code/test_encoder.py --saving_folder $SAVING_FOLDER \
+                        --metric hessian \
+                        --data_dir $DATA_DIR \
+                        --data_file $DATA_FILE \
+                        --num_workers $num_workers \
+                        --batch_size $batch_size \
+                        --learning_rate $learning_rate \
+                        --size $size \
+                        --precision $p \
+                        --trial $i \
+                        --num_batches $num_batches \
+                        >/$HOME/log_$i"_"$metric.txt 2>&1 &
+                pids+=($!)
+            done
+            for pid in "${pids[@]}"; do
+                wait $pid
+                current_date_time=$(date '+%Y-%m-%d %H:%M:%S')
+                echo "$current_date_time: Process with PID $pid finished"
+            done
             ;;
         # ADD THE NEW METRIC HERE
         *)

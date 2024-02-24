@@ -178,7 +178,7 @@ def main(args):
         # ---------------------------------------------------------------------------- #
         data_module.batch_size = 256
         dataloader = data_module.test_dataloader()
-        hessian = Hessian(model, dataloader)
+        hessian = Hessian(model, dataloader, name=f"hessian_{args.trial}")
         hessian.compute()
         hessian.save_on_file(path=saving_path)
     # ADD NEW METRICS HERE
@@ -204,6 +204,7 @@ if __name__ == "__main__":
     parser.add_argument("--bit_flip", type=int, default=0)
     # metrics
     parser.add_argument("--num_batches", type=int, default=None)
+    parser.add_argument("--trial", type=int, default=0)
     # plot
     parser.add_argument("--steps", type=int, default=200)
     parser.add_argument("--distance", type=int, default=100)
