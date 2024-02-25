@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 import ast
 import os
 import sys
+import gc
 from statistics import mean
 from robustbench.data import load_cifar10c
 from robustbench.utils import clean_accuracy
@@ -107,13 +108,17 @@ def main(args):
                     continue
                 try:
                     target_model, _ = rn08.get_model_and_accuracy(args.saving_folder, 
-                                                                bs, 
-                                                                lr, 
-                                                                args.precision)
+                                                                  bs, 
+                                                                  lr, 
+                                                                  args.precision)
                     s = cka.compare_output(target_model, 10, 2)
                     cka_list.append(s)
+                    # free memory
+                    del target_model
+                    gc.collect()
                 except:
                     warnings.warn(f"Problems computing CKA similarity with RN08_bs{bs}_lr{lr}")
+                
                 
                 # print status
                 if len(cka_list) % 10 == 0:
@@ -122,6 +127,10 @@ def main(args):
         cka.results['CKA_similarity'] = mean(cka_list)
         cka.save_on_file(path=saving_path)
         print(mean(cka_list))
+        # free memory
+        del cka_list
+        del cka
+        gc.collect()
     elif args.metric == 'neural_efficiency':
         # ---------------------------------------------------------------------------- #
         #                               Neural Efficiency                              #
