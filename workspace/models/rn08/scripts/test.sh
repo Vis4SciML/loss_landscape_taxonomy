@@ -15,8 +15,7 @@ num_batches=16
 # default values
 noise_type="pixelate" 
 
-# precisions=(2 3 4 5 6 7 8 9 10 11)
-precisions=(2)
+precisions=(2 3 4 5 6 7 8 9 10 11)
 
 # Function to display script usage
 usage() {
