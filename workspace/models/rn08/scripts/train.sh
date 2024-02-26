@@ -18,8 +18,8 @@ learning_rate=0.0015625
 # ranges of the scan 
 # batch_sizes=(16 32 64 128 256 512 1024)
 # learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
-# precisions=(2 3 4 5 6 7 8 9 10 11)
-precisions=(2)
+precisions=(2 3 4 5 6 7 8 9 10 11)
+
 
 # Function to display script usage
 usage() {

@@ -148,10 +148,11 @@ def main(args):
         # ---------------------------------------------------------------------------- #
         #                                    Fisher                                    #
         # ---------------------------------------------------------------------------- #
+        _, _, dataloader = rn08.get_cifar10_loaders(args.data_dir, 256)
         fisher = FIT(model, 
                      dataloader, 
                      target_layers=RN08_layers,
-                     input_spec=(args.batch_size ,3, 32, 32))
+                     input_spec=(256 ,3, 32, 32))
         fisher.EF(min_iterations=100, max_iterations=1000)
         fisher.save_on_file(path=saving_path)
         

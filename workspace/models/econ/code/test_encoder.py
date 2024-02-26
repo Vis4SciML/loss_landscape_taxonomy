@@ -156,10 +156,12 @@ def main(args):
         # ---------------------------------------------------------------------------- #
         #                                    Fisher                                    #
         # ---------------------------------------------------------------------------- #
+        data_module.batch_size = 256
+        dataloader = data_module.test_dataloader()
         fisher = FIT(model, 
                      dataloader, 
                      target_layers=ECON_layers, 
-                     input_spec=(args.batch_size, 1, 8, 8))
+                     input_spec=(256, 1, 8, 8))
         fisher.EF(min_iterations=100, max_iterations=1000)
         fisher.save_on_file(path=saving_path)
         
