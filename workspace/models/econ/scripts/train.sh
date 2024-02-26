@@ -201,7 +201,11 @@ do
 done
 
 # archive everything and move it in the sahred folder
-tar -czvf /loss_landscape/ECON_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
+if [ "$augmentation" -eq 1 ]; then
+        tar -czvf /loss_landscape/ECON_AUG_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
+    else
+        tar -czvf /loss_landscape/ECON_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
+    fi
 
 exit 0
 
