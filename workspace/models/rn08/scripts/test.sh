@@ -185,7 +185,7 @@ exit 0
 
 # . scripts/test.sh \
 #                                         --batch_size 16 \
-#                                         --learning_rate 0.0125 \
-#                                         --metric hessian \
-#                                         --num_batches 10000 \
+#                                         --learning_rate 0.00625 \
+#                                         --metric fisher \
+#                                         --num_batches 1000 \
 #                                         --num_workers 0
