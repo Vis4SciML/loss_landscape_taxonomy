@@ -16,10 +16,6 @@ import torch.nn as nn
 from pyhessian import hessian
 from metric import Metric
 
-module_path = os.path.abspath(os.path.join('../../../workspace/models/rn08/code/')) # or the path to your source code
-sys.path.insert(0, module_path)
-import rn08
-
 
 # ---------------------------------------------------------------------------- #
 #                                Hessian metrics                               #
@@ -59,19 +55,19 @@ class Hessian(Metric):
     
     
     
-DATA_PATH = '/home/jovyan/checkpoint/'
-DATASET_DIR = '../../../data/RN08'
+# DATA_PATH = '/home/jovyan/checkpoint/'
+# DATASET_DIR = '../../../data/RN08'
 
 
 
-if __name__ == "__main__":
-    # get the datamodule
-    model1, _ = rn08.get_model_and_accuracy(DATA_PATH, 16, 0.00625, 8)
-    model2, _ = rn08.get_model_and_accuracy(DATA_PATH, 1024, 0.1, 8)
-    dataloader1 = rn08.get_dataloader(DATASET_DIR, 16)
-    dataloader2 = rn08.get_dataloader(DATASET_DIR, 1024)
-    metric = Hessian(model1, dataloader1)
-    metric.compute()
-    metric = Hessian(model2, dataloader2)
-    metric.compute()
+# if __name__ == "__main__":
+#     # get the datamodule
+#     model1, _ = rn08.get_model_and_accuracy(DATA_PATH, 16, 0.00625, 8)
+#     model2, _ = rn08.get_model_and_accuracy(DATA_PATH, 1024, 0.1, 8)
+#     dataloader1 = rn08.get_dataloader(DATASET_DIR, 16)
+#     dataloader2 = rn08.get_dataloader(DATASET_DIR, 1024)
+#     metric = Hessian(model1, dataloader1)
+#     metric.compute()
+#     metric = Hessian(model2, dataloader2)
+#     metric.compute()
     

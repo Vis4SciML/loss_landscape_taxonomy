@@ -472,7 +472,7 @@ def get_accuracy_with_noise(path, batch_size, learning_rate, precision, noise_ty
 if __name__ == "__main__":
     train_loader, val_loader, test_loader = get_cifar10_loaders('../../../data/RN08', 1024)
     
-    model = RN08(False, [8, 8, 11], 0.0015625)
+    model = RN08(True, [4, 4, 7], 0.0015625)
     # print(model)
     torchinfo.summary(model, input_size=(1, 3, 32, 32))
     

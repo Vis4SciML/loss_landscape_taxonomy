@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 import pytorch_lightning as pl 
 import warnings
+import torch
 
 import rn08
 
@@ -44,9 +45,40 @@ RN08_layers = layers = [
         'model.QBlocks.5.conv2', 
         'model.linear'
     ]
-PRECISIONS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-BATCH_SIZES = [16, 32, 64, 128, 256, 512, 1024]
-LEARNING_RATES = [0.1, 0.05, 0.025, 0.0125, 0.00625, 0.003125, 0.0015625]
+
+
+def load_model(path, batch_size, learning_rate, precision, index):
+    '''
+    Return the model and its accuracy
+    '''
+    folder_path = os.path.join(
+        path,
+        f'bs{batch_size}_lr{learning_rate}/RN08_{precision}b/'
+    )
+    
+    # get the model
+    model_file = os.path.join(folder_path, f"net_{index}_best.pkl")
+    model = rn08.RN08(
+        quantize=(precision < 32),
+        precision=[
+            precision,
+            precision,
+            precision+3
+        ],
+        learning_rate=learning_rate,
+    )
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = model.to(device)
+    model(torch.randn((1,3,32,32)).to(device))  # Update tensor shapes 
+    try:
+        model_param = torch.load(model_file, map_location=device)
+        model.load_state_dict(model_param['state_dict'])
+    except:
+        print(f"File not found! ({model_file})")
+        return None
+    
+    return model
+
 
 def main(args):
     
@@ -99,38 +131,30 @@ def main(args):
         noisy_dataset = NoisyDataset(dataloader, 2, 'gaussian')
         dataloader = DataLoader(noisy_dataset, batch_size=1, shuffle=True)
         
-        cka = CKA(model, dataloader, layers=RN08_layers, max_batches=args.num_batches)
         cka_list = []
         # compute the average over all the couples
-        for bs in BATCH_SIZES:
-            for lr in LEARNING_RATES:
-                if bs == args.batch_size and lr == args.learning_rate:
+        for i in range(1, 4):
+            for j in range(1, 4):
+                if i == j:
                     continue
-                try:
-                    target_model, _ = rn08.get_model_and_accuracy(args.saving_folder, 
-                                                                  bs, 
-                                                                  lr, 
-                                                                  args.precision)
-                    s = cka.compare_output(target_model, 10, 2)
-                    cka_list.append(s)
-                    # free memory
-                    del target_model
-                    gc.collect()
-                except:
-                    warnings.warn(f"Problems computing CKA similarity with RN08_bs{bs}_lr{lr}")
-                
-                
-                # print status
-                if len(cka_list) % 10 == 0:
-                    print(f"Analysis status:\t{len(cka_list)}/{len(BATCH_SIZES) * len(LEARNING_RATES)}")
+                model1 = load_model(args.saving_folder, 
+                                    args.batch_size, 
+                                    args.learning_rate, 
+                                    args.precision, 
+                                    i)
+                model2 = load_model(args.saving_folder, 
+                                    args.batch_size, 
+                                    args.learning_rate, 
+                                    args.precision, 
+                                    j)
+                cka = CKA(model1, dataloader, layers=RN08_layers, max_batches=args.num_batches)
+                s = cka.compare_output(model2, 10, 3)
+                print(s)
+                cka_list.append(s)
         # store the result
         cka.results['CKA_similarity'] = mean(cka_list)
         cka.save_on_file(path=saving_path)
         print(mean(cka_list))
-        # free memory
-        del cka_list
-        del cka
-        gc.collect()
     elif args.metric == 'neural_efficiency':
         # ---------------------------------------------------------------------------- #
         #                               Neural Efficiency                              #
