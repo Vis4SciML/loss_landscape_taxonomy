@@ -41,3 +41,17 @@ class Plot(Metric):
         }
         
         return self.results
+    
+    def linear_interpolation(self, model, steps=150):
+        print("Linear interpolation between two models...")
+        criterion = self.model.loss
+        x, y = iter(self.data_loader).__next__()
+        metric = loss_landscapes.metrics.Loss(criterion, x, y)
+
+        # compute loss data
+        loss_data = loss_landscapes.linear_interpolation(self.model, model, metric, steps, deepcopy_model=False)
+        
+        self.results['linear_interpolation'] = loss_data
+        
+        return loss_data
+        

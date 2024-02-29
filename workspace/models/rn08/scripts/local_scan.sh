@@ -1,8 +1,12 @@
 #!/bin/bash
 
-batch_sizes=(16 32 64 128 256 512 1024)
+# batch_sizes=(16 32 64 128 256 512 1024)
 
-learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
+# learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
+
+batch_sizes=(256)
+
+learning_rates=(0.025 0.00625 0.0015625)
 
 for bs in ${batch_sizes[*]}
 do
@@ -19,7 +23,7 @@ do
             ./scripts/test.sh \
                                         --batch_size $bs \
                                         --learning_rate $lr \
-                                        --metric noise \
+                                        --metric plot \
                                         --num_batches 1000 \
                                         --num_workers 0
         fi

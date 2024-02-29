@@ -4,10 +4,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchinfo
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, random_split, ConcatDataset
 from torchvision import datasets, transforms
 from torchmetrics import Accuracy
 import pytorch_lightning as pl
+from pytorch_lightning import loggers as pl_loggers
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from hawq.utils import QuantAct, QuantLinear, QuantConv2d, QuantAveragePool2d, QuantBnConv2d
 
 # ---------------------------------------------------------------------------- #
@@ -251,7 +254,9 @@ class RN08(pl.LightningModule):
 
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)  # lr=1e-3
+        optimizer = torch.optim.Adam(self.parameters(), 
+                                     lr=self.learning_rate,
+                                     weight_decay=1e-4)  # lr=1e-3
         return optimizer
 
 
@@ -400,7 +405,7 @@ def get_cifar10_loaders(path, batch_size, noise=False):
         train_ds.targets = randomize_labels(torch.tensor(train_ds.targets), portion=0.2)
     
     total_size = len(test_ds)
-    val_size = int(0.5 * total_size)
+    val_size = int(0.98 * total_size)
     test_size = total_size - val_size
     
     test_ds, validation_ds = random_split(test_ds, [test_size, val_size])
@@ -421,6 +426,9 @@ def get_cifar10_loaders(path, batch_size, noise=False):
                              shuffle=False, 
                              num_workers=0,
                              drop_last=True)
+    
+    print("Dataset Size:")
+    print(len(train_loader), len(validation_loader), len(test_loader))
     
     return train_loader, validation_loader, test_loader
 
@@ -462,13 +470,40 @@ def get_accuracy_with_noise(path, batch_size, learning_rate, precision, noise_ty
 
 
 if __name__ == "__main__":
-    train_loader, test_loader, _ = get_cifar10_loaders('../../../data/RN08', 1)
-    model = RN08(False, [8, 8, 11], 0.001)
-    print(model)
-    #torchinfo.summary(model, input_size=(1, 3, 32, 32))
+    train_loader, val_loader, test_loader = get_cifar10_loaders('../../../data/RN08', 1024)
+    
+    model = RN08(False, [8, 8, 11], 0.0015625)
+    # print(model)
+    torchinfo.summary(model, input_size=(1, 3, 32, 32))
+    
+    # stop training when model converges
+    early_stop_callback = EarlyStopping(
+        monitor="val_loss", 
+        min_delta=0.00, 
+        patience=5, 
+        verbose=True, 
+        mode="min"
+    )
+    
+    # save top-3 checkpoints based on Val/Loss
+    top_checkpoint_callback = ModelCheckpoint(
+        save_top_k=3,
+        save_last=True,
+        monitor="val_loss",
+        mode="min",
+        dirpath='./',
+        filename=f'net_full_precision_best',
+        auto_insert_metric_name=False,
+    )
+    
+    tb_logger = pl_loggers.TensorBoardLogger('./')
+    
+    trainer = pl.Trainer(
+        max_epochs=100,
+        logger=tb_logger,
+        callbacks=[top_checkpoint_callback, early_stop_callback],
+    )
 
-    # trainer = pl.Trainer(max_epochs=1)  # Adjust max_epochs and gpus according to your setup
-
-    # torchinfo.summary(model, input_size=(1, 3, 32, 32))
-
-    # trainer.fit(model, train_loader, test_loader)
+    trainer.fit(model=model, 
+                train_dataloaders=train_loader,
+                val_dataloaders=val_loader)

@@ -154,8 +154,8 @@ do
                             --learning_rate $learning_rate \
                             --precision $p \
                             --num_batches $num_batches \
-                            --steps 100 \
-                            --distance 80 \
+                            --steps 50 \
+                            --distance 100 \
                             --normalization filter #\
                             #>/$HOME/log_$metric.txt
             ;;
