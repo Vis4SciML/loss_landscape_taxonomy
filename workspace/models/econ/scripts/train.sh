@@ -18,6 +18,7 @@ accelerator="auto"
 batch_size=8
 learning_rate=0.0015625
 augmentation=0
+aug_percentage=0
 
 
 
@@ -126,6 +127,13 @@ handle_options() {
                     shift
                 fi
                 ;;
+            --aug_percentage)
+                if has_argument $@; then
+                    aug_percentage=$(extract_argument $@)
+                    echo "Add noise dataset to the training: $aug_percentage"
+                    shift
+                fi
+                ;;
             *)
                 echo "Invalid option: $1" >&2
                 usage
@@ -155,12 +163,6 @@ run_train() {
         if [ -e "$test_file" ]; then
             echo "Already computed!"
         else 
-            if [ "$augmentation" -eq 1 ]; then
-                index=$(($i - 1))
-                aug_percentage=${noise_percentages[$index]}
-            else
-                aug_percentage=0
-            fi
             # training of the model
             python code/train.py \
                 --saving_folder "$saving_folder" \
@@ -208,7 +210,7 @@ do
     # trainig with various batch sizes
     run_train
 done
-
+return
 # archive everything and move it in the sahred folder
 if [ "$augmentation" -eq 1 ]; then
         tar -czvf /loss_landscape/ECON_AUG_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 

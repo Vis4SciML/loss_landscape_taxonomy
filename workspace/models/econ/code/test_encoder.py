@@ -25,9 +25,6 @@ from plot import Plot
 from hessian import Hessian
 
 ECON_layers = ['encoder.conv', 'encoder.enc_dense']
-PRECISIONS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-BATCH_SIZES = [16, 32, 64, 128, 256, 512, 1024]
-LEARNING_RATES = [0.1, 0.05, 0.025, 0.0125, 0.00625, 0.003125, 0.0015625]
 
 
 def load_model(path, batch_size, learning_rate, precision, size, index=1):
@@ -245,6 +242,9 @@ if __name__ == "__main__":
     parser.add_argument("--normalization", type=str, default="filter")
     
     args = parser.parse_args()
+    
+    # for arg in vars(args):
+    #     print(f"{arg}: {getattr(args, arg)}")
     
     main(args)
     
