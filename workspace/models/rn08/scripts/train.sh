@@ -14,6 +14,8 @@ num_test=2
 accelerator="auto"
 batch_size=8
 learning_rate=0.0015625
+augmentation=0
+aug_percentage=0
 
 # ranges of the scan 
 # batch_sizes=(16 32 64 128 256 512 1024)
@@ -112,6 +114,13 @@ handle_options() {
                     shift
                 fi
                 ;;
+            --aug_percentage)
+                if has_argument $@; then
+                    aug_percentage=$(extract_argument $@)
+                    echo "Flag to activate data augmentation: $aug_percentage"
+                    shift
+                fi
+                ;;
             *)
                 echo "Invalid option: $1" >&2
                 usage
@@ -156,6 +165,7 @@ run_train() {
                 --experiment $i \
                 --max_epochs $max_epochs \
                 --augmentation $augmentation \
+                --aug_percentage $aug_percentage \
                 >/$HOME/log_RN08_$i.txt 2>&1 &
 
             pids+=($!)
@@ -183,12 +193,13 @@ do
     # trainig with various batch sizes
     run_train
 done
+
 # archive everything and move it in the sahred folder
 tar -czvf /loss_landscape/RN08_bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
 
 exit 0
 
-# . scripts/train.sh --num_workers 0 --bs 16 --lr 0.003125 --max_epochs 100 --top_models 3 --num_test 1 --accelerator auto --augmentation 1
+# . scripts/train.sh --num_workers 0 --bs 1024 --lr 0.003125 --max_epochs 100 --top_models 3 --num_test 1 --accelerator auto --augmentation 0 
 
 # python code/train.py \
 #                 --saving_folder "/loss_landscape/checkpoint/different_knobs_subset_10" \

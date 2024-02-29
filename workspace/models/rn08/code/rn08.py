@@ -372,7 +372,7 @@ def get_dataloader(path, batch_size):
     
     return test_loader
 
-def get_cifar10_loaders(path, batch_size, noise=False):
+def get_cifar10_loaders(path, batch_size, noise=False, percentage=0):
     '''
     Utility function to retrieve the train, validation and test
     dataloaders.
@@ -402,7 +402,7 @@ def get_cifar10_loaders(path, batch_size, noise=False):
     # perturbation to the labels 
     if noise:
         print("Adding noise to the training data...")
-        train_ds.targets = randomize_labels(torch.tensor(train_ds.targets), portion=0.2)
+        train_ds.targets = randomize_labels(torch.tensor(train_ds.targets), portion=percentage)
     
     total_size = len(test_ds)
     val_size = int(0.98 * total_size)
@@ -470,40 +470,43 @@ def get_accuracy_with_noise(path, batch_size, learning_rate, precision, noise_ty
 
 
 if __name__ == "__main__":
-    train_loader, val_loader, test_loader = get_cifar10_loaders('../../../data/RN08', 1024)
     
-    model = RN08(True, [4, 4, 7], 0.0015625)
-    # print(model)
-    torchinfo.summary(model, input_size=(1, 3, 32, 32))
+    model = get_model_and_accuracy("/data/tbaldi/work/checkpoint/", 1024, 0.003125, 8)
+    print(model)
+    # train_loader, val_loader, test_loader = get_cifar10_loaders('../../../data/RN08', 1024)
     
-    # stop training when model converges
-    early_stop_callback = EarlyStopping(
-        monitor="val_loss", 
-        min_delta=0.00, 
-        patience=5, 
-        verbose=True, 
-        mode="min"
-    )
+    # model = RN08(True, [4, 4, 7], 0.0015625)
+    # # print(model)
+    # torchinfo.summary(model, input_size=(1, 3, 32, 32))
     
-    # save top-3 checkpoints based on Val/Loss
-    top_checkpoint_callback = ModelCheckpoint(
-        save_top_k=3,
-        save_last=True,
-        monitor="val_loss",
-        mode="min",
-        dirpath='./',
-        filename=f'net_full_precision_best',
-        auto_insert_metric_name=False,
-    )
+    # # stop training when model converges
+    # early_stop_callback = EarlyStopping(
+    #     monitor="val_loss", 
+    #     min_delta=0.00, 
+    #     patience=5, 
+    #     verbose=True, 
+    #     mode="min"
+    # )
     
-    tb_logger = pl_loggers.TensorBoardLogger('./')
+    # # save top-3 checkpoints based on Val/Loss
+    # top_checkpoint_callback = ModelCheckpoint(
+    #     save_top_k=3,
+    #     save_last=True,
+    #     monitor="val_loss",
+    #     mode="min",
+    #     dirpath='./',
+    #     filename=f'net_full_precision_best',
+    #     auto_insert_metric_name=False,
+    # )
     
-    trainer = pl.Trainer(
-        max_epochs=100,
-        logger=tb_logger,
-        callbacks=[top_checkpoint_callback, early_stop_callback],
-    )
+    # tb_logger = pl_loggers.TensorBoardLogger('./')
+    
+    # trainer = pl.Trainer(
+    #     max_epochs=100,
+    #     logger=tb_logger,
+    #     callbacks=[top_checkpoint_callback, early_stop_callback],
+    # )
 
-    trainer.fit(model=model, 
-                train_dataloaders=train_loader,
-                val_dataloaders=val_loader)
+    # trainer.fit(model=model, 
+    #             train_dataloaders=train_loader,
+    #             val_dataloaders=val_loader)

@@ -4,9 +4,9 @@
 
 # learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
 
-batch_sizes=(256)
+batch_sizes=(1024)
 
-learning_rates=(0.025 0.00625 0.0015625)
+learning_rates=(0.003125)
 
 for bs in ${batch_sizes[*]}
 do

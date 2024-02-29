@@ -17,7 +17,11 @@ def main(args):
     # ---------------------------------------------------------------------------- #
     train_loader, val_loader, test_loader = rn08.get_cifar10_loaders(args.data_dir, 
                                                                      args.batch_size,
-                                                                     noise=args.augmentation)
+                                                                     noise=args.augmentation,
+                                                                     percentage=args.aug_percentage)
+    # rename based on the test
+    if args.augmentation:
+        args.experiment = f"{args.experiment}_{args.aug_percentage}"
     # ---------------------------------------------------------------------------- #
     #                                Lightning model                               #
     # ---------------------------------------------------------------------------- #
@@ -126,6 +130,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--num_workers", type=int, default=8)
     parser.add_argument("--augmentation", type=int, default=0)
+    parser.add_argument("--aug_percentage", type=float, default=0.0)
     
 
     # NOTE: do not activate during real training, just for debugging

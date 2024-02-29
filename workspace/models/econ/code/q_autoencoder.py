@@ -413,10 +413,10 @@ def get_model_index_and_relative_EMD(path, batch_size, learning_rate, precision,
         except Exception as e:
             # warnings.warn("Warning: " + file_path + " not found!")
             continue
-        
+    
     if len(EMDs) == 0:
         warnings.warn(f"Attention: There is no EMD value for the model: " \
                       f"bs{batch_size}_lr{learning_rate}/ECON_{precision}b/{size}")
-        return
+        return 0, -1
     
     return mean(EMDs), min_emd_index
