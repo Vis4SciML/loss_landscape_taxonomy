@@ -10,7 +10,7 @@ from torch.utils.data import TensorDataset, ConcatDataset, RandomSampler
 # add noisy dataset for data augmentation
 module_path = os.path.abspath(os.path.join('../../common/benchmarks/')) 
 sys.path.insert(0, module_path)
-# from noise import Noise
+from noise import Noise
 
 from utils_pt import normalize
 

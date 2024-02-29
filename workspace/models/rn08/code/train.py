@@ -10,6 +10,7 @@ import torch
 import rn08
 import torchinfo
 
+
 def main(args):
     # ---------------------------------------------------------------------------- #
     #                           Download and process data                          #

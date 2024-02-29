@@ -1,7 +1,8 @@
 #!/bin/bash
 
 
-SAVING_FOLDER="/home/jovyan/checkpoint/"    # /loss_landscape -> shared volume
+#SAVING_FOLDER="/home/jovyan/checkpoint/"    # /loss_landscape -> shared volume
+SAVING_FOLDER="/data/tbaldi/work/checkpoint/"
 DATA_DIR="../../../data/ECON/Elegun"
 DATA_FILE="$DATA_DIR/nELinks5.npy"
 
@@ -173,8 +174,8 @@ do
                             --learning_rate $learning_rate \
                             --size $size \
                             --precision $p \
-                            --num_batches $num_batches \
-                            >/$HOME/log_$metric.txt 
+                            --num_batches $num_batches #\
+                            #>/$HOME/log_$metric.txt 
             ;;
         neural_efficiency)
             python code/test_encoder.py --saving_folder $SAVING_FOLDER \
@@ -250,7 +251,7 @@ do
             ;;
     esac
 done
-
+return
 # archive everything and move it in the sahred folder
 tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
 
@@ -260,7 +261,7 @@ exit 0
 # . scripts/test.sh \
 #                                         --batch_size 32 \
 #                                         --learning_rate 0.025 \
-#                                         --size small \
-#                                         --metric fisher \
+#                                         --size baseline \
+#                                         --metric CKA \
 #                                         --num_batches 10 \
-#                                         --num_workers 12
+#                                         --num_workers 4

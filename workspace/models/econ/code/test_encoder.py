@@ -8,8 +8,6 @@ from utils_pt import unnormalize, emd
 import torch
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl 
-import numpy as np
-import multiprocessing
 import q_autoencoder as econ
 from autoencoder_datamodule import AutoEncoderDataModule
 
@@ -30,6 +28,35 @@ ECON_layers = ['encoder.conv', 'encoder.enc_dense']
 PRECISIONS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
 BATCH_SIZES = [16, 32, 64, 128, 256, 512, 1024]
 LEARNING_RATES = [0.1, 0.05, 0.025, 0.0125, 0.00625, 0.003125, 0.0015625]
+
+
+def load_model(path, batch_size, learning_rate, precision, size, index=1):
+    '''
+    Method used to get the model and the relative EMD value
+    '''
+
+    model_path = path + f'bs{batch_size}_lr{learning_rate}/ECON_{precision}b/{size}/net_{index}_best.pkl'
+    
+    # load the model
+    model = econ.AutoEncoder(
+        quantize=(precision < 32),
+        precision=[
+            precision,
+            precision,
+            precision+3
+        ],
+        learning_rate=learning_rate,
+        econ_type=size
+    )
+    
+    # to set the map location
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model.to(device)
+    model(torch.randn((1, 1, 8, 8)).to(device))  # Update tensor shapes 
+    model_param = torch.load(model_path, map_location=device)
+    model.load_state_dict(model_param['state_dict'])
+    
+    return model
 
 
 def main(args):
@@ -119,23 +146,28 @@ def main(args):
         noisy_dataset = NoisyDataset(dataloader, 2, 'gaussian')
         dataloader = DataLoader(noisy_dataset, batch_size=1, shuffle=True)
         
-        cka = CKA(model, dataloader, layers=ECON_layers, max_batches=args.num_batches)
         cka_list = []
-        for bs in BATCH_SIZES:
-            for lr in LEARNING_RATES:
-                if bs == args.batch_size and lr == args.learning_rate:
+        for i in range(1, 4):
+            for j in range(1, 4):
+                if i == j:
                     continue
-                try:
-                    target_model, _ = econ.load_model(args.saving_folder, 
-                                                    bs, 
-                                                    lr, 
-                                                    args.precision, 
-                                                    args.size)
-                    s = cka.compare_output(target_model, 10, 1)
-                    cka_list.append(s)
-                except:
-                    warnings.warn(f"Problems computing CKA similarity with ECON_bs{bs}_lr{lr}")
-        
+                model1 = load_model(args.saving_folder, 
+                                    args.batch_size, 
+                                    args.learning_rate, 
+                                    args.precision, 
+                                    args.size,
+                                    i)
+                model2 = load_model(args.saving_folder, 
+                                    args.batch_size, 
+                                    args.learning_rate, 
+                                    args.precision, 
+                                    args.size,
+                                    j)
+                cka = CKA(model1, dataloader, layers=ECON_layers, max_batches=args.num_batches)
+                s = cka.compare_output(model2, 10, 3)
+                print(s)
+                cka_list.append(s)
+
         cka.results['CKA_similarity'] = mean(cka_list)
         cka.save_on_file(path=saving_path)
         print(mean(cka_list))
