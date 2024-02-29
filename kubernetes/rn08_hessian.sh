@@ -6,10 +6,10 @@ metric='noise'
 num_batches=50000
 
 # # ranges of the scan 
-batch_sizes=(64)
-learning_rates=(0.0015625)
+batch_sizes=(16 32 64 128 256 512 1024)
+learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
 
-#batch_sizes=(16)
+# batch_sizes=(16)
 # learning_rates=(0.0125)
 
 # Function to display script usage
@@ -84,9 +84,12 @@ spec:
                         cd /home/jovyan/;
                         tar -xf checkpoint.tar.gz;
                         git clone https://github.com/balditommaso/loss_landscape_taxonomy.git;
-                        cd /home/jovyan/loss_landscape_taxonomy;
-                        conda env create -f environment.yml;
-                        source activate loss_landscape;
+                        pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu118;
+                        pip3 install tensorboard==2.11.1 torchmetrics torchinfo pytorchcv pytorch_lightning==1.9.0;
+                        pip3 install scipy loss_landscapes;
+                        pip3 install git+https://github.com/balditommaso/HAWQ.git@setup-pip;
+                        pip3 install git+https://github.com/balditommaso/robustbench.git;
+                        pip3 install git+https://github.com/jicampos/PyHessian.git@hawq;
                         cp -r /loss_landscape/RN08 /home/jovyan/loss_landscape_taxonomy/data/;
                         cd /home/jovyan/loss_landscape_taxonomy/workspace/models/rn08/;
                         . scripts/test.sh \
@@ -100,11 +103,13 @@ spec:
                     name: loss-landscape-volume
                 resources:
                     limits:
+                        nvidia.com/gpu: "1"
                         memory: "4G"
-                        cpu: "2"
+                        cpu: "4"
                     requests:
+                        nvidia.com/gpu: "1"
                         memory: "2G"
-                        cpu: "1"
+                        cpu: "2"
             restartPolicy: Never
             volumes:
                   - name: loss-landscape-volume
@@ -141,17 +146,17 @@ exit 0
 # END MAIN
 
 # NoISE
-# bash rn08_benchmarks.sh --num_workers 0 --metric noise --num_batches 1000
+# bash rn08_hessian.sh --num_workers 0 --metric noise --num_batches 1000
 # CKA
-# bash rn08_benchmarks.sh --num_workers 0 --metric CKA --num_batches 5
+# bash rn08_hessian.sh --num_workers 0 --metric CKA --num_batches 10
 # NE
-# bash rn08_benchmarks.sh --num_workers 0 --metric neural_efficiency --num_batches 1000
+# bash rn08_hessian.sh --num_workers 0 --metric neural_efficiency --num_batches 10000
 # fisher
-# bash rn08_benchmarks.sh --num_workers 0 --metric fisher --num_batches 1000
+# bash rn08_hessian.sh --num_workers 0 --metric fisher --num_batches 10000
 # Plot
-# bash rn08_benchmarks.sh --num_workers 0 --metric plot --num_batches 100000
+# bash rn08_hessian.sh --num_workers 0 --metric plot --num_batches 100000
 # Hessian
-# bash rn08_benchmarks.sh --num_workers 0 --metric hessian --num_batches 1000
+# bash rn08_hessian.sh --num_workers 0 --metric hessian --num_batches 1000
 
 
 

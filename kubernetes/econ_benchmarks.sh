@@ -170,7 +170,7 @@ exit 0
     # NE
     # bash econ_benchmarks.sh --size baseline --num_workers 2 --metric neural_efficiency --num_batches 100000
     # fisher
-    # bash econ_benchmarks.sh --size baseline --num_workers 2 --metric fisher --num_batches 100000
+    # bash econ_benchmarks.sh --size baseline --num_workers 1 --metric fisher --num_batches 10000
     # plot
     # bash econ_benchmarks.sh --size baseline --num_workers 2 --metric plot --num_batches 100000
     # hessian

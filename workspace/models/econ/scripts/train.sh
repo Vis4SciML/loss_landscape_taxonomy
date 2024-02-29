@@ -19,10 +19,13 @@ batch_size=8
 learning_rate=0.0015625
 augmentation=0
 
+
+
 # ranges of the scan 
 # batch_sizes=(16 32 64 128 256 512 1024)
 # learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
 precisions=(2 3 4 5 6 7 8 9 10 11)
+noise_percentages=(0.3 0.5 0.7)
 # Function to display script usage
 usage() {
     echo "Usage: $0 [OPTIONS]"
@@ -36,9 +39,8 @@ usage() {
     echo "--top_models         Number of top models to store"
     echo "--num_test           Number of time we repeat the computation"
     echo "--accelerator        Accelerator to use during training [auto, cpu, gpu, tpu]"
-    echo "--no_train            Flag which specify if the model need to be train"
-    echo "--augmentation        Flag to indicate to add noisy dataset into the training"
-
+    echo "--no_train           Flag which specify if the model need to be train"
+    echo "--augmentation       Flag to indicate to add noisy dataset into the training"
 }
 
 has_argument() {
@@ -153,6 +155,12 @@ run_train() {
         if [ -e "$test_file" ]; then
             echo "Already computed!"
         else 
+            if [ "$augmentation" -eq 1 ]; then
+                index=$(($i - 1))
+                aug_percentage=${noise_percentages[$index]}
+            else
+                aug_percentage=0
+            fi
             # training of the model
             python code/train.py \
                 --saving_folder "$saving_folder" \
@@ -170,6 +178,7 @@ run_train() {
                 --experiment $i \
                 --max_epochs $max_epochs \
                 --augmentation $augmentation \
+                --aug_percentage $aug_percentage
                 >/$HOME/log_ECON_$i.txt 2>&1 &
 
             pids+=($!)

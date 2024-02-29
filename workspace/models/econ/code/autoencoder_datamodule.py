@@ -154,13 +154,20 @@ ARRANGE_MASK = torch.tensor(
 
 
 class AutoEncoderDataModule(pl.LightningDataModule):
-    def __init__(self, data_file, data_dir=None, batch_size=500, num_workers=8, augmentation=False) -> None:
+    def __init__(self, 
+                 data_file, 
+                 data_dir=None, 
+                 batch_size=500, 
+                 num_workers=8, 
+                 augmentation=False,
+                 aug_percentage=0) -> None:
         super().__init__()
         self.data_dir = data_dir
         self.data_file = data_file
         self.batch_size = batch_size   
         self.num_workers = num_workers
         self.augmentation = augmentation
+        self.aug_percentage = aug_percentage
         self.calq_cols = [f"CALQ_{i}" for i in range(48)]
         self.valid_split = 0.2  # 20%
         self.val_max = None
@@ -178,6 +185,7 @@ class AutoEncoderDataModule(pl.LightningDataModule):
         parser.add_argument("--num_workers", type=int, default=8)
         parser.add_argument("--batch_size", type=int, default=500)
         parser.add_argument("--augmentation", type=int, default=0)
+        parser.add_argument("--aug_percentage", type=float, default=0.3)
         return parent_parser
 
     def mask_data(self, data):
@@ -249,10 +257,16 @@ class AutoEncoderDataModule(pl.LightningDataModule):
         train_data_tensor = torch.Tensor(self.train_data)
         train_dataset = TensorDataset(train_data_tensor, train_data_tensor)
         if self.augmentation:
-            print("Adding noise to the input...")
+            print('\n')
+            print('*'*100)
+            print("\t\tTRAINING WITH NOISE INJECTION")
+            print('*'*100)
+            print('\n')
             # build the noisy dataset
             noise_dataset = []
-            for _ in range(int(len(self.train_data) * 0.1)):
+            
+            # add equally the 3 type of noises
+            for _ in range(int(len(self.train_data) * self.aug_percentage / 3)):
                 index = random.randint(0, int(len(self.train_data))-1)
                 target = self.train_data[index]
                 random_data = Noise.add_random_perturbation(target, 5)
@@ -294,38 +308,6 @@ class AutoEncoderDataModule(pl.LightningDataModule):
         """
         val_data_tensor = torch.Tensor(self.val_data)
         val_dataset = TensorDataset(val_data_tensor, val_data_tensor)
-        if self.augmentation:
-            print("Adding noise to the input...")
-            # build the noisy dataset
-            noise_dataset = []
-            for _ in range(int(len(self.val_data) * 0.1)):
-                index = random.randint(0, int(len(self.val_data))-1)
-                target = self.val_data[index]
-                random_data = Noise.add_random_perturbation(target, 5)
-                gaussian_data = Noise.add_gaussian_noise(target, 5)
-                salt_pepper_data = Noise.add_salt_and_pepper_noise(target, 5)
-                noise_dataset.append((random_data, target))
-                noise_dataset.append((gaussian_data, target))
-                noise_dataset.append((salt_pepper_data, target))
-            # we add the 10% of each noise type data in the train dataset
-            inputs, targets = zip(*noise_dataset)
-            input_tensor = torch.tensor(inputs)
-            target_tensor = torch.tensor(targets)
-
-            noise_dataset = TensorDataset(input_tensor, target_tensor)
-            
-            merged_dataset = ConcatDataset([
-                val_dataset,
-                noise_dataset
-            ])
-            
-            return torch.utils.data.DataLoader(
-                merged_dataset, 
-                batch_size=self.batch_size, 
-                shuffle=False, 
-                num_workers=self.num_workers,
-                drop_last=True
-            )
         
         return torch.utils.data.DataLoader(
                 val_dataset, 

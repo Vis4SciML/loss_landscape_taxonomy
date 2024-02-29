@@ -1,16 +1,17 @@
 #!/bin/sh
 
 # Default variable values
-num_workers=0
+num_workers=14
 metric='noise'
 num_batches=50000
+size="baseline"
 
 # # ranges of the scan 
-batch_sizes=(64)
-learning_rates=(0.0015625)
+batch_sizes=(16 32 64 128 256 512 1024)
+learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
+# batch_sizes=(128)
+# learning_rates=(0.003125)
 
-#batch_sizes=(16)
-# learning_rates=(0.0125)
 
 # Function to display script usage
 usage() {
@@ -20,6 +21,7 @@ usage() {
     echo "--num_workers        Number of workers"
     echo "--metric             Metric of the analysis"
     echo "--num_batches        Number of batches to test"
+    echo "--size               Size of the model"
 }
 
 has_argument() {
@@ -59,6 +61,13 @@ handle_options() {
                     shift
                 fi
                 ;;
+            --size)
+                if has_argument $@; then
+                    size=$(extract_argument $@)
+                    echo "Size of the model: $size"
+                    shift
+                fi
+                ;;
         esac
         shift
     done
@@ -85,13 +94,18 @@ spec:
                         tar -xf checkpoint.tar.gz;
                         git clone https://github.com/balditommaso/loss_landscape_taxonomy.git;
                         cd /home/jovyan/loss_landscape_taxonomy;
-                        conda env create -f environment.yml;
-                        source activate loss_landscape;
-                        cp -r /loss_landscape/RN08 /home/jovyan/loss_landscape_taxonomy/data/;
-                        cd /home/jovyan/loss_landscape_taxonomy/workspace/models/rn08/;
+                        pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu118;
+                        pip3 install tensorboard==2.11.1 torchmetrics torchinfo pytorchcv pytorch_lightning==1.9.0 pyemd pandas pot;
+                        pip3 install scipy loss_landscapes;
+                        pip3 install git+https://github.com/balditommaso/HAWQ.git@setup-pip;
+                        pip3 install git+https://github.com/balditommaso/robustbench.git;
+                        pip3 install git+https://github.com/jicampos/PyHessian.git@hawq;
+                        cp -r /loss_landscape/ECON /home/jovyan/loss_landscape_taxonomy/data/;
+                        cd /home/jovyan/loss_landscape_taxonomy/workspace/models/econ/;
                         . scripts/test.sh \
                                         --batch_size $bs \
                                         --learning_rate $lr \
+                                        --size $size \
                                         --metric $metric \
                                         --num_batches $num_batches \
                                         --num_workers $num_workers"]
@@ -100,11 +114,13 @@ spec:
                     name: loss-landscape-volume
                 resources:
                     limits:
-                        memory: "4G"
-                        cpu: "2"
+                        nvidia.com/gpu: "1"
+                        memory: "8G"
+                        cpu: "5"
                     requests:
-                        memory: "2G"
-                        cpu: "1"
+                        nvidia.com/gpu: "1"
+                        memory: "8G"
+                        cpu: "5"
             restartPolicy: Never
             volumes:
                   - name: loss-landscape-volume
@@ -127,31 +143,53 @@ for bs in ${batch_sizes[*]}
 do
     for lr in ${learning_rates[*]}
     do
-        job_name=$(echo "rn08_"$metric"_bs"$bs"_lr$lr" | sed 's/\./_/g' | tr '[:upper:]' '[:lower:]')
+        job_name=$(echo "econ_"$metric"_"$size"_bs"$bs"_lr$lr" | sed 's/\./_/g' | tr '[:upper:]' '[:lower:]')
         generate_job_yaml $job_name
         start_kubernetes_job
     done    
 done
 
-rm jtag_$metric"*"
+rm econ_$metric"*"
 
 echo Jobs started
 exit 0
 
 # END MAIN
 
-# NoISE
-# bash rn08_benchmarks.sh --num_workers 0 --metric noise --num_batches 1000
-# CKA
-# bash rn08_benchmarks.sh --num_workers 0 --metric CKA --num_batches 5
-# NE
-# bash rn08_benchmarks.sh --num_workers 0 --metric neural_efficiency --num_batches 1000
-# fisher
-# bash rn08_benchmarks.sh --num_workers 0 --metric fisher --num_batches 1000
-# Plot
-# bash rn08_benchmarks.sh --num_workers 0 --metric plot --num_batches 100000
-# Hessian
-# bash rn08_benchmarks.sh --num_workers 0 --metric hessian --num_batches 1000
+# SMALL
+    # NoISE
+    # bash econ_benchmarks.sh --size small --num_workers 12 --metric noise --num_batches 1000000
+    # BIT FLIP
+    # bash econ_benchmarks.sh --size small --num_workers 12 --metric bitflip --num_batches 1000000
+    # CKA
+    # bash econ_benchmarks.sh --size small --num_workers 12 --metric CKA --num_batches 100000
+    # NE
+    # bash econ_benchmarks.sh --size small --num_workers 12 --metric neural_efficiency --num_batches 100000
+
+# BASELINE
+    # NoISE
+    # bash econ_hessian.sh --size baseline --num_workers 2 --metric noise --num_batches 1000000
+    # BIT FLIP
+    # bash econ_hessian.sh --size baseline --num_workers 2 --metric bitflip --num_batches 1000000
+    # CKA
+    # bash econ_hessian.sh --size baseline --num_workers 2 --metric CKA --num_batches 100000
+    # NE
+    # bash econ_hessian.sh --size baseline --num_workers 2 --metric neural_efficiency --num_batches 100000
+    # fisher
+    # bash econ_hessian.sh --size baseline --num_workers 2 --metric fisher --num_batches 100000
+    # plot
+    # bash econ_hessian.sh --size baseline --num_workers 2 --metric plot --num_batches 100000
+    # hessian
+    # bash econ_hessian.sh --size baseline --num_workers 2 --metric hessian --num_batches 10000
 
 
+# LARGE
+    # NoISE
+    # bash econ_benchmarks.sh --size large --num_workers 12 --metric noise --num_batches 1000000
+    # BIT FLIP
+    # bash econ_benchmarks.sh --size large --num_workers 12 --metric bitflip --num_batches 1000000
+    # CKA
+    # bash econ_benchmarks.sh --size large --num_workers 12 --metric CKA --num_batches 100000
+    # NE
+    # bash econ_benchmarks.sh --size large --num_workers 12 --metric neural_efficiency --num_batches 100000
 
