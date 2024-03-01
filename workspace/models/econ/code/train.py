@@ -13,7 +13,7 @@ from autoencoder_datamodule import AutoEncoderDataModule
 def main(args):
     # if the directory does not exist you create it
     if not os.path.exists(args.saving_folder):
-        os.makedirs(args.saving_folder)
+        os.makedirs(args.saving_folder, exist_ok=True)
     # ------------------------
     # 0 PREPARE DATA
     # ------------------------
