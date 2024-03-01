@@ -60,7 +60,7 @@ def main(args):
     lr = "{:.10f}".format(float(args.learning_rate)).rstrip('0')
     # if the directory does not exist you create it
     if not os.path.exists(args.saving_folder):
-        os.makedirs(args.saving_folder)
+        os.makedirs(args.saving_folder, exist_ok=True)
         
     saving_path = os.path.join(
         args.saving_folder, 
