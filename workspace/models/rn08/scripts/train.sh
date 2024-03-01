@@ -18,9 +18,8 @@ augmentation=0
 aug_percentage=0
 
 # ranges of the scan 
-# batch_sizes=(16 32 64 128 256 512 1024)
-# learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
 precisions=(2 3 4 5 6 7 8 9 10 11)
+# precisions=(2)
 
 
 # Function to display script usage
@@ -199,7 +198,7 @@ tar -czvf /loss_landscape/RN08_bs$batch_size"_lr$learning_rate".tar.gz $SAVING_F
 
 exit 0
 
-# . scripts/train.sh --num_workers 0 --bs 1024 --lr 0.003125 --max_epochs 100 --top_models 3 --num_test 1 --accelerator auto --augmentation 0 
+# . scripts/train.sh --num_workers 0 --bs 16 --lr 0.003125 --max_epochs 1 --top_models 3 --num_test 1 --accelerator auto --augmentation 0 
 
 # python code/train.py \
 #                 --saving_folder "/loss_landscape/checkpoint/different_knobs_subset_10" \

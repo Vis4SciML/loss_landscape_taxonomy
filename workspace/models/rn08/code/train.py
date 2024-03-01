@@ -96,11 +96,12 @@ def main(args):
             f'net_{args.experiment}_best.pkl'
         )
     print('Loading checkpoint...', checkpoint_file)
-    
+    # load the model
     checkpoint = torch.load(checkpoint_file)  
     model.load_state_dict(checkpoint['state_dict'])
-    test_results = trainer.test(model, dataloaders=test_loader)
     
+    test_results = trainer.test(model, dataloaders=test_loader)
+    print(f"TEST accuracy: {test_results}")
     # save the results on file
     test_results_log = os.path.join(
         args.saving_folder, 

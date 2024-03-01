@@ -405,7 +405,7 @@ def get_cifar10_loaders(path, batch_size, noise=False, percentage=0):
         train_ds.targets = randomize_labels(torch.tensor(train_ds.targets), portion=percentage)
     
     total_size = len(test_ds)
-    val_size = int(0.98 * total_size)
+    val_size = int(0.6 * total_size)
     test_size = total_size - val_size
     
     test_ds, validation_ds = random_split(test_ds, [test_size, val_size])
@@ -471,7 +471,7 @@ def get_accuracy_with_noise(path, batch_size, learning_rate, precision, noise_ty
 
 if __name__ == "__main__":
     
-    model = get_model_and_accuracy("/data/tbaldi/work/checkpoint/", 1024, 0.003125, 8)
+    model = get_model_and_accuracy("/data/tbaldi/work/checkpoint/", 16, 0.003125, 2)
     print(model)
     # train_loader, val_loader, test_loader = get_cifar10_loaders('../../../data/RN08', 1024)
     
