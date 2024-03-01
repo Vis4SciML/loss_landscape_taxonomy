@@ -3,9 +3,9 @@
 # Constants
 ADD_PRECISION=3
 SAVING_FOLDER="/home/jovyan/checkpoint/different_knobs_subset_10"    # /loss_landscape -> shared volume
-SAVING_FOLDER="/data/tbaldi/work/checkpoint/different_knobs_subset_10"
+#SAVING_FOLDER="/data/tbaldi/work/checkpoint/different_knobs_subset_10"
 DATA_DIR="/home/jovyan/loss_landscape_taxonomy/data/ECON/Elegun"
-DATA_DIR="/data/tbaldi/work/loss_landscape_taxonomy/data/ECON/Elegun"
+#DATA_DIR="/data/tbaldi/work/loss_landscape_taxonomy/data/ECON/Elegun"
 DATA_FILE="$DATA_DIR/nELinks5.npy"
 
 # Default variable values
@@ -24,8 +24,8 @@ aug_percentage=0
 
 
 # ranges of the scan 
-# precisions=(2 3 4 5 6 7 8 9 10 11)
-precisions=(2)
+precisions=(2 3 4 5 6 7 8 9 10 11)
+# precisions=(2)
 
 
 # Function to display script usage
@@ -164,7 +164,6 @@ run_train() {
         if [ -e "$test_file" ]; then
             echo "Already computed!"
         else 
-            echo "Injected Noise: $aug_percentage"
             # training of the model
             python code/train.py \
                 --saving_folder "$saving_folder" \
@@ -182,8 +181,8 @@ run_train() {
                 --experiment $i \
                 --max_epochs $max_epochs \
                 --augmentation $augmentation \
-                --aug_percentage $aug_percentage #\
-                #>/$HOME/log_ECON_$precision"_"$i.txt 2>&1 &
+                --aug_percentage $aug_percentage \
+                >/$HOME/log_ECON_$precision"_"$i.txt 2>&1 &
 
             pids+=($!)
         fi
@@ -211,7 +210,7 @@ do
     # trainig with various batch sizes
     run_train
 done
-return
+
 # archive everything and move it in the sahred folder
 if [ "$augmentation" -eq 1 ]; then
         tar -czvf /loss_landscape/ECON_AUG_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
