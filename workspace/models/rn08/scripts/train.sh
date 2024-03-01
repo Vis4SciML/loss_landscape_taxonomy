@@ -2,7 +2,8 @@
 
 # Constants
 ADD_PRECISION=3
-SAVING_FOLDER="/home/jovyan/checkpoint/different_knobs_subset_10"    
+SAVING_FOLDER="/home/jovyan/checkpoint/different_knobs_subset_10"   
+# SAVING_FOLDER="/data/tbaldi/work/jovyan/checkpoint/test"   
 DATA_DIR="../../../data/RN08"
 
 
@@ -19,7 +20,7 @@ aug_percentage=0
 
 # ranges of the scan 
 precisions=(2 3 4 5 6 7 8 9 10 11)
-# precisions=(2)
+# precisions=(5)
 
 
 # Function to display script usage
@@ -144,7 +145,6 @@ run_train() {
         echo ""
 
         test_file="$saving_folder"accuracy_$i.txt
-        echo $test_file
         # check if the model has been already computed 
         if [ -e "$test_file" ]; then
             echo "Already computed!"
@@ -165,7 +165,7 @@ run_train() {
                 --max_epochs $max_epochs \
                 --augmentation $augmentation \
                 --aug_percentage $aug_percentage \
-                >/$HOME/log_RN08_$i.txt 2>&1 &
+                >/$HOME/log_RN08_$precision"_"$i.txt 2>&1 &
 
             pids+=($!)
         fi
@@ -198,7 +198,7 @@ tar -czvf /loss_landscape/RN08_bs$batch_size"_lr$learning_rate".tar.gz $SAVING_F
 
 exit 0
 
-# . scripts/train.sh --num_workers 0 --bs 16 --lr 0.003125 --max_epochs 1 --top_models 3 --num_test 1 --accelerator auto --augmentation 0 
+# . scripts/train.sh --num_workers 0 --bs 1025 --lr 0.003125 --max_epochs 10 --top_models 3 --num_test 1 --accelerator auto --augmentation 0 
 
 # python code/train.py \
 #                 --saving_folder "/loss_landscape/checkpoint/different_knobs_subset_10" \

@@ -335,8 +335,9 @@ def load_model(path, batch_size, learning_rate, precision, size):
     '''
     Method used to get the model and the relative EMD value
     '''
+    lr = "{:.10f}".format(float(learning_rate)).rstrip('0')
     emd, idx = get_model_index_and_relative_EMD(path, batch_size, learning_rate, precision, size)
-    model_path = path + f'bs{batch_size}_lr{learning_rate}/ECON_{precision}b/{size}/net_{idx}_best.pkl'
+    model_path = path + f'bs{batch_size}_lr{lr}/ECON_{precision}b/{size}/net_{idx}_best.pkl'
     
     # load the model
     model = AutoEncoder(
@@ -364,10 +365,10 @@ def get_emd_with_noise(path, batch_size, learning_rate, precision, size, noise_t
     '''
     Return the EMD achieved by the Model with a certain level of noise
     '''
-
+    lr = "{:.10f}".format(float(learning_rate)).rstrip('0')
     file_path = os.path.join(
                 path,
-                f'bs{batch_size}_lr{learning_rate}/' \
+                f'bs{batch_size}_lr{lr}/' \
                 f'ECON_{precision}b/{size}/emd_{noise_type}_{percentage}.txt'
         ) 
     
@@ -394,10 +395,11 @@ def get_model_index_and_relative_EMD(path, batch_size, learning_rate, precision,
     EMDs = []
     min_emd = 1000
     min_emd_index = 0
+    lr = "{:.10f}".format(float(learning_rate)).rstrip('0')
     for i in range (1, num_tests+1):
         file_path = os.path.join(
                     path,
-                    f'bs{batch_size}_lr{learning_rate}/' \
+                    f'bs{batch_size}_lr{lr}/' \
                     f'ECON_{precision}b/{size}/{size}_emd_{i}.txt'
                 )
         try:
@@ -416,7 +418,7 @@ def get_model_index_and_relative_EMD(path, batch_size, learning_rate, precision,
     
     if len(EMDs) == 0:
         warnings.warn(f"Attention: There is no EMD value for the model: " \
-                      f"bs{batch_size}_lr{learning_rate}/ECON_{precision}b/{size}")
+                      f"bs{batch_size}_lr{lr}/ECON_{precision}b/{size}")
         return 0, -1
     
     return mean(EMDs), min_emd_index

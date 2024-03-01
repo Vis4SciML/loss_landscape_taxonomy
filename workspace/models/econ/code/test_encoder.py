@@ -31,8 +31,8 @@ def load_model(path, batch_size, learning_rate, precision, size, index=1):
     '''
     Method used to get the model and the relative EMD value
     '''
-
-    model_path = path + f'bs{batch_size}_lr{learning_rate}/ECON_{precision}b/{size}/net_{index}_best.pkl'
+    lr = "{:.10f}".format(float(learning_rate)).rstrip('0')
+    model_path = path + f'bs{batch_size}_lr{lr}/ECON_{precision}b/{size}/net_{index}_best.pkl'
     
     # load the model
     model = econ.AutoEncoder(
@@ -57,14 +57,14 @@ def load_model(path, batch_size, learning_rate, precision, size, index=1):
 
 
 def main(args):
-    
+    lr = "{:.10f}".format(float(args.learning_rate)).rstrip('0')
     # if the directory does not exist you create it
     if not os.path.exists(args.saving_folder):
         os.makedirs(args.saving_folder)
         
     saving_path = os.path.join(
         args.saving_folder, 
-        f'bs{args.batch_size}_lr{args.learning_rate}/ECON_{args.precision}b/{args.size}/'
+        f'bs{args.batch_size}_lr{lr}/ECON_{args.precision}b/{args.size}/'
     )
     # ---------------------------------------------------------------------------- #
     #                                  DATA MODULE                                 #

@@ -22,7 +22,7 @@ def main(args):
     # process the dataset if required
     if not os.path.exists(args.data_file):
         print("Processing data...")
-        data_module.process_data()
+    data_module.process_data()
     # not classical
     if args.augmentation:
         args.experiment = f"{args.experiment}_{args.aug_percentage}"
@@ -109,8 +109,9 @@ def main(args):
     model.set_val_sum(val_sum)
     data_module.setup("test")
     # run the test on the trainer
-    _, test_dataloader = data_module.dataloaders()
+    test_dataloader = data_module.test_dataloader()
     test_results = trainer.test(model, dataloaders=test_dataloader)
+    print(f"TEST EMD: {test_results}")
     # save the results on file
     test_results_log = os.path.join(
         args.saving_folder, args.size, args.size + f"_emd_{args.experiment}.txt"

@@ -82,6 +82,9 @@ def main(args):
     # ---------------------------------------------------------------------------- #
     #                                  Train model                                 #
     # ---------------------------------------------------------------------------- #
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    
     if not args.no_train:
         trainer.fit(model=model, 
                     train_dataloaders=train_loader,
