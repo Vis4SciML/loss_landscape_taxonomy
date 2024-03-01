@@ -4,7 +4,7 @@
 ADD_PRECISION=3
 SAVING_FOLDER="/home/jovyan/checkpoint/different_knobs_subset_10"    # /loss_landscape -> shared volume
 # SAVING_FOLDER="/data/tbaldi/work/checkpoint/different_knobs_subset_10"
-DATA_DIR="../../../data/ECON/Elegun"
+DATA_DIR="/home/jovyan/loss_landscape_taxonomy/data/ECON/Elegun"
 DATA_FILE="$DATA_DIR/nELinks5.npy"
 
 # Default variable values
@@ -23,8 +23,8 @@ aug_percentage=0
 
 
 # ranges of the scan 
-# precisions=(2 3 4 5 6 7 8 9 10 11)
 precisions=(2 3 4 5 6 7 8 9 10 11)
+# precisions=(2)
 
 
 # Function to display script usage
@@ -210,7 +210,7 @@ do
     # trainig with various batch sizes
     run_train
 done
-return
+
 # archive everything and move it in the sahred folder
 if [ "$augmentation" -eq 1 ]; then
         tar -czvf /loss_landscape/ECON_AUG_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 

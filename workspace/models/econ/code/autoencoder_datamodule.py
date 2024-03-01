@@ -200,10 +200,11 @@ class AutoEncoderDataModule(pl.LightningDataModule):
         dataframe
         """
         files = os.listdir(self.data_dir)
+        csv_files = [file for file in files if file.endswith('.csv')]
         data = pd.concat(
             [
                 pd.read_csv(os.path.join(self.data_dir, file), encoding='utf-8', engine='python')
-                for file in [files[0]]
+                for file in csv_files
             ]
         )
         data = self.mask_data(data)
