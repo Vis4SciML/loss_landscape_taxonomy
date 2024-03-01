@@ -266,6 +266,8 @@ class AutoEncoderDataModule(pl.LightningDataModule):
             # build the noisy dataset
             noise_dataset = []
             
+            print(int(len(self.train_data) * self.aug_percentage / 3))
+            
             # add equally the 3 type of noises
             for _ in range(int(len(self.train_data) * self.aug_percentage / 3)):
                 index = random.randint(0, int(len(self.train_data))-1)
@@ -276,6 +278,8 @@ class AutoEncoderDataModule(pl.LightningDataModule):
                 noise_dataset.append((random_data, target))
                 noise_dataset.append((gaussian_data, target))
                 noise_dataset.append((salt_pepper_data, target))
+                
+            print(len(noise_dataset))
 
             # we add the 10% of each noise type data in the train dataset
             inputs, targets = zip(*noise_dataset)
