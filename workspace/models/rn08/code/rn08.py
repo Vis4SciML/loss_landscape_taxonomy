@@ -256,7 +256,7 @@ class RN08(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), 
                                      lr=self.learning_rate,
-                                     weight_decay=1e-4)  # lr=1e-3
+                                     weight_decay=1e-5)  # lr=1e-3
         return optimizer
 
 
