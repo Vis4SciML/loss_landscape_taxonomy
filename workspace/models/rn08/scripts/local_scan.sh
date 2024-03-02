@@ -6,7 +6,7 @@
 
 batch_sizes=(1024)
 
-learning_rates=(0.003125)
+learning_rates=(0.0015625)
 
 for bs in ${batch_sizes[*]}
 do

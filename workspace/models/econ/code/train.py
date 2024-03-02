@@ -22,7 +22,7 @@ def main(args):
     # process the dataset if required
     if not os.path.exists(args.data_file):
         print("Processing data...")
-    data_module.process_data()
+        data_module.process_data()
     # not classical
     if args.augmentation:
         args.experiment = f"{args.experiment}_{args.aug_percentage}"
