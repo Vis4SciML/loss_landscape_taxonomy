@@ -156,7 +156,7 @@ run_train() {
     if [ "$augmentation" -eq 1 ]; then
         saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/ECON_AUG_"$precision"b/
     else
-        if [ "$j_reg" -gt 0 ]; then
+        if (( $(echo "$j_reg > $zero" | bc -l) )); then
             saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/ECON_JREG_"$precision"b/
         else
             saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/ECON_"$precision"b/
@@ -170,7 +170,6 @@ run_train() {
         echo ""
 
         test_file="$saving_folder$size/$size"_emd_"$i.txt"
-        echo $test_file
         # check if the model has been already computed 
         if [ -e "$test_file" ]; then
             echo "Already computed!"
