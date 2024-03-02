@@ -1,5 +1,6 @@
 
 import os
+import sys
 import ast
 import warnings
 from itertools import starmap
@@ -12,6 +13,11 @@ from hawq.utils import QuantAct, QuantLinear, QuantConv2d
 from collections import OrderedDict
 from telescope_pt import telescopeMSE8x8
 from autoencoder_datamodule import ARRANGE, ARRANGE_MASK
+
+# add Jacobian and AT
+module_path = os.path.abspath(os.path.join('../../common/benchmarks/')) 
+sys.path.insert(0, module_path)
+from jacobian import JacobianReg as jReg
 
 
 """
@@ -196,7 +202,7 @@ class QuantizedEncoder(nn.Module):
 
 
 class AutoEncoder(pl.LightningModule):
-    def __init__(self, quantize, precision, learning_rate, econ_type, *args, **kwargs) -> None:
+    def __init__(self, quantize, precision, learning_rate, econ_type, jacobian_reg=0.0, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
         self.encoded_dim = 16
@@ -234,6 +240,17 @@ class AutoEncoder(pl.LightningModule):
         ]))
         
         self.loss = telescopeMSE8x8
+        
+        # Jacobian rgularization
+        self.regularizer = jReg(n=1)
+        self.lambda_JR = jacobian_reg
+        if self.lambda_JR > 0:
+            print('\n')
+            print('*'*100)
+            print(f'\t\tJACOBIAN REGULARIZATION ACTIVE (lambda={self.lambda_JR})')
+            print('*'*100)
+            print('\n')
+        
 
     def invert_arrange(self):
         """
@@ -285,8 +302,12 @@ class AutoEncoder(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         input, target = batch
+        if self.lambda_JR > 0:
+            input.requires_grad = True # this is essential!
         input_hat = self(input)
         loss = self.loss(input_hat, target)
+        J_loss = self.regularizer(input, input_hat)
+        loss = loss + self.lambda_JR * J_loss
         self.log("train_loss", loss, on_epoch=True, prog_bar=True)
         return loss
 

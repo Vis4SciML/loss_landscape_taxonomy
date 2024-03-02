@@ -26,6 +26,8 @@ def main(args):
     # not classical
     if args.augmentation:
         args.experiment = f"{args.experiment}_{args.aug_percentage}"
+    elif args.j_reg:
+        args.experiment = f"{args.experiment}_{args.j_reg}"
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------
@@ -40,6 +42,7 @@ def main(args):
         ],
         learning_rate=args.lr,
         econ_type=args.size,
+        jacobian_reg=args.j_reg
     )
     torchinfo.summary(model, input_size=(1, 1, 8, 8))  # (B, C, H, W)
 
@@ -136,6 +139,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--accelerator", type=str, choices=["cpu", "gpu", "tpu", "auto"], default="auto"
     )
+    
+    # Jacobian regularization
+    parser.add_argument("--j_reg", type=float, default=0.0)
     # Add dataset-specific args
     parser = AutoEncoderDataModule.add_argparse_args(parser)
     # NOTE: do not activate during real training, just for debugging

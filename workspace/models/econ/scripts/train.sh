@@ -20,12 +20,12 @@ batch_size=8
 learning_rate=0.0015625
 augmentation=0
 aug_percentage=0
-
+j_reg=0
 
 
 # ranges of the scan 
 precisions=(2 3 4 5 6 7 8 9 10 11)
-# precisions=(2)
+precisions=(2)
 
 
 # Function to display script usage
@@ -135,6 +135,13 @@ handle_options() {
                     shift
                 fi
                 ;;
+            --j_reg)
+                if has_argument $@; then
+                    j_reg=$(extract_argument $@)
+                    echo "Weight of the Jacobian Regularization: $j_reg"
+                    shift
+                fi
+                ;;
             *)
                 echo "Invalid option: $1" >&2
                 usage
@@ -149,7 +156,11 @@ run_train() {
     if [ "$augmentation" -eq 1 ]; then
         saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/ECON_AUG_"$precision"b/
     else
-        saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/ECON_"$precision"b/
+        if [ "$j_reg" -gt 0 ]; then
+            saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/ECON_JREG_"$precision"b/
+        else
+            saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/ECON_"$precision"b/
+        fi
     fi
     pids=()
     for i in $(eval echo "{1..$num_test}")
@@ -182,6 +193,7 @@ run_train() {
                 --max_epochs $max_epochs \
                 --augmentation $augmentation \
                 --aug_percentage $aug_percentage \
+                --j_reg $j_reg \
                 >/$HOME/log_ECON_$precision"_"$i.txt 2>&1 &
 
             pids+=($!)
@@ -213,14 +225,21 @@ done
 
 # archive everything and move it in the sahred folder
 if [ "$augmentation" -eq 1 ]; then
-        tar -czvf /loss_landscape/ECON_AUG_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
+    tar -czvf /loss_landscape/ECON_AUG_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
+else
+    if [ "$j_reg" -gt 0 ]; then
+        tar -czvf /loss_landscape/ECON_JREG_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
     else
         tar -czvf /loss_landscape/ECON_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
     fi
+fi
 
 exit 0
 
+# AUG
 # . scripts/train.sh --num_workers 1 --bs 1024 --lr 0.0015625 --max_epochs 1 --size baseline --top_models 1 --num_test 1 --augmentation 1 --aug_percentage 0.3
+# JREG
+# . scripts/train.sh --num_workers 1 --bs 1024 --lr 0.0015625 --max_epochs 1 --size baseline --top_models 1 --num_test 1 --j_reg 0.1
 
 # python code/train.py \
 #                 --saving_folder "/loss_landscape/checkpoint/different_knobs_subset_10" \
