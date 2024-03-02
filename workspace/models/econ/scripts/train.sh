@@ -222,12 +222,12 @@ do
     # trainig with various batch sizes
     run_train
 done
-
+zero=0
 # archive everything and move it in the sahred folder
 if [ "$augmentation" -eq 1 ]; then
     tar -czvf /loss_landscape/ECON_AUG_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
 else
-    if [ "$j_reg" -gt 0 ]; then
+    if (( $(echo "$j_reg > $zero" | bc -l) )); then
         tar -czvf /loss_landscape/ECON_JREG_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
     else
         tar -czvf /loss_landscape/ECON_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
