@@ -319,7 +319,7 @@ def get_accuracy(path, batch_size, learning_rate, precision):
     return value
 
 
-def get_model_and_accuracy(path, batch_size, learning_rate, precision):
+def get_model_and_accuracy(path, batch_size, learning_rate, precision, name="net_1_best"):
     '''
     Return the model and its accuracy
     '''
@@ -329,7 +329,7 @@ def get_model_and_accuracy(path, batch_size, learning_rate, precision):
     )
     
     # get the model
-    model_file = os.path.join(folder_path, "net_1_best.pkl")
+    model_file = os.path.join(folder_path, f"{name}.pkl")
     model = RN08(
         quantize=(precision < 32),
         precision=[
@@ -357,7 +357,7 @@ def get_dataloader(path, batch_size):
     
     transform = transforms.Compose([
         transforms.ToTensor(), 
-        transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.247, 0.243, 0.261))
     ])
     test_dataset = datasets.CIFAR10(root=path, 
                                     train=False, 
@@ -385,8 +385,8 @@ def get_cifar10_loaders(path, batch_size, noise=False, percentage=0):
                 transforms.RandomCrop(32, padding=4),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5),
-                                     (0.5, 0.5, 0.5)),
+                transforms.Normalize((0.4914, 0.4822, 0.4465), 
+                                     (0.247, 0.243, 0.261)),
                 ])
             )
     test_ds = datasets.CIFAR10(
@@ -394,8 +394,8 @@ def get_cifar10_loaders(path, batch_size, noise=False, percentage=0):
             train=False,
             transform=transforms.Compose([
                 transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5),
-                                     (0.5, 0.5, 0.5)),
+                transforms.Normalize((0.4914, 0.4822, 0.4465), 
+                                     (0.247, 0.243, 0.261)),
                 ])
             )
     
@@ -471,42 +471,42 @@ def get_accuracy_with_noise(path, batch_size, learning_rate, precision, noise_ty
 
 if __name__ == "__main__":
     
-    model = get_model_and_accuracy("/data/tbaldi/work/checkpoint/", 16, 0.003125, 2)
-    print(model)
-    # train_loader, val_loader, test_loader = get_cifar10_loaders('../../../data/RN08', 1024)
+    # model = get_model_and_accuracy("/data/tbaldi/work/checkpoint/", 16, 0.003125, 2)
+    # print(model)
+    train_loader, val_loader, test_loader = get_cifar10_loaders('../../../data/RN08', 1024)
     
-    # model = RN08(True, [4, 4, 7], 0.0015625)
-    # # print(model)
-    # torchinfo.summary(model, input_size=(1, 3, 32, 32))
+    model = RN08(False, [4, 4, 7], 0.0015625)
+    # print(model)
+    torchinfo.summary(model, input_size=(1, 3, 32, 32))
     
-    # # stop training when model converges
-    # early_stop_callback = EarlyStopping(
-    #     monitor="val_loss", 
-    #     min_delta=0.00, 
-    #     patience=5, 
-    #     verbose=True, 
-    #     mode="min"
-    # )
+    # stop training when model converges
+    early_stop_callback = EarlyStopping(
+        monitor="val_loss", 
+        min_delta=0.00, 
+        patience=5, 
+        verbose=True, 
+        mode="min"
+    )
     
-    # # save top-3 checkpoints based on Val/Loss
-    # top_checkpoint_callback = ModelCheckpoint(
-    #     save_top_k=3,
-    #     save_last=True,
-    #     monitor="val_loss",
-    #     mode="min",
-    #     dirpath='./',
-    #     filename=f'net_full_precision_best',
-    #     auto_insert_metric_name=False,
-    # )
+    # save top-3 checkpoints based on Val/Loss
+    top_checkpoint_callback = ModelCheckpoint(
+        save_top_k=3,
+        save_last=True,
+        monitor="val_loss",
+        mode="min",
+        dirpath='./',
+        filename=f'net_full_precision_best',
+        auto_insert_metric_name=False,
+    )
     
-    # tb_logger = pl_loggers.TensorBoardLogger('./')
+    tb_logger = pl_loggers.TensorBoardLogger('./')
     
-    # trainer = pl.Trainer(
-    #     max_epochs=100,
-    #     logger=tb_logger,
-    #     callbacks=[top_checkpoint_callback, early_stop_callback],
-    # )
+    trainer = pl.Trainer(
+        max_epochs=100,
+        logger=tb_logger,
+        callbacks=[top_checkpoint_callback, early_stop_callback],
+    )
 
-    # trainer.fit(model=model, 
-    #             train_dataloaders=train_loader,
-    #             val_dataloaders=val_loader)
+    trainer.fit(model=model, 
+                train_dataloaders=train_loader,
+                val_dataloaders=val_loader)
