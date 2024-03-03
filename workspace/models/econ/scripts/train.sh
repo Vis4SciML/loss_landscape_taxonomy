@@ -20,6 +20,7 @@ batch_size=8
 learning_rate=0.0015625
 augmentation=0
 aug_percentage=0
+regularization=0
 j_reg=0
 adv_training=0
 
@@ -136,6 +137,13 @@ handle_options() {
                     shift
                 fi
                 ;;
+            --regularization)
+                if has_argument $@; then
+                    regularization=$(extract_argument $@)
+                    echo "Add noise dataset to the training: $regularization"
+                    shift
+                fi
+                ;;
             --j_reg)
                 if has_argument $@; then
                     j_reg=$(extract_argument $@)
@@ -164,10 +172,10 @@ run_train() {
     if [ "$augmentation" -eq 1 ]; then
         saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/ECON_AUG_"$precision"b/
     else
-        if python -c "print(float($j_reg) > float($zero))"; then
+        if [ "$regularization" -eq 1 ]; then
             saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/ECON_JREG_"$precision"b/
         else
-            if python -c "print(float($adv_training) > float($zero))"; then
+            if [ "$adv_training" -eq 1 ]; then
                 saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/ECON_ADV_"$precision"b/
             else
                 saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/ECON_"$precision"b/
@@ -240,10 +248,10 @@ zero=0
 if [ "$augmentation" -eq 1 ]; then
     tar -czvf /loss_landscape/ECON_AUG_"$aug_percentage"_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
 else
-    if python -c "print(float($j_reg) > float($zero))"; then
+    if [ "$regularization" -eq 1 ]; then
         tar -czvf /loss_landscape/ECON_JREG_"$j_reg"_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
     else
-        if python -c "print(float($adv_training) > float($zero))"; then
+        if [ "$adv_training" -eq 1 ]; then
             tar -czvf /loss_landscape/ECON_ADV_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
         else
             tar -czvf /loss_landscape/ECON_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
