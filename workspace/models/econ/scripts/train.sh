@@ -3,9 +3,9 @@
 # Constants
 ADD_PRECISION=3
 SAVING_FOLDER="/home/jovyan/checkpoint/different_knobs_subset_10"    # /loss_landscape -> shared volume
-SAVING_FOLDER="/data/tbaldi/work/checkpoint/different_knobs_subset_10"
+#SAVING_FOLDER="/data/tbaldi/work/checkpoint/different_knobs_subset_10"
 DATA_DIR="/home/jovyan/loss_landscape_taxonomy/data/ECON/Elegun"
-DATA_DIR="/data/tbaldi/work/loss_landscape_taxonomy/data/ECON/Elegun"
+#DATA_DIR="/data/tbaldi/work/loss_landscape_taxonomy/data/ECON/Elegun"
 DATA_FILE="$DATA_DIR/nELinks5.npy"
 
 # Default variable values
@@ -26,7 +26,7 @@ adv_training=0
 
 # ranges of the scan 
 precisions=(2 3 4 5 6 7 8 9 10 11)
-precisions=(2)
+#precisions=(2)
 
 
 # Function to display script usage
@@ -205,8 +205,8 @@ run_train() {
                 --augmentation $augmentation \
                 --aug_percentage $aug_percentage \
                 --j_reg $j_reg \
-                --adv_training $adv_training #\
-                #>/$HOME/log_ECON_$precision"_"$i.txt 2>&1 &
+                --adv_training $adv_training \
+                >/$HOME/log_ECON_$precision"_"$i.txt 2>&1 &
 
             pids+=($!)
         fi
@@ -234,7 +234,7 @@ do
     # trainig with various batch sizes
     run_train
 done
-return
+
 zero=0
 # archive everything and move it in the sahred folder
 if [ "$augmentation" -eq 1 ]; then
