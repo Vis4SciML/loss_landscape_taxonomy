@@ -302,8 +302,7 @@ class AutoEncoder(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         input, target = batch
-        if self.lambda_JR > 0:
-            input.requires_grad = True # this is essential!
+        input.requires_grad = True # this is essential!
         input_hat = self(input)
         loss = self.loss(input_hat, target)
         J_loss = self.regularizer(input, input_hat)
