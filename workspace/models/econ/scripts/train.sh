@@ -164,10 +164,10 @@ run_train() {
     if [ "$augmentation" -eq 1 ]; then
         saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/ECON_AUG_"$precision"b/
     else
-        if (( $(echo "$j_reg > $zero" | bc -l) )); then
+        if python -c "print(float($j_reg) > float($zero))"; then
             saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/ECON_JREG_"$precision"b/
         else
-            if (( $(echo "$adv_training > $zero" | bc -l) )); then
+            if python -c "print(float($adv_training) > float($zero))"; then
                 saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/ECON_ADV_"$precision"b/
             else
                 saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/ECON_"$precision"b/
@@ -238,12 +238,12 @@ done
 zero=0
 # archive everything and move it in the sahred folder
 if [ "$augmentation" -eq 1 ]; then
-    tar -czvf /loss_landscape/ECON_AUG_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
+    tar -czvf /loss_landscape/ECON_AUG_"$aug_percentage"_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
 else
-    if (( $(echo "$j_reg > $zero" | bc -l) )); then
-        tar -czvf /loss_landscape/ECON_JREG_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
+    if python -c "print(float($j_reg) > float($zero))"; then
+        tar -czvf /loss_landscape/ECON_JREG_"$j_reg"_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
     else
-        if (( $(echo "$adv_training > $zero" | bc -l) )); then
+        if python -c "print(float($adv_training) > float($zero))"; then
             tar -czvf /loss_landscape/ECON_ADV_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
         else
             tar -czvf /loss_landscape/ECON_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
