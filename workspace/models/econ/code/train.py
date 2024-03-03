@@ -44,8 +44,8 @@ def main(args):
         ],
         learning_rate=args.lr,
         econ_type=args.size,
-        jacobian_reg=args.j_reg,
-        adv_training=args.adv_training
+        jacobian_reg=args.j_reg
+        #adv_training=args.adv_training
     )
     torchinfo.summary(model, input_size=(1, 1, 8, 8))  # (B, C, H, W)
 
