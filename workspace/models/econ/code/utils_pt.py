@@ -101,13 +101,6 @@ def unnormalize(norm_data, max_vals, sumlog2=True):
 
 
 def emd(x, y, threshold=-1):
-    # if np.sum(_x) == 0:
-    #     return -1.0
-    # if np.sum(_y) == 0:
-    #     epsilon = 1e-10
-    #     _y = np.array(_y) + epsilon
-    # x = np.array(_x, dtype=np.float64)
-    # y = np.array(_y, dtype=np.float64)
     x = torch.Tensor(x)
     y = torch.Tensor(y)
     x = (1.0 / x.sum() if x.sum() else 1.0) * torch.flatten(x)
@@ -120,7 +113,6 @@ def emd(x, y, threshold=-1):
         x = 1.0 * x / x.sum()
         y = 1.0 * y / y.sum()
         
-    # result = ot.emd2(x, y, hex_metric)
     x = np.float64(x.cpu().numpy())
     y = np.float64(y.cpu().numpy())
     result = pyemd.emd(x, y, hex_metric)
