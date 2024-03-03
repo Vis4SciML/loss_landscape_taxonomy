@@ -107,7 +107,9 @@ def main(args):
                                 args.batch_size, 
                                 shuffle=False,
                                 num_workers=args.num_workers)
-        trainer = pl.Trainer(accelerator='auto', devices='auto')
+        trainer = pl.Trainer(accelerator='auto', 
+                             devices='auto', 
+                             limit_test_batches=args.num_batches)
         test_results = trainer.test(model=model, dataloaders=dataloader)
         print(f'Original EMD:\t{original_emd}\n' \
               f'Benchmark EMD:\t{test_results}')
