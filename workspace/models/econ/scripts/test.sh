@@ -116,9 +116,9 @@ do
     case $metric in
         noise)
             pids=()
-            noise_type="gaussian"
-            percentages=(5 10 15 20)
-            for i in ${percentages[*]}
+            noise_type=("gaussian", "random", "salt_pepper")
+            percentages=5
+            for i in ${noise_type[*]}
             do
                 python code/test_encoder.py --saving_folder $SAVING_FOLDER \
                             --metric noise \
@@ -129,8 +129,8 @@ do
                             --learning_rate $learning_rate \
                             --size $size \
                             --precision $p \
-                            --noise_type $noise_type \
-                            --percentage $i \
+                            --noise_type $i \
+                            --percentage $percentages \
                             >/$HOME/log_$i.txt 2>&1 &
                 pids+=($!)
             done
