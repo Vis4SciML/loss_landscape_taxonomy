@@ -75,8 +75,7 @@ def main(args):
     if not os.path.exists(args.data_file):
         print("Processing data...")
         data_module.process_data()
-        _, val_sum = data_module.get_val_max_and_sum()
-        model.set_val_sum(val_sum)
+    
     
     # ---------------------------------------------------------------------------- #
     #                                     MODEL                                    #
@@ -88,7 +87,8 @@ def main(args):
                                           args.size)
     
     # eval the model
-    
+    _, val_sum = data_module.get_val_max_and_sum()
+    model.set_val_sum(val_sum)
     data_module.setup("test")
     _, dataloader = data_module.dataloaders()
     print('-'*80)

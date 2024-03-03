@@ -116,7 +116,8 @@ do
     case $metric in
         noise)
             pids=()
-            noise_type=("gaussian", "random", "salt_pepper")
+            noise_type=("gaussian" "random" "salt_pepper")
+            #noise_type=("gaussian")
             percentages=5
             for i in ${noise_type[*]}
             do

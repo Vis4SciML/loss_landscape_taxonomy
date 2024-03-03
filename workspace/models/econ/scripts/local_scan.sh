@@ -3,7 +3,7 @@
 batch_sizes=(16 32 64 128 256 512 1024)
 
 # learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625 )
-learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0001 0.00001 0.000001 0.0000001)
+learning_rates=(0.0001 0.00001 0.000001 0.0000001)
 
 # batch_sizes=(1024)
 
@@ -24,8 +24,8 @@ do
             ./scripts/test.sh \
                                         --batch_size $bs \
                                         --learning_rate $lr \
-                                        --metric CKA \
-                                        --num_batches 10 \
+                                        --metric noise \
+                                        --num_batches 100 \
                                         --num_workers 2
         fi
     done
