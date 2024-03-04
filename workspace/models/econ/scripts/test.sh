@@ -2,7 +2,7 @@
 
 
 SAVING_FOLDER="/home/jovyan/checkpoint/"    # /loss_landscape -> shared volume
-SAVING_FOLDER="/data/tbaldi/work/checkpoint/"
+#SAVING_FOLDER="/data/tbaldi/work/checkpoint/"
 DATA_DIR="../../../data/ECON/Elegun"
 DATA_FILE="$DATA_DIR/nELinks5.npy"
 
@@ -21,7 +21,7 @@ num_batches=1
 # learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
 
 precisions=(2 3 4 5 6 7 8 9 10 11)
-
+#precisions=(8)
 
 # Function to display script usage
 usage() {
@@ -117,7 +117,6 @@ do
         noise)
             pids=()
             noise_type=("gaussian" "random" "salt_pepper")
-            noise_type=("random")
             percentages=5
             for i in ${noise_type[*]}
             do
@@ -131,8 +130,9 @@ do
                             --size $size \
                             --precision $p \
                             --noise_type $i \
-                            --percentage $percentages #\
-                            #>/$HOME/log_$i.txt 2>&1 &
+                            --num_batches $num_batches \
+                            --percentage $percentages \
+                            >/$HOME/log_$i.txt 2>&1 &
                 pids+=($!)
             done
             for pid in "${pids[@]}"; do
@@ -253,6 +253,7 @@ do
     esac
 done
 
+
 # archive everything and move it in the sahred folder
 tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
 
@@ -261,8 +262,8 @@ exit 0
 
 # . scripts/test.sh \
 #                                         --batch_size 32 \
-#                                         --learning_rate 0.025 \
+#                                         --learning_rate 0.003125 \
 #                                         --size baseline \
-#                                         --metric CKA \
-#                                         --num_batches 10 \
-#                                         --num_workers 4
+#                                         --metric noise \
+#                                         --num_batches 100 \
+#                                         --num_workers 1

@@ -100,6 +100,7 @@ def main(args):
         print(f'Noise type:\t{args.noise_type}')
         print(f'Noise percentage:\t{args.percentage}%')
         print('-'*80)
+        # prepare noisy data
         noisy_dataset = NoisyDataset(dataloader, 
                                      args.percentage, 
                                      args.noise_type)
@@ -107,10 +108,16 @@ def main(args):
                                 args.batch_size, 
                                 shuffle=False,
                                 num_workers=args.num_workers)
+        print(len(dataloader))
+        max_batches = min(len(dataloader), args.num_batches)
+        print(f"Testing batches: {max_batches}")
+        # test the performances
         trainer = pl.Trainer(accelerator='auto', 
                              devices='auto', 
-                             limit_test_batches=args.num_batches)
+                             limit_test_batches=max_batches)
         test_results = trainer.test(model=model, dataloaders=dataloader)
+        
+        # store the results
         print(f'Original EMD:\t{original_emd}\n' \
               f'Benchmark EMD:\t{test_results}')
         file_name = f"emd_{args.noise_type}_{args.percentage}.txt"
@@ -245,8 +252,8 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    # for arg in vars(args):
-    #     print(f"{arg}: {getattr(args, arg)}")
+    for arg in vars(args):
+        print(f"{arg}: {getattr(args, arg)}")
     
     main(args)
     
