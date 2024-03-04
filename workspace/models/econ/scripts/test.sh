@@ -2,7 +2,7 @@
 
 
 SAVING_FOLDER="/home/jovyan/checkpoint/"    # /loss_landscape -> shared volume
-#SAVING_FOLDER="/data/tbaldi/work/checkpoint/"
+SAVING_FOLDER="/data/tbaldi/work/checkpoint/"
 DATA_DIR="../../../data/ECON/Elegun"
 DATA_FILE="$DATA_DIR/nELinks5.npy"
 
@@ -117,7 +117,7 @@ do
         noise)
             pids=()
             noise_type=("gaussian" "random" "salt_pepper")
-            #noise_type=("gaussian")
+            noise_type=("random")
             percentages=5
             for i in ${noise_type[*]}
             do
@@ -131,8 +131,8 @@ do
                             --size $size \
                             --precision $p \
                             --noise_type $i \
-                            --percentage $percentages \
-                            >/$HOME/log_$i.txt 2>&1 &
+                            --percentage $percentages #\
+                            #>/$HOME/log_$i.txt 2>&1 &
                 pids+=($!)
             done
             for pid in "${pids[@]}"; do

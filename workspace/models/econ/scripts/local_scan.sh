@@ -25,7 +25,7 @@ do
                                         --batch_size $bs \
                                         --learning_rate $lr \
                                         --metric noise \
-                                        --num_batches 100 \
+                                        --num_batches 20 \
                                         --num_workers 2
         fi
     done
