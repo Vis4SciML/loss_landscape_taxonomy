@@ -146,33 +146,37 @@ do
 
     case $metric in
         noise)
-            pids=()
-            noise_type=("gaussian" "random" "salt_pepper")
-            #noise_type=("gaussian")
-            percentages=5
-            for i in ${noise_type[*]}
+            percentages=(5 10 15 20)
+            for j in ${percentages[*]}
             do
-                python code/test_encoder.py --saving_folder $SAVING_FOLDER \
-                            --metric noise \
-                            --data_dir $DATA_DIR \
-                            --data_file $DATA_FILE \
-                            --num_workers $num_workers \
-                            --batch_size $batch_size \
-                            --learning_rate $learning_rate \
-                            --size $size \
-                            --precision $p \
-                            --percentage $percentages \
-                            --noise_type $i \
-                            --num_batches $num_batches \
-                            --aug_percentage $aug_percentage \
-                            --j_reg $j_reg \
-                            >/$HOME/log_$i.txt 2>&1 &
-                pids+=($!)
-            done
-            for pid in "${pids[@]}"; do
-                wait $pid
-                current_date_time=$(date '+%Y-%m-%d %H:%M:%S')
-                echo "$current_date_time: Process with PID $pid finished"
+                echo "Valdation with $j%"
+                pids=()
+                noise_type=("gaussian" "random" "salt_pepper")
+                for i in ${noise_type[*]}
+                do
+                    python code/test_encoder.py --saving_folder $SAVING_FOLDER \
+                                --metric noise \
+                                --data_dir $DATA_DIR \
+                                --data_file $DATA_FILE \
+                                --num_workers $num_workers \
+                                --batch_size $batch_size \
+                                --learning_rate $learning_rate \
+                                --size $size \
+                                --precision $p \
+                                --percentage $j \
+                                --noise_type $i \
+                                --num_batches $num_batches \
+                                --aug_percentage $aug_percentage \
+                                --j_reg $j_reg \
+                                >/$HOME/log_$i.txt 2>&1 &
+                    pids+=($!)
+                done
+                for pid in "${pids[@]}"; 
+                do
+                    wait $pid
+                    current_date_time=$(date '+%Y-%m-%d %H:%M:%S')
+                    echo "$current_date_time: Process with PID $pid finished"
+                done
             done
             ;;
         bitflip)

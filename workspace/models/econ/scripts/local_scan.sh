@@ -1,6 +1,6 @@
 #!/bin/bash
 
-batch_sizes=(16 32 64 128 256 512 1024)
+batch_sizes=(64 128 256 512 1024)
 
 # learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625 )
 learning_rates=(0.0001 0.00001 0.000001 0.0000001)
@@ -24,10 +24,10 @@ do
             ./scripts/test.sh \
                                         --batch_size $bs \
                                         --learning_rate $lr \
-                                        --metric noise \
-                                        --augmentation 1 \
-                                        --aug_percentage 0.5 \
-                                        --num_batches 5000 \
+                                        --metric CKA \
+                                        --regularization 1 \
+                                        --j_reg 0.001 \
+                                        --num_batches 5 \
                                         --num_workers 2
         fi
     done
