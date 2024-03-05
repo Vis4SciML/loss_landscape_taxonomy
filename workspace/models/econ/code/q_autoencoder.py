@@ -351,13 +351,19 @@ class AutoEncoder(pl.LightningModule):
 # ---------------------------------------------------------------------------- #
 #                                Utility methods                               #
 # ---------------------------------------------------------------------------- #
-def load_model(path, batch_size, learning_rate, precision, size):
+def load_model(path, batch_size, learning_rate, precision, size, jreg=0.0, aug_percentage=0.0):
     '''
     Method used to get the model and the relative EMD value
     '''
     lr = "{:.10f}".format(float(learning_rate)).rstrip('0')
-    emd, idx = get_model_index_and_relative_EMD(path, batch_size, learning_rate, precision, size)
-    model_path = path + f'bs{batch_size}_lr{lr}/ECON_{precision}b/{size}/net_{idx}_best.pkl'
+    emd, idx = get_model_index_and_relative_EMD(path, batch_size, learning_rate, precision, size, 3, jreg, aug_percentage)
+    
+    if aug_percentage > 0:
+        model_path = path + f'bs{batch_size}_lr{lr}/ECON_AUG_{precision}b/{size}/net_{idx}_{aug_percentage}_best.pkl'
+    elif jreg > 0:
+        model_path = path + f'bs{batch_size}_lr{lr}/ECON_JREG_{precision}b/{size}/net_{idx}_{jreg}_best.pkl'
+    else:
+        model_path = path + f'bs{batch_size}_lr{lr}/ECON_{precision}b/{size}/net_{idx}_best.pkl'
     
     # load the model
     model = AutoEncoder(
@@ -408,7 +414,7 @@ def get_emd_with_noise(path, batch_size, learning_rate, precision, size, noise_t
     return noise_emd
 
 
-def get_model_index_and_relative_EMD(path, batch_size, learning_rate, precision, size, num_tests=3):
+def get_model_index_and_relative_EMD(path, batch_size, learning_rate, precision, size, num_tests=3, jreg=0.0, aug_percentage=0.0):
     '''
     Return the average EMDs achieved by the model and the index of best experiment
     '''
@@ -417,11 +423,24 @@ def get_model_index_and_relative_EMD(path, batch_size, learning_rate, precision,
     min_emd_index = 0
     lr = "{:.10f}".format(float(learning_rate)).rstrip('0')
     for i in range (1, num_tests+1):
-        file_path = os.path.join(
-                    path,
-                    f'bs{batch_size}_lr{lr}/' \
-                    f'ECON_{precision}b/{size}/{size}_emd_{i}.txt'
-                )
+        if aug_percentage > 0:
+            file_path = os.path.join(
+                        path,
+                        f'bs{batch_size}_lr{lr}/' \
+                        f'ECON_AUG_{precision}b/{size}/{size}_emd_{i}_{aug_percentage}.txt'
+                    )
+        elif jreg > 0:
+            file_path = os.path.join(
+                        path,
+                        f'bs{batch_size}_lr{lr}/' \
+                        f'ECON_JREG_{precision}b/{size}/{size}_emd_{i}_{jreg}.txt'
+                    )
+        else:
+            file_path = os.path.join(
+                        path,
+                        f'bs{batch_size}_lr{lr}/' \
+                        f'ECON_{precision}b/{size}/{size}_emd_{i}.txt'
+                    )
         try:
             emd_file = open(file_path)
             emd_text = emd_file.read()

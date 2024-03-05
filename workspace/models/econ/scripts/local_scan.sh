@@ -7,7 +7,7 @@ learning_rates=(0.0001 0.00001 0.000001 0.0000001)
 
 # batch_sizes=(1024)
 
-# learning_rates=(0.0015625)
+learning_rates=(0.0015625)
 
 for bs in ${batch_sizes[*]}
 do
@@ -25,7 +25,9 @@ do
                                         --batch_size $bs \
                                         --learning_rate $lr \
                                         --metric noise \
-                                        --num_batches 20 \
+                                        --augmentation 1 \
+                                        --aug_percentage 0.5 \
+                                        --num_batches 5000 \
                                         --num_workers 2
         fi
     done

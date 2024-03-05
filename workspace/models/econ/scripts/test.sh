@@ -13,7 +13,10 @@ learning_rate=0.1
 size="baseline"
 metric="noise"
 num_batches=1
-
+augmentation=0
+regularization=0
+aug_percentage=0
+j_reg=0
 
 
 # ranges of the scan 
@@ -94,6 +97,34 @@ handle_options() {
                     shift
                 fi
                 ;;
+            --augmentation)
+                if has_argument $@; then
+                    augmentation=$(extract_argument $@)
+                    echo "Learning rate: $augmentation"
+                    shift
+                fi
+                ;;
+            --regularization)
+                if has_argument $@; then
+                    regularization=$(extract_argument $@)
+                    echo "Learning rate: $regularization"
+                    shift
+                fi
+                ;;
+            --aug_percentage)
+                if has_argument $@; then
+                    aug_percentage=$(extract_argument $@)
+                    echo "Percentage of noise injected: $aug_percentage"
+                    shift
+                fi
+                ;;
+            --j_reg)
+                if has_argument $@; then
+                    j_reg=$(extract_argument $@)
+                    echo "Weight of the jacobian regularization: $j_reg"
+                    shift
+                fi
+                ;;
             *)
                 echo "Invalid option: $1" >&2
                 usage
@@ -117,6 +148,7 @@ do
         noise)
             pids=()
             noise_type=("gaussian" "random" "salt_pepper")
+            #noise_type=("gaussian")
             percentages=5
             for i in ${noise_type[*]}
             do
@@ -129,9 +161,11 @@ do
                             --learning_rate $learning_rate \
                             --size $size \
                             --precision $p \
+                            --percentage $percentages \
                             --noise_type $i \
                             --num_batches $num_batches \
-                            --percentage $percentages \
+                            --aug_percentage $aug_percentage \
+                            --j_reg $j_reg \
                             >/$HOME/log_$i.txt 2>&1 &
                 pids+=($!)
             done
@@ -176,6 +210,8 @@ do
                             --size $size \
                             --precision $p \
                             --num_batches $num_batches \
+                            --aug_percentage $aug_percentage \
+                            --j_reg $j_reg \
                             >/$HOME/log_$metric.txt 
             ;;
         neural_efficiency)
@@ -189,6 +225,8 @@ do
                             --size $size \
                             --precision $p \
                             --num_batches $num_batches \
+                            --aug_percentage $aug_percentage \
+                            --j_reg $j_reg \
                             >/$HOME/log_$metric.txt 
             ;;
         fisher)
@@ -202,6 +240,8 @@ do
                             --size $size \
                             --precision $p \
                             --num_batches $num_batches \
+                            --aug_percentage $aug_percentage \
+                            --j_reg $j_reg \
                             >/$HOME/log_$metric.txt
             ;;
         plot)
@@ -215,6 +255,8 @@ do
                             --size $size \
                             --precision $p \
                             --num_batches $num_batches \
+                            --aug_percentage $aug_percentage \
+                            --j_reg $j_reg \
                             --steps 300 \
                             --distance 200 \
                             --normalization filter \
@@ -234,6 +276,8 @@ do
                         --learning_rate $learning_rate \
                         --size $size \
                         --precision $p \
+                        --aug_percentage $aug_percentage \
+                        --j_reg $j_reg \
                         --trial $i \
                         --num_batches $num_batches \
                         >/$HOME/log_$i"_"$metric.txt 2>&1 &
@@ -253,9 +297,16 @@ do
     esac
 done
 
-
 # archive everything and move it in the sahred folder
-tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
+if [ "$augmentation" -eq 1 ]; then
+    tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_AUG_"$aug_percentage"_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
+else
+    if [ "$regularization" -eq 1 ]; then
+        tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_JREG_"$j_reg"_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
+    else
+        tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
+    fi
+fi
 
 exit 0
 

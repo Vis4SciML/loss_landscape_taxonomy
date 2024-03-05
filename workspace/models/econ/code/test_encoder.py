@@ -26,13 +26,19 @@ from hessian import Hessian
 
 ECON_layers = ['encoder.conv', 'encoder.enc_dense']
 
-
-def load_model(path, batch_size, learning_rate, precision, size, index=1):
+# TODO: adapt 
+def load_model(path, batch_size, learning_rate, precision, size, index=1, j_reg=0.0, aug_percentage=0.0):
     '''
     Method used to get the model and the relative EMD value
     '''
     lr = "{:.10f}".format(float(learning_rate)).rstrip('0')
     model_path = path + f'bs{batch_size}_lr{lr}/ECON_{precision}b/{size}/net_{index}_best.pkl'
+    if aug_percentage > 0:
+        model_path = path + f'bs{batch_size}_lr{lr}/ECON_AUG_{precision}b/{size}/net_{index}_{aug_percentage}_best.pkl'
+    elif j_reg > 0:
+        model_path = path + f'bs{batch_size}_lr{lr}/ECON_JREG_{precision}b/{size}/net_{index}_{j_reg}_best.pkl'
+    else:
+        model_path = path + f'bs{batch_size}_lr{lr}/ECON_{precision}b/{size}/net_{index}_best.pkl'
     
     # load the model
     model = econ.AutoEncoder(
@@ -62,10 +68,23 @@ def main(args):
     if not os.path.exists(args.saving_folder):
         os.makedirs(args.saving_folder, exist_ok=True)
         
-    saving_path = os.path.join(
-        args.saving_folder, 
-        f'bs{args.batch_size}_lr{lr}/ECON_{args.precision}b/{args.size}/'
-    )
+    if args.aug_percentage > 0:
+        print("Testing a AUG MODEL....")
+        saving_path = os.path.join(
+            args.saving_folder, 
+            f'bs{args.batch_size}_lr{lr}/ECON_AUG_{args.precision}b/{args.size}/'
+        )
+    elif args.j_reg > 0:
+        print("Testing a JREG MODEL....")
+        saving_path = os.path.join(
+            args.saving_folder, 
+            f'bs{args.batch_size}_lr{lr}/ECON_JREG_{args.precision}b/{args.size}/'
+        )
+    else:
+        saving_path = os.path.join(
+            args.saving_folder, 
+            f'bs{args.batch_size}_lr{lr}/ECON_{args.precision}b/{args.size}/'
+        )
     # ---------------------------------------------------------------------------- #
     #                                  DATA MODULE                                 #
     # ---------------------------------------------------------------------------- #
@@ -84,7 +103,9 @@ def main(args):
                                           args.batch_size, 
                                           args.learning_rate, 
                                           args.precision, 
-                                          args.size)
+                                          args.size,
+                                          args.j_reg,
+                                          args.aug_percentage)
     
     # eval the model
     _, val_sum = data_module.get_val_max_and_sum()
@@ -108,7 +129,7 @@ def main(args):
                                 args.batch_size, 
                                 shuffle=False,
                                 num_workers=args.num_workers)
-        print(len(dataloader))
+        
         max_batches = min(len(dataloader), args.num_batches)
         print(f"Testing batches: {max_batches}")
         # test the performances
@@ -120,7 +141,14 @@ def main(args):
         # store the results
         print(f'Original EMD:\t{original_emd}\n' \
               f'Benchmark EMD:\t{test_results}')
-        file_name = f"emd_{args.noise_type}_{args.percentage}.txt"
+        # set the right file name
+        if args.aug_percentage > 0:
+            file_name = f"emd_aug_{args.aug_percentage}_{args.noise_type}_{args.percentage}.txt"
+        elif args.j_reg > 0:
+            file_name = f"emd_jreg_{args.j_reg}_{args.noise_type}_{args.percentage}.txt"
+        else:
+            file_name = f"emd_{args.noise_type}_{args.percentage}.txt"
+            
         test_results_log = os.path.join(saving_path, file_name)
         print('Result stored in: ' + test_results_log)
         with open(test_results_log, "w") as f:
@@ -162,19 +190,29 @@ def main(args):
                                     args.learning_rate, 
                                     args.precision, 
                                     args.size,
-                                    i)
+                                    i,
+                                    args.j_reg,
+                                    args.aug_percentage)
                 model2 = load_model(args.saving_folder, 
                                     args.batch_size, 
                                     args.learning_rate, 
                                     args.precision, 
                                     args.size,
-                                    j)
+                                    j,
+                                    args.j_reg,
+                                    args.aug_percentage)
                 cka = CKA(model1, dataloader, layers=ECON_layers, max_batches=args.num_batches)
                 s = cka.compare_output(model2, 10, 3)
                 print(s)
                 cka_list.append(s)
 
         cka.results['CKA_similarity'] = mean(cka_list)
+        
+        if args.aug_percentage > 0:
+            cka.name = f"CKA_similarity_aug_{args.aug_percentage}"
+        elif args.j_reg > 0:
+            cka.name = f"CKA_similarity_jreg_{args.j_reg}"
+
         cka.save_on_file(path=saving_path)
         print(mean(cka_list))
     elif args.metric == 'neural_efficiency':
@@ -189,6 +227,12 @@ def main(args):
                                   max_batches=args.num_batches,
                                   target_layers=ECON_layers)
         metric.compute(beta=0.5)
+        
+        if args.aug_percentage > 0:
+            metric.name = f"neural_efficiency_aug_{args.aug_percentage}"
+        elif args.j_reg > 0:
+            metric.name = f"neural_efficiency_jreg_{args.j_reg}"
+        
         metric.save_on_file(path=saving_path)
     elif args.metric == 'fisher':
         # ---------------------------------------------------------------------------- #
@@ -201,6 +245,12 @@ def main(args):
                      target_layers=ECON_layers, 
                      input_spec=(256, 1, 8, 8))
         fisher.EF(min_iterations=100, max_iterations=1000)
+        
+        if args.aug_percentage > 0:
+            fisher.name = f"fisher_aug_{args.aug_percentage}"
+        elif args.j_reg > 0:
+            fisher.name = f"fisher_jreg_{args.j_reg}"
+            
         fisher.save_on_file(path=saving_path)
         
     elif args.metric == 'plot':
@@ -211,6 +261,12 @@ def main(args):
         plot.compute(steps=args.steps, 
                      distance=args.distance, 
                      normalization=args.normalization)
+        
+        if args.aug_percentage > 0:
+            plot.name = f"plot_aug_{args.aug_percentage}"
+        elif args.j_reg > 0:
+            plot.name = f"plot_jreg_{args.j_reg}"
+            
         plot.save_on_file(path=saving_path)
     elif args.metric == 'hessian':
         # ---------------------------------------------------------------------------- #
@@ -220,6 +276,10 @@ def main(args):
         dataloader = data_module.test_dataloader()
         hessian = Hessian(model, dataloader, name=f"hessian_{args.trial}")
         hessian.compute()
+        if args.aug_percentage > 0:
+            hessian.name = f"hessian_{args.trial}_aug_{args.aug_percentage}"
+        elif args.j_reg > 0:
+            hessian.name = f"hessian_{args.trial}_jreg_{args.j_reg}"
         hessian.save_on_file(path=saving_path)
     # ADD NEW METRICS HERE
     else:
@@ -236,6 +296,7 @@ if __name__ == "__main__":
     parser.add_argument("--size", type=str, default="baseline")
     parser.add_argument("--precision", type=int, default=8)
     parser.add_argument("--learning_rate", type=float, default=0.0015625)
+    parser.add_argument("--j_reg", type=float, default=0.0)
     parser = AutoEncoderDataModule.add_argparse_args(parser)
     # noise
     parser.add_argument("--percentage", type=int, default=0)
