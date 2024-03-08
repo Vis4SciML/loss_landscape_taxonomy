@@ -233,6 +233,7 @@ def main(args):
         elif args.j_reg > 0:
             metric.name = f"neural_efficiency_jreg_{args.j_reg}"
         
+        print(f"network efficiency: {metric.results['network_efficiency']}")
         metric.save_on_file(path=saving_path)
     elif args.metric == 'fisher':
         # ---------------------------------------------------------------------------- #

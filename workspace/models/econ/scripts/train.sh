@@ -23,11 +23,12 @@ aug_percentage=0
 regularization=0
 j_reg=0
 adv_training=0
+prune=0
 
 
 # ranges of the scan 
 precisions=(2 3 4 5 6 7 8 9 10 11)
-#precisions=(2)
+#precisions=(8)
 
 
 # Function to display script usage
@@ -151,10 +152,10 @@ handle_options() {
                     shift
                 fi
                 ;;
-            --adv_training)
+            --prune)
                 if has_argument $@; then
-                    adv_training=$(extract_argument $@)
-                    echo "Weight of the Adversarial training: $adv_training"
+                    prune=$(extract_argument $@)
+                    echo "Weight of the Adversarial training: $prune"
                     shift
                 fi
                 ;;
@@ -175,8 +176,8 @@ run_train() {
         if [ "$regularization" -eq 1 ]; then
             saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/ECON_JREG_"$precision"b/
         else
-            if [ "$adv_training" -eq 1 ]; then
-                saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/ECON_ADV_"$precision"b/
+            if [ "$prune" -eq 1 ]; then
+                saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/ECON_PRUNE_"$precision"b/
             else
                 saving_folder="$SAVING_FOLDER/bs$batch_size"_lr$learning_rate/ECON_"$precision"b/
             fi
@@ -213,7 +214,7 @@ run_train() {
                 --augmentation $augmentation \
                 --aug_percentage $aug_percentage \
                 --j_reg $j_reg \
-                --adv_training $adv_training \
+                --prune $prune \
                 >/$HOME/log_ECON_$precision"_"$i.txt 2>&1 &
 
             pids+=($!)
@@ -243,6 +244,7 @@ do
     run_train
 done
 
+
 # archive everything and move it in the sahred folder
 if [ "$augmentation" -eq 1 ]; then
     tar -czvf /loss_landscape/ECON_AUG_"$aug_percentage"_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
@@ -250,8 +252,8 @@ else
     if [ "$regularization" -eq 1 ]; then
         tar -czvf /loss_landscape/ECON_JREG_"$j_reg"_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
     else
-        if [ "$adv_training" -eq 1 ]; then
-            tar -czvf /loss_landscape/ECON_ADV_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
+        if [ "$prune" -eq 1 ]; then
+            tar -czvf /loss_landscape/ECON_PRUNE_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
         else
             tar -czvf /loss_landscape/ECON_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
         fi
@@ -264,8 +266,8 @@ exit 0
 # . scripts/train.sh --num_workers 1 --bs 1024 --lr 0.0015625 --max_epochs 1 --size baseline --top_models 1 --num_test 1 --augmentation 1 --aug_percentage 0.3
 # JREG
 # . scripts/train.sh --num_workers 1 --bs 1024 --lr 0.0015625 --max_epochs 1 --size baseline --top_models 1 --num_test 1 --j_reg 0.1
-# ADV
-# . scripts/train.sh --num_workers 1 --bs 1024 --lr 0.0015625 --max_epochs 1 --size baseline --top_models 1 --num_test 1 --adv_training 0.5
+# PRUNE
+# . scripts/train.sh --num_workers 1 --bs 1024 --lr 0.0015625 --max_epochs 1 --size baseline --top_models 1 --num_test 1 --prune 1
 
 # python code/train.py \
 #                 --saving_folder "/loss_landscape/checkpoint/different_knobs_subset_10" \

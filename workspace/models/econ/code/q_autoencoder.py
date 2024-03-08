@@ -293,7 +293,6 @@ class AutoEncoder(pl.LightningModule):
 
     # Pytorch Lightning specific methods
     def forward(self, x):
-        # print(type(self.encoder(x.float())))
         return self.decoder(self.encoder(x.float()))
 
     def configure_optimizers(self):

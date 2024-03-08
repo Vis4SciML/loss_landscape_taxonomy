@@ -1,11 +1,11 @@
 #!/bin/bash
 
-batch_sizes=(64 128 256 512 1024)
+batch_sizes=(16 32 64 128 256 512 1024)
 
 # learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625 )
 learning_rates=(0.0001 0.00001 0.000001 0.0000001)
 
-# batch_sizes=(1024)
+batch_sizes=(64)
 
 learning_rates=(0.0015625)
 
@@ -15,21 +15,19 @@ do
     do
         echo "********************************"
         # /data/tbaldi/work/checkpoint/bs16_lr0.05/RN08_2b/accuracy_pixelate.txt
-        file_path="/data/tbaldi/work/checkpoint/"$bs"_lr"$lr"/RN08_"$p"b/accuracy_pixelate.txt"
-        echo $file_path
         # Check if the file exists
-        if [ -f "$file_path" ]; then
-            echo "File exists: $file_path"
-        else
-            ./scripts/test.sh \
-                                        --batch_size $bs \
-                                        --learning_rate $lr \
-                                        --metric CKA \
-                                        --regularization 1 \
-                                        --j_reg 0.001 \
-                                        --num_batches 5 \
-                                        --num_workers 2
-        fi
+        ./scripts/test.sh \
+                                    --batch_size $bs \
+                                    --learning_rate $lr \
+                                    --metric noise \
+                                    --augmentation 1 \
+                                    --aug_percentage 0.5 \
+                                    --num_workers 1
+
     done
 done
 
+# --augmentation 1 \
+# --aug_percentage 0.5 \
+# --regularization 1 \
+# --j_reg 0.1 \

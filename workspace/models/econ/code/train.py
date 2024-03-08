@@ -1,4 +1,5 @@
 import os
+import sys
 import torch
 import torchinfo
 import pytorch_lightning as pl 
@@ -9,6 +10,9 @@ from argparse import ArgumentParser
 from q_autoencoder import AutoEncoder
 from autoencoder_datamodule import AutoEncoderDataModule
 
+module_path = os.path.abspath(os.path.join('../../common/benchmarks/')) 
+sys.path.insert(0, module_path)
+from prune import HAWQIterativePruning
 
 def main(args):
     # if the directory does not exist you create it
@@ -28,8 +32,8 @@ def main(args):
         args.experiment = f"{args.experiment}_{args.aug_percentage}"
     elif args.j_reg:
         args.experiment = f"{args.experiment}_{args.j_reg}"
-    elif args.adv_training:
-        args.experiment = f"{args.experiment}_{args.adv_training}"
+    elif args.prune:
+        args.experiment = f"{args.experiment}_prune"
     # ------------------------
     # 1 INIT LIGHTNING MODEL
     # ------------------------
@@ -45,12 +49,11 @@ def main(args):
         learning_rate=args.lr,
         econ_type=args.size,
         jacobian_reg=args.j_reg
-        #adv_training=args.adv_training
     )
     torchinfo.summary(model, input_size=(1, 1, 8, 8))  # (B, C, H, W)
 
     tb_logger = pl_loggers.TensorBoardLogger(args.saving_folder, name=args.size)
-
+    
     # stop training when model converges
     early_stop_callback = EarlyStopping(
         monitor="val_loss", 
@@ -59,6 +62,18 @@ def main(args):
         verbose=True, 
         mode="min"
     )
+    
+    pruning_callback = HAWQIterativePruning(
+        monitor="val_loss", 
+        min_delta=0.00, 
+        patience=5, 
+        verbose=True, 
+        mode="min",
+        ratios = [0.3, 0.6, 0.9],
+        dirpath=os.path.join(args.saving_folder, args.size),
+        filename=f'econ_{args.experiment}',
+    )
+    pruning_callback.FILE_EXTENSION = '.pkl'
 
     # save top-3 checkpoints based on Val/Loss
     top_checkpoint_callback = ModelCheckpoint(
@@ -71,6 +86,13 @@ def main(args):
         auto_insert_metric_name=False,
     )
     top_checkpoint_callback.FILE_EXTENSION = '.pkl'
+    
+    callbacks = [top_checkpoint_callback]
+    if args.prune:
+        callbacks.append(pruning_callback)
+    else:
+        callbacks.append(early_stop_callback)
+        
     print(f'Saving to dir: {os.path.join(args.saving_folder, args.size)}')
     print(f'Running experiment: {args.experiment}')
 
@@ -82,7 +104,7 @@ def main(args):
         accelerator=args.accelerator,
         devices=1,
         logger=tb_logger,
-        callbacks=[top_checkpoint_callback, early_stop_callback],
+        callbacks=callbacks,
         fast_dev_run=args.fast_dev_run,
     )
     print("strategy:", trainer.strategy)
@@ -142,11 +164,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--accelerator", type=str, choices=["cpu", "gpu", "tpu", "auto"], default="auto"
     )
-    
+    # Pruning
+    parser.add_argument("--prune", type=int, default=0)
     # Jacobian regularization
     parser.add_argument("--j_reg", type=float, default=0.0)
-    # Adversarial training
-    parser.add_argument("--adv_training", type=float, default=0.0)
     # Add dataset-specific args
     parser = AutoEncoderDataModule.add_argparse_args(parser)
     # NOTE: do not activate during real training, just for debugging
