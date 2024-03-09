@@ -3,10 +3,10 @@ QPrune developed by Javier Campos (Fermilab)
 HAWQIterativePruning developed by Tommaso Baldi (INFN)
 
 TODO:
-    - Track if convergened to prune again  
-    - Checkpoints 
+    - messages are not showing properly
 """
 import os
+import logging
 from typing import Dict, Callable, Tuple, Optional
 import numpy as np
 from typing import Any
@@ -16,13 +16,13 @@ import torch
 import torch.nn as nn
 from torch.nn.utils import prune
 from hawq.utils.quantization_utils.quant_modules import QuantConv2d, QuantLinear, QuantBnConv2d
-from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from lightning_fabric.utilities.types import _PATH
 from lightning_fabric.utilities.cloud_io import get_filesystem
+from pytorch_lightning.callbacks import Checkpoint
 
 
-
+log = logging.getLogger(__name__)
 mode_dict = {"min": torch.lt, "max": torch.gt}
 
 
@@ -68,7 +68,7 @@ class QPrune():
                 self._register_layer(module_name+"."+name)
                 prune.remove(module, 'weight')
             elif isinstance(module, (nn.Sequential, nn.Module)): # for nested modules, sequential models, blocks, etc 
-                self.prune_layers(module, module_name=module_name+"."+name)
+                self.prune_layers(module, module_name=module_name+"."+name, amount=amount)
     
     
     def print_pruned_layers(self):
@@ -91,7 +91,7 @@ class QPrune():
 
     def _check_sparisty(self, module):
         if isinstance(module, QuantLinear):
-            nonzero = torch.count_nonzero(module.weight_integer)
+            nonzero = torch.count_nonzero(module.weight)
             total_params = torch.prod(torch.tensor(module.weight_integer.shape))
         elif isinstance(module, (QuantBnConv2d, QuantConv2d)):
             nonzero = torch.count_nonzero(module.conv.weight)
@@ -116,7 +116,7 @@ class QPrune():
     
     
     
-class HAWQIterativePruning(Callback):
+class HAWQIterativePruning(Checkpoint):
     '''
     
     tip:: Saving and restoring multiple early stopping callbacks at the same time is supported under variation in the
@@ -237,7 +237,7 @@ class HAWQIterativePruning(Callback):
         return msg
             
             
-    def _run_pruning_check(self, trainer: Trainer, pl_module: LightningModule):
+    def _run_pruning_check(self, trainer: pl.Trainer, pl_module: LightningModule):
         '''
         Checks if the model is pruning condition is met and if so we prune the model
         '''
@@ -248,22 +248,29 @@ class HAWQIterativePruning(Callback):
         
         current = logs[self.monitor].squeeze()
         should_prune, reason = self._evaluate_pruning_criteria(current)
-        
+        if reason and self.verbose:
+            log.info(reason)
+            
         if should_prune:
             self.pruned_epoch.append(trainer.current_epoch)
+            
+            # save the model
+            file_path = self._get_file_path(trainer)
+            trainer.save_checkpoint(file_path, self.save_weights_only)
             
             # stop condition - last pruning is converged too
             if self.pruning_step == len(self.ratios):
                 should_stop = trainer.strategy.reduce_boolean_decision(True, all=False)
                 trainer.should_stop = trainer.should_stop or should_stop
+                return
                 
-            self._prune_message(reason)
-            # save the model
-            file_path = self._get_file_path(trainer)
-            trainer.save_checkopoint(file_path, self.save_weights_only)
-            
             # pruning
+            msg = self._prune_message(reason)
             self.prune.prune_layers(pl_module, self.ratios[self.pruning_step], 'model')
+            
+            if self.verbose:
+                print(self.prune.profile(pl_module))
+                log.info(msg)
             
             self.pruning_step += 1
             # reset the best model
@@ -280,7 +287,7 @@ class HAWQIterativePruning(Callback):
         
         if self.monitor_op(current - self.min_delta, self.best_score.to(current.device)):
             should_prune = False
-            self._improvement_message(current)
+            reason = self._improvement_message(current)
             self.best_score = current
             self.wait_count = 0
         else:
@@ -300,11 +307,11 @@ class HAWQIterativePruning(Callback):
         Method to assign the name to the checkpoint based on the pruning status 
         and the version in case of duplicates
         '''
-        filename = filename or self.file_name
+        filename = filename or self.filename
         
         # add pruning percentage
         if self.pruning_step:
-            filename = f"{filename}-prune-{self.ratios[self.pruning_step-1]}"
+            filename = f"{filename}-{self.ratios[self.pruning_step-1]}"
         # add version if duplicate
         if ver is not None:
             filename = f"{filename}-{ver}"
@@ -354,13 +361,13 @@ class HAWQIterativePruning(Callback):
         self.patience = state_dict["patience"]
         
         
-    def on_train_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
+    def on_train_epoch_end(self, trainer: pl.Trainer, pl_module: LightningModule) -> None:
         if not self._check_on_train_epoch_end:
             return
         self._run_pruning_check(trainer, pl_module)
     
     
-    def on_validation_epoch_end(self, trainer: Trainer, pl_module: LightningModule) -> None:
+    def on_validation_epoch_end(self, trainer: pl.Trainer, pl_module: LightningModule) -> None:
         if self._check_on_train_epoch_end:
             return
         self._run_pruning_check(trainer, pl_module)

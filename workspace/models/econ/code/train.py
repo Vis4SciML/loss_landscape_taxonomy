@@ -63,13 +63,15 @@ def main(args):
         mode="min"
     )
     
+    # apply iterative pruning
+    pruning_steps = [0.3, 0.6, 0.9]
     pruning_callback = HAWQIterativePruning(
         monitor="val_loss", 
-        min_delta=0.00, 
+        min_delta=0.30, 
         patience=5, 
         verbose=True, 
         mode="min",
-        ratios = [0.3, 0.6, 0.9],
+        ratios = pruning_steps,
         dirpath=os.path.join(args.saving_folder, args.size),
         filename=f'econ_{args.experiment}',
     )
@@ -106,6 +108,8 @@ def main(args):
         logger=tb_logger,
         callbacks=callbacks,
         fast_dev_run=args.fast_dev_run,
+        limit_train_batches=200,
+        limit_val_batches=50
     )
     print("strategy:", trainer.strategy)
     
@@ -128,7 +132,13 @@ def main(args):
         args.saving_folder, 
         args.size, 
         f'net_{args.experiment}_best.pkl'
-    )        
+    ) 
+    if args.prune:
+        checkpoint_file = os.path.join(
+            args.saving_folder, 
+            args.size, 
+            f'econ_{args.experiment}.pkl'
+        ) 
     print('Loading checkpoint...', checkpoint_file)
     checkpoint = torch.load(checkpoint_file)  
     model.load_state_dict(checkpoint['state_dict'])
@@ -147,6 +157,35 @@ def main(args):
     with open(test_results_log, "w") as f:
         f.write(str(test_results))
         f.close()
+        
+    # test the pruned models
+    if args.prune:
+        for step in pruning_steps:
+            checkpoint_file = os.path.join(
+                args.saving_folder, 
+                args.size, 
+                f'econ_{args.experiment}-{step}.pkl'
+            )        
+            print('Loading checkpoint...', checkpoint_file)
+            checkpoint = torch.load(checkpoint_file)  
+            model.load_state_dict(checkpoint['state_dict'])
+            # Need val_sum to compute EMD
+            _, val_sum = data_module.get_val_max_and_sum()
+            model.set_val_sum(val_sum)
+            data_module.setup("test")
+            # run the test on the trainer
+            test_dataloader = data_module.test_dataloader()
+            test_results = trainer.test(model, dataloaders=test_dataloader)
+            print(f"TEST EMD: {test_results}")
+            # save the results on file
+            test_results_log = os.path.join(
+                args.saving_folder, 
+                args.size, args.size + f"_emd_{args.experiment}-{step}.txt"
+            )
+            
+            with open(test_results_log, "w") as f:
+                f.write(str(test_results))
+                f.close()
 
 
 if __name__ == "__main__":
