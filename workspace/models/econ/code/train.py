@@ -161,6 +161,19 @@ def main(args):
     # test the pruned models
     if args.prune:
         for step in pruning_steps:
+            # load pruned model
+            model = AutoEncoder(
+                quantize=(args.weight_precision < 32),
+                precision=[
+                    args.weight_precision, 
+                    args.bias_precision, 
+                    args.act_precision
+                ],
+                learning_rate=args.lr,
+                econ_type=args.size,
+                jacobian_reg=args.j_reg
+            )
+            torchinfo.summary(model, input_size=(1, 1, 8, 8))  # (B, C, H, W)
             checkpoint_file = os.path.join(
                 args.saving_folder, 
                 args.size, 
@@ -191,7 +204,7 @@ def main(args):
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--saving_folder", type=str)
-    parser.add_argument("--no_train", action="store_true", default=False)
+    parser.add_argument("--no_train", type=int, default=0)
     parser.add_argument("--max_epochs", type=int, default=10)
     parser.add_argument("--size", type=str, default="baseline")
     parser.add_argument("--weight_precision", type=int, default=8)
