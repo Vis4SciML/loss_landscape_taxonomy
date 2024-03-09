@@ -108,8 +108,6 @@ def main(args):
         logger=tb_logger,
         callbacks=callbacks,
         fast_dev_run=args.fast_dev_run,
-        limit_train_batches=200,
-        limit_val_batches=50
     )
     print("strategy:", trainer.strategy)
     
