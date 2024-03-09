@@ -64,10 +64,10 @@ def main(args):
     )
     
     # apply iterative pruning
-    pruning_steps = [0.3, 0.6, 0.9]
+    pruning_steps = [0.1, 0.25, 0.5, 0.75, 0.9]
     pruning_callback = HAWQIterativePruning(
         monitor="val_loss", 
-        min_delta=0.30, 
+        min_delta=0.00, 
         patience=5, 
         verbose=True, 
         mode="min",
