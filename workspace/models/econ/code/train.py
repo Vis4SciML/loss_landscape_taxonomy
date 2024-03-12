@@ -30,6 +30,8 @@ def main(args):
     # not classical
     if args.augmentation:
         args.experiment = f"{args.experiment}_{args.aug_percentage}"
+    elif args.j_reg and args.prune:
+        args.experiment = f"{args.experiment}_jprune"
     elif args.j_reg:
         args.experiment = f"{args.experiment}_{args.j_reg}"
     elif args.prune:
@@ -177,6 +179,10 @@ def main(args):
                 args.size, 
                 f'econ_{args.experiment}-{step}.pkl'
             )        
+            # if the path does not exist continue
+            if not os.path.exists(checkpoint_file):
+                continue
+                
             print('Loading checkpoint...', checkpoint_file)
             checkpoint = torch.load(checkpoint_file)  
             model.load_state_dict(checkpoint['state_dict'])
