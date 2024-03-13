@@ -350,7 +350,7 @@ class AutoEncoder(pl.LightningModule):
 # ---------------------------------------------------------------------------- #
 #                                Utility methods                               #
 # ---------------------------------------------------------------------------- #
-def load_model(path, batch_size, learning_rate, precision, size, jreg=0.0, aug_percentage=0.0):
+def load_model(path, batch_size, learning_rate, precision, size, jreg=0.0, aug_percentage=0.0, prune=0.0):
     '''
     Method used to get the model and the relative EMD value
     '''
@@ -359,6 +359,8 @@ def load_model(path, batch_size, learning_rate, precision, size, jreg=0.0, aug_p
     
     if aug_percentage > 0:
         model_path = path + f'bs{batch_size}_lr{lr}/ECON_AUG_{precision}b/{size}/net_{idx}_{aug_percentage}_best.pkl'
+    elif prune > 0:
+        model_path = path + f'bs{batch_size}_lr{lr}/ECON_PRUNE_{precision}b/{size}/econ_{idx}_prune-{prune}.pkl'
     elif jreg > 0:
         model_path = path + f'bs{batch_size}_lr{lr}/ECON_JREG_{precision}b/{size}/net_{idx}_{jreg}_best.pkl'
     else:

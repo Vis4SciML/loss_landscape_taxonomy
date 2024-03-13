@@ -185,7 +185,7 @@ class AutoEncoderDataModule(pl.LightningDataModule):
         parser.add_argument("--num_workers", type=int, default=8)
         parser.add_argument("--batch_size", type=int, default=500)
         parser.add_argument("--augmentation", type=int, default=0)
-        parser.add_argument("--aug_percentage", type=float, default=0.3)
+        parser.add_argument("--aug_percentage", type=float, default=0.0)
         return parent_parser
 
     def mask_data(self, data):

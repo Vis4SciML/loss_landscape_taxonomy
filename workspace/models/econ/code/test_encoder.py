@@ -27,7 +27,7 @@ from hessian import Hessian
 ECON_layers = ['encoder.conv', 'encoder.enc_dense']
 
 # TODO: adapt 
-def load_model(path, batch_size, learning_rate, precision, size, index=1, j_reg=0.0, aug_percentage=0.0):
+def load_model(path, batch_size, learning_rate, precision, size, index=1, j_reg=0.0, aug_percentage=0.0, prune=0.0):
     '''
     Method used to get the model and the relative EMD value
     '''
@@ -35,6 +35,8 @@ def load_model(path, batch_size, learning_rate, precision, size, index=1, j_reg=
     model_path = path + f'bs{batch_size}_lr{lr}/ECON_{precision}b/{size}/net_{index}_best.pkl'
     if aug_percentage > 0:
         model_path = path + f'bs{batch_size}_lr{lr}/ECON_AUG_{precision}b/{size}/net_{index}_{aug_percentage}_best.pkl'
+    elif prune > 0:
+        model_path = path + f'bs{batch_size}_lr{lr}/ECON_PRUNE_{precision}b/{size}/econ_{index}_prune-{prune}.pkl'
     elif j_reg > 0:
         model_path = path + f'bs{batch_size}_lr{lr}/ECON_JREG_{precision}b/{size}/net_{index}_{j_reg}_best.pkl'
     else:
@@ -74,6 +76,12 @@ def main(args):
             args.saving_folder, 
             f'bs{args.batch_size}_lr{lr}/ECON_AUG_{args.precision}b/{args.size}/'
         )
+    elif args.prune > 0:
+        print("Testing a PRUNE MODEL....")
+        saving_path = os.path.join(
+            args.saving_folder, 
+            f'bs{args.batch_size}_lr{lr}/ECON_PRUNE_{args.precision}b/{args.size}/'
+        )
     elif args.j_reg > 0:
         print("Testing a JREG MODEL....")
         saving_path = os.path.join(
@@ -105,7 +113,8 @@ def main(args):
                                           args.precision, 
                                           args.size,
                                           args.j_reg,
-                                          args.aug_percentage)
+                                          args.aug_percentage, 
+                                          args.prune)
     
     # eval the model
     _, val_sum = data_module.get_val_max_and_sum()
@@ -129,8 +138,12 @@ def main(args):
                                 args.batch_size, 
                                 shuffle=False,
                                 num_workers=args.num_workers)
-        
-        max_batches = min(len(dataloader), args.num_batches)
+        if args.num_batches:
+            max_batches = min(len(dataloader), args.num_batches)
+        else:
+            max_batches = len(dataloader)
+            
+            
         print(f"Testing batches: {max_batches}")
         # test the performances
         trainer = pl.Trainer(accelerator='auto', 
@@ -144,6 +157,8 @@ def main(args):
         # set the right file name
         if args.aug_percentage > 0:
             file_name = f"emd_aug_{args.aug_percentage}_{args.noise_type}_{args.percentage}.txt"
+        elif args.prune > 0:
+            file_name = f"emd_prune_{args.prune}_{args.noise_type}_{args.percentage}.txt"
         elif args.j_reg > 0:
             file_name = f"emd_jreg_{args.j_reg}_{args.noise_type}_{args.percentage}.txt"
         else:
@@ -192,7 +207,8 @@ def main(args):
                                     args.size,
                                     i,
                                     args.j_reg,
-                                    args.aug_percentage)
+                                    args.aug_percentage,
+                                    args.prune)
                 model2 = load_model(args.saving_folder, 
                                     args.batch_size, 
                                     args.learning_rate, 
@@ -200,7 +216,8 @@ def main(args):
                                     args.size,
                                     j,
                                     args.j_reg,
-                                    args.aug_percentage)
+                                    args.aug_percentage,
+                                    args.prune)
                 cka = CKA(model1, dataloader, layers=ECON_layers, max_batches=args.num_batches)
                 s = cka.compare_output(model2, 10, 3)
                 print(s)
@@ -210,6 +227,8 @@ def main(args):
         
         if args.aug_percentage > 0:
             cka.name = f"CKA_similarity_aug_{args.aug_percentage}"
+        elif args.prune > 0:
+            cka.name = f"CKA_similarity_prune_{args.prune}"
         elif args.j_reg > 0:
             cka.name = f"CKA_similarity_jreg_{args.j_reg}"
 
@@ -230,6 +249,8 @@ def main(args):
         
         if args.aug_percentage > 0:
             metric.name = f"neural_efficiency_aug_{args.aug_percentage}"
+        elif args.prune > 0:
+            metric.name = f"neural_efficiency_prune_{args.prune}"
         elif args.j_reg > 0:
             metric.name = f"neural_efficiency_jreg_{args.j_reg}"
         
@@ -251,6 +272,8 @@ def main(args):
             fisher.name = f"fisher_aug_{args.aug_percentage}"
         elif args.j_reg > 0:
             fisher.name = f"fisher_jreg_{args.j_reg}"
+        elif args.prune > 0:
+            fisher.name = f"fisher_prune_{args.prune}"
             
         fisher.save_on_file(path=saving_path)
         
@@ -267,6 +290,8 @@ def main(args):
             plot.name = f"plot_aug_{args.aug_percentage}"
         elif args.j_reg > 0:
             plot.name = f"plot_jreg_{args.j_reg}"
+        elif args.prune > 0:
+            plot.name = f"plot_prune_{args.prune}"
             
         plot.save_on_file(path=saving_path)
     elif args.metric == 'hessian':
@@ -281,6 +306,8 @@ def main(args):
             hessian.name = f"hessian_{args.trial}_aug_{args.aug_percentage}"
         elif args.j_reg > 0:
             hessian.name = f"hessian_{args.trial}_jreg_{args.j_reg}"
+        elif args.prune > 0:
+            hessian.name = f"hessian_{args.trial}_prune_{args.prune}"
         hessian.save_on_file(path=saving_path)
     # ADD NEW METRICS HERE
     else:
@@ -298,6 +325,7 @@ if __name__ == "__main__":
     parser.add_argument("--precision", type=int, default=8)
     parser.add_argument("--learning_rate", type=float, default=0.0015625)
     parser.add_argument("--j_reg", type=float, default=0.0)
+    parser.add_argument("--prune", type=float, default=0.0)
     parser = AutoEncoderDataModule.add_argparse_args(parser)
     # noise
     parser.add_argument("--percentage", type=int, default=0)

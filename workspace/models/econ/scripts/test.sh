@@ -17,6 +17,8 @@ augmentation=0
 regularization=0
 aug_percentage=0
 j_reg=0
+prune=0
+prune_percentage=0
 
 
 # ranges of the scan 
@@ -24,6 +26,7 @@ j_reg=0
 # learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
 
 precisions=(2 3 4 5 6 7 8 9 10 11)
+#precisions=(11)
 
 # Function to display script usage
 usage() {
@@ -124,6 +127,20 @@ handle_options() {
                     shift
                 fi
                 ;;
+            --prune)
+                if has_argument $@; then
+                    prune=$(extract_argument $@)
+                    echo "Flag for pruning: $prune"
+                    shift
+                fi
+                ;;
+            --prune_percentage)
+                if has_argument $@; then
+                    prune_percentage=$(extract_argument $@)
+                    echo "Pruning percentage: $prune_percentage"
+                    shift
+                fi
+                ;;
             *)
                 echo "Invalid option: $1" >&2
                 usage
@@ -145,7 +162,7 @@ do
 
     case $metric in
         noise)
-            percentages=(5 10 15 20)
+            percentages=(5)
             for j in ${percentages[*]}
             do
                 echo "Valdation with $j%"
@@ -167,6 +184,7 @@ do
                                 --num_batches $num_batches \
                                 --aug_percentage $aug_percentage \
                                 --j_reg $j_reg \
+                                --prune $prune_percentage \
                                 >/$HOME/log_$i.txt 2>&1 &
                     pids+=($!)
                 done
@@ -215,6 +233,7 @@ do
                             --num_batches $num_batches \
                             --aug_percentage $aug_percentage \
                             --j_reg $j_reg \
+                            --prune $prune_percentage \
                             >/$HOME/log_$metric.txt 
             ;;
         neural_efficiency)
@@ -230,6 +249,7 @@ do
                             --num_batches $num_batches \
                             --aug_percentage $aug_percentage \
                             --j_reg $j_reg \
+                            --prune $prune_percentage \
                             >/$HOME/log_$metric.txt 
             ;;
         fisher)
@@ -245,6 +265,7 @@ do
                             --num_batches $num_batches \
                             --aug_percentage $aug_percentage \
                             --j_reg $j_reg \
+                            --prune $prune_percentage \
                             >/$HOME/log_$metric.txt
             ;;
         plot)
@@ -263,6 +284,7 @@ do
                             --steps 300 \
                             --distance 200 \
                             --normalization filter \
+                            --prune $prune_percentage \
                             >/$HOME/log_$metric.txt
             ;;
         hessian)
@@ -283,6 +305,7 @@ do
                         --j_reg $j_reg \
                         --trial $i \
                         --num_batches $num_batches \
+                        --prune $prune_percentage \
                         >/$HOME/log_$i"_"$metric.txt 2>&1 &
                 pids+=($!)
             done
@@ -299,7 +322,6 @@ do
             ;;
     esac
 done
-
 # archive everything and move it in the sahred folder
 if [ "$augmentation" -eq 1 ]; then
     tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_AUG_"$aug_percentage"_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
@@ -307,7 +329,11 @@ else
     if [ "$regularization" -eq 1 ]; then
         tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_JREG_"$j_reg"_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
     else
-        tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
+        if [ "$prune" -eq 1 ]; then
+            tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_PRUNE_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
+        else
+            tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
+        fi
     fi
 fi
 
