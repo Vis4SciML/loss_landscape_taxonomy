@@ -19,10 +19,10 @@ do
         ./scripts/test.sh \
                                     --batch_size $bs \
                                     --learning_rate $lr \
-                                    --metric neural_efficiency \
+                                    --metric plot \
                                     --prune 1 \
                                     --num_batches 2000 \
-                                    --prune_percentage 0.75 \
+                                    --prune_percentage 0.1 \
                                     --num_workers 1
 
     done

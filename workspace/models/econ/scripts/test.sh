@@ -330,7 +330,7 @@ else
         tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_JREG_"$j_reg"_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
     else
         if [ "$prune" -eq 1 ]; then
-            tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_PRUNE_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
+            tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_PRUNE_"$prune_percentage"_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
         else
             tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
         fi
