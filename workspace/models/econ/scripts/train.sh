@@ -249,22 +249,22 @@ do
 done
 
 if [ "$augmentation" -eq 1 ]; then
-        tar -czvf /loss_landscape/ECON_AUG_"$aug_percentage"_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
+    tar -czvf /loss_landscape/ECON_AUG_"$aug_percentage"_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
+else
+    if [ "$regularization" -eq 1 ] && [ "$prune" -eq 1 ]; then
+        tar -czvf /loss_landscape/ECON_JREG_PRUNE_"$j_reg"_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
     else
-        if [ "$regularization" -eq 1 ] && [ "$prune" -eq 1 ]; then
-            tar -czvf /loss_landscape/ECON_JREG_PRUNE_"$j_reg"_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
+        if [ "$regularization" -eq 1 ]; then
+            tar -czvf /loss_landscape/ECON_PRUNE_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
         else
-            if [ "$regularization" -eq 1 ]; then
+            if [ "$prune" -eq 1 ]; then
                 tar -czvf /loss_landscape/ECON_PRUNE_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
             else
-                if [ "$prune" -eq 1 ]; then
-                    tar -czvf /loss_landscape/ECON_PRUNE_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
-                else
-                    tar -czvf /loss_landscape/ECON_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
-                fi
+                tar -czvf /loss_landscape/ECON_$size"_"bs$batch_size"_lr$learning_rate".tar.gz $SAVING_FOLDER/ 
             fi
         fi
     fi
+fi
 
 exit 0
 

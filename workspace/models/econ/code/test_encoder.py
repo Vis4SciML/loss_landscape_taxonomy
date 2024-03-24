@@ -35,6 +35,8 @@ def load_model(path, batch_size, learning_rate, precision, size, index=1, j_reg=
     model_path = path + f'bs{batch_size}_lr{lr}/ECON_{precision}b/{size}/net_{index}_best.pkl'
     if aug_percentage > 0:
         model_path = path + f'bs{batch_size}_lr{lr}/ECON_AUG_{precision}b/{size}/net_{index}_{aug_percentage}_best.pkl'
+    elif prune > 0 and j_reg > 0:
+        model_path = path + f'bs{batch_size}_lr{lr}/ECON_JREG_PRUNE_{precision}b/{size}/econ_{index}_jprune-{prune}.pkl'
     elif prune > 0:
         model_path = path + f'bs{batch_size}_lr{lr}/ECON_PRUNE_{precision}b/{size}/econ_{index}_prune-{prune}.pkl'
     elif j_reg > 0:
@@ -75,6 +77,12 @@ def main(args):
         saving_path = os.path.join(
             args.saving_folder, 
             f'bs{args.batch_size}_lr{lr}/ECON_AUG_{args.precision}b/{args.size}/'
+        )
+    elif args.prune > 0 and args.j_reg > 0:
+        print("Testing a JREG and PRUNE MODEL....")
+        saving_path = os.path.join(
+            args.saving_folder, 
+            f'bs{args.batch_size}_lr{lr}/ECON_JREG_PRUNE_{args.precision}b/{args.size}/'
         )
     elif args.prune > 0:
         print("Testing a PRUNE MODEL....")
@@ -157,6 +165,8 @@ def main(args):
         # set the right file name
         if args.aug_percentage > 0:
             file_name = f"emd_aug_{args.aug_percentage}_{args.noise_type}_{args.percentage}.txt"
+        elif args.prune > 0 and args.j_reg > 0:
+            file_name = f"emd_jprune_{args.prune}_{args.noise_type}_{args.percentage}.txt"
         elif args.prune > 0:
             file_name = f"emd_prune_{args.prune}_{args.noise_type}_{args.percentage}.txt"
         elif args.j_reg > 0:

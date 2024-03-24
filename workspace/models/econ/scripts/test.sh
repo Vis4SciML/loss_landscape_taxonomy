@@ -2,7 +2,7 @@
 
 
 SAVING_FOLDER="/home/jovyan/checkpoint/"    # /loss_landscape -> shared volume
-#SAVING_FOLDER="/data/tbaldi/work/checkpoint/"
+# SAVING_FOLDER="/data/tbaldi/work/checkpoint/"
 DATA_DIR="../../../data/ECON/Elegun"
 DATA_FILE="$DATA_DIR/nELinks5.npy"
 
@@ -26,7 +26,7 @@ prune_percentage=0
 # learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
 
 precisions=(2 3 4 5 6 7 8 9 10 11)
-#precisions=(11)
+#precisions=(7 8 9 10 11)
 
 # Function to display script usage
 usage() {
@@ -288,32 +288,33 @@ do
                             >/$HOME/log_$metric.txt
             ;;
         hessian)
-            pids=()
+            # pids=()
             trial=(1 2 3)
-            for i in ${trial[*]}
-            do
-                python code/test_encoder.py --saving_folder $SAVING_FOLDER \
-                        --metric hessian \
-                        --data_dir $DATA_DIR \
-                        --data_file $DATA_FILE \
-                        --num_workers $num_workers \
-                        --batch_size $batch_size \
-                        --learning_rate $learning_rate \
-                        --size $size \
-                        --precision $p \
-                        --aug_percentage $aug_percentage \
-                        --j_reg $j_reg \
-                        --trial $i \
-                        --num_batches $num_batches \
-                        --prune $prune_percentage \
-                        >/$HOME/log_$i"_"$metric.txt 2>&1 &
-                pids+=($!)
-            done
-            for pid in "${pids[@]}"; do
-                wait $pid
-                current_date_time=$(date '+%Y-%m-%d %H:%M:%S')
-                echo "$current_date_time: Process with PID $pid finished"
-            done
+            # for i in ${trial[*]}
+            # do
+            i=1
+            python code/test_encoder.py --saving_folder $SAVING_FOLDER \
+                    --metric hessian \
+                    --data_dir $DATA_DIR \
+                    --data_file $DATA_FILE \
+                    --num_workers $num_workers \
+                    --batch_size $batch_size \
+                    --learning_rate $learning_rate \
+                    --size $size \
+                    --precision $p \
+                    --aug_percentage $aug_percentage \
+                    --j_reg $j_reg \
+                    --trial $i \
+                    --num_batches $num_batches \
+                    --prune $prune_percentage #\
+                    #>/$HOME/log_$i"_"$metric.txt 2>&1 &
+            #     pids+=($!)
+            # done
+            # for pid in "${pids[@]}"; do
+            #     wait $pid
+            #     current_date_time=$(date '+%Y-%m-%d %H:%M:%S')
+            #     echo "$current_date_time: Process with PID $pid finished"
+            # done
             ;;
         # ADD THE NEW METRIC HERE
         *)
@@ -326,17 +327,20 @@ done
 if [ "$augmentation" -eq 1 ]; then
     tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_AUG_"$aug_percentage"_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
 else
-    if [ "$regularization" -eq 1 ]; then
-        tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_JREG_"$j_reg"_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
+    if [ "$regularization" -eq 1 ] && [ "$prune" -eq 1 ]; then
+            tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_JREG_"$j_reg"_PRUNE_"$prune_percentage"_$size"_"bs$batch_size"_lr$learning_rate".tar.gz ./ 
     else
-        if [ "$prune" -eq 1 ]; then
-            tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_PRUNE_"$prune_percentage"_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
+        if [ "$regularization" -eq 1 ]; then
+            tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_JREG_"$j_reg"_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
         else
-            tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
+            if [ "$prune" -eq 1 ]; then
+                tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_PRUNE_"$prune_percentage"_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
+            else
+                tar -C /home/jovyan/checkpoint/bs$batch_size"_lr"$learning_rate/ -czvf /loss_landscape/ECON_$size"_$metric"_bs$batch_size"_lr"$learning_rate.tar.gz ./
+            fi
         fi
     fi
 fi
-
 exit 0
 
 

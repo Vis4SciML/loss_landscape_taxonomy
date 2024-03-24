@@ -359,6 +359,8 @@ def load_model(path, batch_size, learning_rate, precision, size, jreg=0.0, aug_p
     
     if aug_percentage > 0:
         model_path = path + f'bs{batch_size}_lr{lr}/ECON_AUG_{precision}b/{size}/net_{idx}_{aug_percentage}_best.pkl'
+    elif prune > 0 and jreg > 0:
+        model_path = path + f'bs{batch_size}_lr{lr}/ECON_JREG_PRUNE_{precision}b/{size}/econ_{idx}_jprune-{prune}.pkl'
     elif prune > 0:
         model_path = path + f'bs{batch_size}_lr{lr}/ECON_PRUNE_{precision}b/{size}/econ_{idx}_prune-{prune}.pkl'
     elif jreg > 0:
