@@ -5,12 +5,17 @@ num_workers=14
 metric='noise'
 num_batches=50000
 size="baseline"
+augmentation=0
+regularization=0
+aug_percentage=0
+j_reg=0
 
 # # ranges of the scan 
-batch_sizes=(16 32 64 128 256 512 1024)
+batch_sizes=(32 128 1024)
 learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
+#learning_rates=(0.0001 0.00001 0.000001 0.0000001)
 # batch_sizes=(128)
-# learning_rates=(0.1 0.05)
+learning_rates=(0.0015625)
 
 
 # Function to display script usage
@@ -68,6 +73,34 @@ handle_options() {
                     shift
                 fi
                 ;;
+            --augmentation)
+                if has_argument $@; then
+                    augmentation=$(extract_argument $@)
+                    echo "Percentage of noise injected: $augmentation"
+                    shift
+                fi
+                ;;
+            --regularization)
+                if has_argument $@; then
+                    regularization=$(extract_argument $@)
+                    echo "Percentage of noise injected: $regularization"
+                    shift
+                fi
+                ;;
+            --aug_percentage)
+                if has_argument $@; then
+                    aug_percentage=$(extract_argument $@)
+                    echo "Percentage of noise injected: $aug_percentage"
+                    shift
+                fi
+                ;;
+            --j_reg)
+                if has_argument $@; then
+                    j_reg=$(extract_argument $@)
+                    echo "Weight of the jacobian regularization: $j_reg"
+                    shift
+                fi
+                ;;
         esac
         shift
     done
@@ -95,7 +128,7 @@ spec:
                         git clone https://github.com/balditommaso/loss_landscape_taxonomy.git;
                         cd /home/jovyan/loss_landscape_taxonomy;
                         conda env create -f environment.yml;
-                        . /home/jovyan/loss_landscape_taxonomy/workspace/models/econ/scripts/get_econ_data.sh;
+                        cp -r /loss_landscape/ECON /home/jovyan/loss_landscape_taxonomy/data/;
                         source activate loss_landscape;
                         cd /home/jovyan/loss_landscape_taxonomy/workspace/models/econ/;
                         . scripts/test.sh \
@@ -104,17 +137,21 @@ spec:
                                         --size $size \
                                         --metric $metric \
                                         --num_batches $num_batches \
+                                        --augmentation $augmentation \
+                                        --regularization $regularization \
+                                        --j_reg $j_reg \
+                                        --aug_percentage $aug_percentage \
                                         --num_workers $num_workers"]
                 volumeMounts:
                   - mountPath: /loss_landscape
                     name: loss-landscape-volume
                 resources:
                     limits:
-                        memory: "3G"
-                        cpu: "2"
+                        memory: "16G"
+                        cpu: "12"
                     requests:
-                        memory: "3G"
-                        cpu: "2"
+                        memory: "10G"
+                        cpu: "8"
             restartPolicy: Never
             volumes:
                   - name: loss-landscape-volume
@@ -137,7 +174,17 @@ for bs in ${batch_sizes[*]}
 do
     for lr in ${learning_rates[*]}
     do
-        job_name=$(echo "econ_"$metric"_"$size"_bs"$bs"_lr$lr" | sed 's/\./_/g' | tr '[:upper:]' '[:lower:]')
+        #job_name=$(echo "econ_"$metric"_"$size"_bs"$bs"_lr$lr" | sed 's/\./_/g' | tr '[:upper:]' '[:lower:]')
+        # archive everything and move it in the sahred folder
+        if [ "$augmentation" -gt 0 ]; then
+            job_name=$(echo "econ_aug_"$aug_percentage"_"$metric"_"$size"_bs"$bs"_lr$lr" | sed 's/\./_/g' | tr '[:upper:]' '[:lower:]')
+        else
+            if [ "$regularization" -gt 0 ]; then
+                job_name=$(echo "econ_jreg_"$j_reg"_"$metric"_"$size"_bs"$bs"_lr$lr" | sed 's/\./_/g' | tr '[:upper:]' '[:lower:]')
+            else
+                job_name=$(echo "econ_"$metric"_"$size"_bs"$bs"_lr$lr" | sed 's/\./_/g' | tr '[:upper:]' '[:lower:]')
+            fi
+        fi
         generate_job_yaml $job_name
         start_kubernetes_job
     done    
@@ -162,17 +209,22 @@ exit 0
 
 # BASELINE
     # NoISE
-    # bash econ_benchmarks.sh --size baseline --num_workers 2 --metric noise --num_batches 1000000
+    # bash econ_benchmarks.sh --size baseline --num_workers 1 --metric noise --num_batches 500
+    # bash econ_benchmarks.sh --size baseline --num_workers 1 --metric noise --num_batches 500 --augmentation 1 --aug_percentage 0.8
+    # bash econ_benchmarks.sh --size baseline --num_workers 1 --metric noise --num_batches 500 --regularization 1 --j_reg 0.01
     # BIT FLIP
     # bash econ_benchmarks.sh --size baseline --num_workers 2 --metric bitflip --num_batches 1000000
     # CKA
     # bash econ_benchmarks.sh --size baseline --num_workers 2 --metric CKA --num_batches 100000
     # NE
     # bash econ_benchmarks.sh --size baseline --num_workers 2 --metric neural_efficiency --num_batches 100000
+    # bash econ_benchmarks.sh --size baseline --num_workers 1 --metric neural_efficiency --num_batches 1000 --augmentation 1 --aug_percentage 0.5
     # fisher
     # bash econ_benchmarks.sh --size baseline --num_workers 1 --metric fisher --num_batches 10000
     # plot
-    # bash econ_benchmarks.sh --size baseline --num_workers 2 --metric plot --num_batches 100000
+    # bash econ_benchmarks.sh --size baseline --num_workers 2 --metric plot --num_batches 1000
+    # bash econ_benchmarks.sh --size baseline --num_workers 1 --metric plot --num_batches 500 --augmentation 1 --aug_percentage 0.5
+    # bash econ_benchmarks.sh --size baseline --num_workers 1 --metric plot --num_batches 500 --regularization 1 --j_reg 0.1
     # hessian
     # bash econ_benchmarks.sh --size baseline --num_workers 2 --metric hessian --num_batches 10000
 

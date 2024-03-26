@@ -5,12 +5,18 @@ num_workers=14
 metric='noise'
 num_batches=50000
 size="baseline"
+augmentation=0
+regularization=0
+aug_percentage=0
+j_reg=0
+prune=0
+prune_percentage=0
 
 # # ranges of the scan 
-batch_sizes=(16 32 64 128 256 512 1024)
+batch_sizes=(32 64 128 256 512 1024)
 learning_rates=(0.1 0.05 0.025 0.0125 0.00625 0.003125 0.0015625)
-# batch_sizes=(128)
-# learning_rates=(0.003125)
+batch_sizes=(512)
+learning_rates=(0.0015625)
 
 
 # Function to display script usage
@@ -68,6 +74,48 @@ handle_options() {
                     shift
                 fi
                 ;;
+            --augmentation)
+                if has_argument $@; then
+                    augmentation=$(extract_argument $@)
+                    echo "Percentage of noise injected: $augmentation"
+                    shift
+                fi
+                ;;
+            --regularization)
+                if has_argument $@; then
+                    regularization=$(extract_argument $@)
+                    echo "Percentage of noise injected: $regularization"
+                    shift
+                fi
+                ;;
+            --aug_percentage)
+                if has_argument $@; then
+                    aug_percentage=$(extract_argument $@)
+                    echo "Percentage of noise injected: $aug_percentage"
+                    shift
+                fi
+                ;;
+            --j_reg)
+                if has_argument $@; then
+                    j_reg=$(extract_argument $@)
+                    echo "Weight of the jacobian regularization: $j_reg"
+                    shift
+                fi
+                ;;
+            --prune)
+                if has_argument $@; then
+                    prune=$(extract_argument $@)
+                    echo "Percentage of noise injected: $prune"
+                    shift
+                fi
+                ;;
+            --prune_percentage)
+                if has_argument $@; then
+                    prune_percentage=$(extract_argument $@)
+                    echo "Weight of the jacobian regularization: $prune_percentage"
+                    shift
+                fi
+                ;;
         esac
         shift
     done
@@ -108,6 +156,12 @@ spec:
                                         --size $size \
                                         --metric $metric \
                                         --num_batches $num_batches \
+                                        --augmentation $augmentation \
+                                        --regularization $regularization \
+                                        --j_reg $j_reg \
+                                        --aug_percentage $aug_percentage \
+                                        --prune $prune \
+                                        --prune_percentage $prune_percentage \
                                         --num_workers $num_workers"]
                 volumeMounts:
                   - mountPath: /loss_landscape
@@ -115,11 +169,11 @@ spec:
                 resources:
                     limits:
                         nvidia.com/gpu: "1"
-                        memory: "8G"
-                        cpu: "5"
+                        memory: "14G"
+                        cpu: "8"
                     requests:
                         nvidia.com/gpu: "1"
-                        memory: "8G"
+                        memory: "6G"
                         cpu: "5"
             restartPolicy: Never
             volumes:
@@ -143,7 +197,21 @@ for bs in ${batch_sizes[*]}
 do
     for lr in ${learning_rates[*]}
     do
-        job_name=$(echo "econ_"$metric"_"$size"_bs"$bs"_lr$lr" | sed 's/\./_/g' | tr '[:upper:]' '[:lower:]')
+        #job_name=$(echo "econ_"$metric"_"$size"_bs"$bs"_lr$lr" | sed 's/\./_/g' | tr '[:upper:]' '[:lower:]')
+        # archive everything and move it in the sahred folder
+        if [ "$augmentation" -gt 0 ]; then
+            job_name=$(echo "econ_aug_"$aug_percentage"_"$metric"_"$size"_bs"$bs"_lr$lr" | sed 's/\./_/g' | tr '[:upper:]' '[:lower:]')
+        else
+            if [ "$regularization" -gt 0 ]; then
+                job_name=$(echo "econ_jreg_"$j_reg"_"$metric"_"$size"_bs"$bs"_lr$lr" | sed 's/\./_/g' | tr '[:upper:]' '[:lower:]')
+            else
+                if [ "$prune" -gt 0 ]; then
+                job_name=$(echo "econ_prune_"$prune_percentage"_"$metric"_"$size"_bs"$bs"_lr$lr" | sed 's/\./_/g' | tr '[:upper:]' '[:lower:]')
+                else
+                    job_name=$(echo "econ_"$metric"_"$size"_bs"$bs"_lr$lr" | sed 's/\./_/g' | tr '[:upper:]' '[:lower:]')
+                fi
+            fi
+        fi
         generate_job_yaml $job_name
         start_kubernetes_job
     done    
@@ -181,6 +249,9 @@ exit 0
     # bash econ_hessian.sh --size baseline --num_workers 2 --metric plot --num_batches 100000
     # hessian
     # bash econ_hessian.sh --size baseline --num_workers 2 --metric hessian --num_batches 10000
+    # bash econ_hessian.sh --size baseline --num_workers 4 --metric hessian --num_batches 10000 --augmentation 1 --aug_percentage 0.8
+    # bash econ_hessian.sh --size baseline --num_workers 4 --metric hessian --num_batches 10000 --regularization 1 --j_reg 0.1
+    # bash econ_hessian.sh --size baseline --num_workers 4 --metric hessian --num_batches 10000 --prune 1 --prune_percentage 0.9
 
 
 # LARGE
